@@ -1,4 +1,5 @@
 import shaderCode from './main.wgsl?raw'
+import { textureFromImageUrl } from './utils'
 
 const adapter = (await navigator.gpu.requestAdapter())!
 const device = await adapter.requestDevice()
@@ -54,16 +55,35 @@ const baseUniformBuffer = device.createBuffer({
   size: 16, // 2 * 4 bytes
   usage: GPUBufferUsage.COPY_DST | GPUBufferUsage.UNIFORM
 })
-
 const baseUniformValues = new Float32Array([width, height, 0, 0])
 device.queue.writeBuffer(baseUniformBuffer, 0, baseUniformValues)
+
+const baseColorTexture = await textureFromImageUrl(device, '/a.png')
+
+const baseColorSampler = device.createSampler({
+  magFilter: 'linear',
+  minFilter: 'linear',
+  mipmapFilter: 'linear',
+  addressModeU: 'repeat',
+  addressModeV: 'repeat'
+})
 
 const bindGroupLayout = device.createBindGroupLayout({
   entries: [
     {
-      binding: 0, // resolution uniforms
+      binding: 0, // baseUniform
       visibility: GPUShaderStage.VERTEX | GPUShaderStage.FRAGMENT,
       buffer: {}
+    },
+    {
+      binding: 1, // baseColor texture
+      visibility: GPUShaderStage.FRAGMENT,
+      texture: {}
+    },
+    {
+      binding: 2, // baseColor sampler
+      visibility: GPUShaderStage.FRAGMENT,
+      sampler: {}
     }
   ]
 })
@@ -73,6 +93,14 @@ const bindGroup = device.createBindGroup({
     {
       binding: 0,
       resource: { buffer: baseUniformBuffer }
+    },
+    {
+      binding: 1,
+      resource: baseColorTexture.createView()
+    },
+    {
+      binding: 2,
+      resource: baseColorSampler
     }
   ]
 })

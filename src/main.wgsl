@@ -10,6 +10,8 @@ struct VertexOutput {
 }
 
 @group(0) @binding(0) var<uniform> base_uniform: BaseUniform;
+@group(0) @binding(1) var baseColor : texture_2d<f32>;
+@group(0) @binding(2) var baseColorSampler : sampler;
 
 @vertex
 fn vs_main(@location(0) position: vec2f) -> VertexOutput {
@@ -22,19 +24,16 @@ fn vs_main(@location(0) position: vec2f) -> VertexOutput {
 @fragment
 fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
   var uv = in.vert_pos.xy;
-
-  var cell = 16.;
   uv.x *= base_uniform.resolution.x / base_uniform.resolution.y;
+  var global_d = length(uv) - abs(base_uniform.time / 6000. % 2. - 1.) * 3. + 1.;
+  var a = textureSample(baseColor, baseColorSampler, uv + 0.5);
+  var b = vec4(0., 0.75, 0.75, 1.);
+  return mix(a, b, dotted_mix(uv, 16., global_d));
+}
 
-  var global_d = length(uv) + sin(base_uniform.time / 2000.);
-
+fn dotted_mix(uv: vec2<f32>, cell: f32, val: f32) -> f32 {
   var d = length(fract(uv * cell) - 0.5);
-  var t = global_d;
-  // t = t * 2. - 1.;
-  // var v = (1. - pow(abs(t), 0.9)) * 0.5;
-  // t = select(v, 1. - v, t > 0.);
+  var t = val;
   d = mix(d, 1. - length(fract(uv * cell + 0.5) - 0.5), t);
-  d = step(t, d);
-  var col = vec4(vec3(d), 1.0);
-  return col;
+  return step(d, t);
 }
