@@ -25,15 +25,19 @@ fn vs_main(@location(0) position: vec2f) -> VertexOutput {
 fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
   var uv = in.vert_pos.xy;
   uv.x *= base_uniform.resolution.x / base_uniform.resolution.y;
-  var global_d = length(uv) - abs(base_uniform.time / 6000. % 2. - 1.) * 3. + 1.;
-  var a = textureSample(baseColor, baseColorSampler, uv + 0.5);
-  var b = vec4(0., 0.75, 0.75, 1.);
-  return mix(a, b, dotted_mix(uv, 16., global_d));
+
+  var r = length(uv)*2.0;
+  var a = atan2(uv.y,uv.x);
+  var f = uv.y / 2. + 0.5;
+  return vec4(rainbow(r/10. + a / (PI * 2.)), 1.0);
 }
 
-fn dotted_mix(uv: vec2<f32>, cell: f32, val: f32) -> f32 {
-  var d = length(fract(uv * cell) - 0.5);
-  var t = val;
-  d = mix(d, 1. - length(fract(uv * cell + 0.5) - 0.5), t);
-  return step(d, t);
+const PI = 3.141592653589793;
+
+fn palette(t: f32, a: vec3<f32>, b: vec3<f32>, c: vec3<f32>, d: vec3<f32>) -> vec3<f32> {
+  return a + b*cos(6.28318*(c*t+d));
+}
+
+fn rainbow(t: f32) -> vec3<f32> {
+  return palette(t, vec3(0.5, 0.5, 0.5),	vec3(0.5, 0.5, 0.5),vec3(1.0, 1.0, 1.0), vec3(0.00, 0.33, 0.67));
 }
