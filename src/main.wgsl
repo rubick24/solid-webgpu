@@ -1,12 +1,12 @@
 struct BaseUniform {
-  resolution: vec2f,
-  time: f32,
-  time_delta: f32
+    resolution: vec2f,
+    time: f32,
+    time_delta: f32
 };
 
 struct VertexOutput {
-  @builtin(position) clip_position: vec4<f32>,
-  @location(0) vert_pos: vec3<f32>,
+    @builtin(position) clip_position: vec4<f32>,
+    @location(0) vert_pos: vec3<f32>,
 }
 
 @group(0) @binding(0) var<uniform> base_uniform: BaseUniform;
@@ -15,63 +15,153 @@ struct VertexOutput {
 
 @vertex
 fn vs_main(@location(0) position: vec2f) -> VertexOutput {
-  var out: VertexOutput;
-  out.clip_position = vec4<f32>(position, 0.0, 1.0);
-  out.vert_pos = out.clip_position.xyz;
-  return out;
+    var out: VertexOutput;
+    out.clip_position = vec4<f32>(position, 0.0, 1.0);
+    out.vert_pos = out.clip_position.xyz;
+    return out;
 }
 
 @fragment
 fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
-  var uv = in.vert_pos.xy;
-  uv.x *= base_uniform.resolution.x / base_uniform.resolution.y;
+    var uv = in.vert_pos.xy;
+    uv.x *= base_uniform.resolution.x / base_uniform.resolution.y;
 
-  var r = length(uv)*2.0;
-  var a = atan2(uv.y,uv.x);
-  // return vec4(rainbow(r/10. + a / (PI * 2.)), 1.0);
+    var r = length(uv);
+    // var a = atan2(uv.y, uv.x);
+    var po = normalize(uv);
+    var v = fractal_noise3(vec3(po / 16., base_uniform.time / 40000.), 4u);
 
-  var v = a / PI;
-  let scale = 1.;
-  v = scale - abs((abs(v) % (2.*scale)) - scale);
+    var x = pow(smax(pingpong(v, 0.5), 0.5 - r, 0.65), 2.) / r ;
 
-  v = voronoise(vec2(v * 10., base_uniform.time/1000.), .8, 0.8);
-  return vec4(vec3(v), 1.0);
+    return vec4(vec3(x) * vec3(0.5, 0.5, 1.), 1.);
 }
+
 
 const PI = 3.141592653589793;
 
+
 fn palette(t: f32, a: vec3<f32>, b: vec3<f32>, c: vec3<f32>, d: vec3<f32>) -> vec3<f32> {
-  return a + b*cos(6.28318*(c*t+d));
+    return a + b * cos(6.28318 * (c * t + d));
 }
 
 fn rainbow(t: f32) -> vec3<f32> {
-  return palette(t, vec3(0.5, 0.5, 0.5),	vec3(0.5, 0.5, 0.5),vec3(1.0, 1.0, 1.0), vec3(0.00, 0.33, 0.67));
+    return palette(t, vec3(0.5, 0.5, 0.5), vec3(0.5, 0.5, 0.5), vec3(1.0, 1.0, 1.0), vec3(0.00, 0.33, 0.67));
+}
+
+fn wang_hash(_seed: u32) -> u32 {
+    var seed = (_seed ^ 61u) ^ (_seed >> 16u);
+    seed *= 9u;
+    seed = seed ^ (seed >> 4u);
+    seed *= 0x27d4eb2du;
+    seed = seed ^ (seed >> 15u);
+    return seed;
+}
+
+fn hash2(x: u32, y: u32) -> u32 {
+    return wang_hash(wang_hash(x) + y);
+}
+fn hash3(x: u32, y: u32, z: u32) -> u32 {
+    return wang_hash(wang_hash(wang_hash(x) + y) + z);
+}
+
+fn hash_vec2_to_float(v: vec2f) -> f32 {
+    return f32(hash2(bitcast<u32>(v.x), bitcast<u32>(v.y))) / 4294967295f;
+}
+fn hash_vec3_to_float(v: vec3f) -> f32 {
+    return f32(hash3(bitcast<u32>(v.x), bitcast<u32>(v.y), bitcast<u32>(v.z))) / 4294967295f;
 }
 
 
-fn hash3(p: vec2<f32>) -> vec3<f32> {
-  let q = vec3( dot(p,vec2(127.1,311.7)), 
-				   dot(p,vec2(269.5,183.3)), 
-				   dot(p,vec2(419.2,371.9)) );
-	return fract(sin(q)*43758.5453);
+fn noise2(p: vec2<f32>) -> f32 {
+    let i = floor(p);
+    let f = fract(p);
+    let u = f * f * (3.0 - 2.0 * f);
+    return mix(
+        mix(hash_vec2_to_float(i + vec2(0., 0.)),
+            hash_vec2_to_float(i + vec2(1., 0.)), u.x),
+        mix(hash_vec2_to_float(i + vec2(0., 1.)),
+            hash_vec2_to_float(i + vec2(1., 1.)), u.x), u.y
+    );
 }
 
-fn voronoise(p: vec2<f32>, u: f32, v: f32) -> f32 {
-	let k = 1.0+63.0*pow(1.0-v,6.0);
-  let i = floor(p);
-  let f = fract(p);
-    
-	var a = vec2(0., 0.);
-  for(var y=-2; y<=2; y++) {
-    for(var x=-2; x<=2; x++) {
-      let g = vec2(f32(x), f32(y));
-      let o = hash3(i + g)*vec3(u, u, 1.);
-      let d = g - f + o.xy;
-      let w = pow(1.0-smoothstep(0.0, 1.414, length(d)), k);
-      a += vec2(o.z*w, w);
+fn noise3(p: vec3<f32>) -> f32 {
+    let i = floor(p);
+    let f = fract(p);
+    let u = f * f * (3.0 - 2.0 * f);
+    return mix(
+        mix(
+            mix(hash_vec3_to_float(i + vec3(0., 0., 0.)),
+                hash_vec3_to_float(i + vec3(1., 0., 0.)), u.x),
+            mix(hash_vec3_to_float(i + vec3(0., 1., 0.)),
+                hash_vec3_to_float(i + vec3(1., 1., 0.)), u.x),
+            u.y
+        ),
+        mix(
+            mix(hash_vec3_to_float(i + vec3(0., 0., 1.)),
+                hash_vec3_to_float(i + vec3(1., 0., 1.)), u.x),
+            mix(hash_vec3_to_float(i + vec3(0., 1., 1.)),
+                hash_vec3_to_float(i + vec3(1., 1., 1.)), u.x),
+            u.y
+        ),
+        u.z
+    );
+}
+
+fn fractal_noise2(p: vec2<f32>, octave: u32) -> f32 {
+    var uv = p * 8.;
+    let m = mat2x2(1.6, 1.2, -1.2, 1.6);
+    var f = 0.;
+    for (var i = 0u; i < octave; i += 1u) {
+        f += noise2(uv) * (1. / f32(2u << i));
+        uv = m * uv;
     }
-  }
+    return f;
+}
 
 
-  return a.x/a.y;
+fn fractal_noise3(p: vec3<f32>, octave: u32) -> f32 {
+    var uv = p * 8.;
+
+    // scale(roate(normalize(vec3(1.)), PI/4.), 2.)
+    let m = mat3x3(
+        1.60947570824873, 1.011758726803361, -0.6212344350520911,
+        -0.6212344350520911, 1.60947570824873, 1.011758726803361,
+        1.011758726803361, -0.6212344350520911, 1.60947570824873
+    );
+    var f = 0.;
+    for (var i = 0u; i < octave; i += 1u) {
+        f += noise3(uv) * (1. / f32(2u << i));
+        uv = m * uv;
+    }
+    return f;
+}
+
+
+fn smin(a: f32, b: f32, c: f32) -> f32 {
+    if c != 0.0 {
+        let h = max(c - abs(a - b), 0.0) / c;
+        return min(a, b) - h * h * h * c * (1.0 / 6.0);
+    } else {
+        return min(a, b);
+    }
+}
+
+fn smax(a: f32, b: f32, c: f32) -> f32 {
+    return -smin(-a, -b, c);
+}
+
+fn map_range_linear(value: f32,
+    from_min: f32,
+    from_max: f32,
+    to_min: f32,
+    to_max: f32) -> f32 {
+    if from_max != from_min {
+        return to_min + ((value - from_min) / (from_max - from_min)) * (to_max - to_min);
+    } else {
+        return 0.0;
+    }
+}
+
+fn pingpong(a: f32, b: f32) -> f32 {
+    return abs(fract((a - b) / (b * 2.0)) * b * 2.0 - b);
 }

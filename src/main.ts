@@ -1,4 +1,5 @@
 import shaderCode from './main.wgsl?raw'
+import { record } from './record'
 import { textureFromImageUrl } from './utils'
 
 const adapter = (await navigator.gpu.requestAdapter())!
@@ -131,6 +132,7 @@ const pipeline = device.createRenderPipeline({
   }
 })
 
+const recorder = record(canvas)
 const frame = (t: number) => {
   const dt = t - baseUniformValues[2]
   baseUniformValues[2] = t
@@ -160,6 +162,17 @@ const frame = (t: number) => {
   requestAnimationFrame(frame)
 }
 
+recorder.start()
+
+setTimeout(async () => {
+  const v = await recorder.stop()
+  const url = URL.createObjectURL(v)
+  const a = document.createElement('a')
+  a.innerHTML = 'download'
+  a.href = url
+  a.download = 'video.webm'
+  document.body.appendChild(a)
+}, 10000)
 requestAnimationFrame(frame)
 
 export {}

@@ -1,0 +1,6 @@
+{
+  "wgsl-analyzer.server.path": "~/.cargo/bin/wgsl_analyzer",
+  "[wgsl]": {
+    "editor.tabSize": 4
+  }
+}
