@@ -3,7 +3,10 @@ export const record = (canvas: HTMLCanvasElement) => {
   const canvas_stream = canvas.captureStream(60) // fps
   // Create media recorder from canvas stream
 
-  const media_recorder = new MediaRecorder(canvas_stream, { mimeType: 'video/webm; codecs=vp9' })
+  const media_recorder = new MediaRecorder(canvas_stream, {
+    mimeType: 'video/webm; codecs=vp9',
+    bitsPerSecond: 16000000
+  })
 
   media_recorder.addEventListener('dataavailable', e => chunks.push(e.data))
   // Provide recorded data when recording stops

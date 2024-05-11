@@ -10,8 +10,8 @@ struct VertexOutput {
 }
 
 @group(0) @binding(0) var<uniform> base_uniform: BaseUniform;
-@group(0) @binding(1) var baseColor : texture_2d<f32>;
-@group(0) @binding(2) var baseColorSampler : sampler;
+@group(0) @binding(1) var base_color : texture_2d<f32>;
+@group(0) @binding(2) var base_color_sampler : sampler;
 
 @vertex
 fn vs_main(@location(0) position: vec2f) -> VertexOutput {
@@ -26,19 +26,24 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
     var uv = in.vert_pos.xy;
     uv.x *= base_uniform.resolution.x / base_uniform.resolution.y;
 
-    var r = length(uv);
-    // var a = atan2(uv.y, uv.x);
-    var po = normalize(uv);
-    var v = fractal_noise3(vec3(po / 16., base_uniform.time / 40000.), 4u);
+    var r = smoothstep(0., 0.3, sd_box(uv, vec2(0.88, 0.45)));
+    var n = noise2(uv * base_uniform.resolution.y / 2.);
+    var v = step(r, n);
 
-    var x = pow(smax(pingpong(v, 0.5), 0.5 - r, 0.65), 2.) / r ;
+    var b = fractal_noise3(vec3(uv / 5., base_uniform.time / 10000.), 2u);
 
-    return vec4(vec3(x) * vec3(0.5, 0.5, 1.), 1.);
+    var outline_hightlight = v * (r * r * r * 0.6);
+    return vec4(outline_hightlight + v * rainbow(map_range_linear(b + n * 0.1, 0., 1., 0.3, 0.6)), 1.);
 }
 
 
 const PI = 3.141592653589793;
 
+
+fn sd_box(p: vec2<f32>, b: vec2<f32>) -> f32 {
+    var d = abs(p) - b;
+    return length(max(d, vec2(0.))) + min(max(d.x, d.y), 0.);
+}
 
 fn palette(t: f32, a: vec3<f32>, b: vec3<f32>, c: vec3<f32>, d: vec3<f32>) -> vec3<f32> {
     return a + b * cos(6.28318 * (c * t + d));

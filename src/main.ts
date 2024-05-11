@@ -132,7 +132,6 @@ const pipeline = device.createRenderPipeline({
   }
 })
 
-const recorder = record(canvas)
 const frame = (t: number) => {
   const dt = t - baseUniformValues[2]
   baseUniformValues[2] = t
@@ -162,8 +161,12 @@ const frame = (t: number) => {
   requestAnimationFrame(frame)
 }
 
-recorder.start()
+const recorder = record(canvas)
+requestAnimationFrame(v => {
+  frame(v)
 
+  recorder.start()
+})
 setTimeout(async () => {
   const v = await recorder.stop()
   const url = URL.createObjectURL(v)
@@ -173,6 +176,5 @@ setTimeout(async () => {
   a.download = 'video.webm'
   document.body.appendChild(a)
 }, 10000)
-requestAnimationFrame(frame)
 
 export {}
