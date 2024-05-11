@@ -5,7 +5,7 @@ export const record = (canvas: HTMLCanvasElement) => {
 
   const media_recorder = new MediaRecorder(canvas_stream, {
     mimeType: 'video/webm; codecs=vp9',
-    bitsPerSecond: 16000000
+    bitsPerSecond: 8000000
   })
 
   media_recorder.addEventListener('dataavailable', e => chunks.push(e.data))
