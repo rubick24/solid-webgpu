@@ -175,6 +175,6 @@ setTimeout(async () => {
   a.href = url
   a.download = 'video.webm'
   document.body.appendChild(a)
-}, 10000)
+}, 12000)
 
 export {}

@@ -26,14 +26,34 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
     var uv = in.vert_pos.xy;
     uv.x *= base_uniform.resolution.x / base_uniform.resolution.y;
 
-    var r = smoothstep(0., 0.3, sd_box(uv, vec2(0.88, 0.45)));
-    var n = noise2(uv * base_uniform.resolution.y / 2.);
-    var v = step(r, n);
+    var tau = PI * 2.;
+    var a = atan2(uv.y, uv.x);
+    var r = length(uv) * 0.75;
+    uv = vec2(a / tau, r);
 
-    var b = fractal_noise3(vec3(uv / 5., base_uniform.time / 10000.), 2u);
+    var xCol = (uv.x - (base_uniform.time / 3000.0)) * 3.0;
+    xCol = fract(xCol / 3.) * 3.;
+    var horColour = vec3(0.25, 0.25, 0.25);
 
-    var outline_hightlight = v * (r * r * r * 0.6);
-    return vec4(outline_hightlight + v * rainbow(map_range_linear(b + n * 0.1, 0., 1., 0.3, 0.6)), 1.);
+    if xCol < 1.0 {
+        horColour.r += 1.0 - xCol;
+        horColour.g += xCol;
+    } else if xCol < 2.0 {
+        xCol -= 1.0;
+        horColour.g += 1.0 - xCol;
+        horColour.b += xCol;
+    } else {
+        xCol -= 2.0;
+        horColour.b += 1.0 - xCol;
+        horColour.r += xCol;
+    }
+
+    var steps = 0.;
+    uv = (2.0 * uv) - 1.0;
+    var beamWidth = (0.7 + 0.5 * cos(uv.x * 10.0 * tau * 0.15 * steps)) * abs(1.0 / (30.0 * uv.y));
+    var horBeam = vec3(beamWidth);
+
+    return vec4(horBeam * horColour, 1.);
 }
 
 
