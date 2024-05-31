@@ -25,20 +25,31 @@ fn vs_main(@location(0) position: vec2f) -> VertexOutput {
 fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
     var uv = in.vert_pos.xy;
     uv.x *= base_uniform.resolution.x / base_uniform.resolution.y;
+    uv *= .5;
+    var t = base_uniform.time / 5000.;
 
     var r = length(uv);
-    // var a = atan2(uv.y, uv.x);
-    var po = normalize(uv);
-    var v = fractal_noise3(vec3(po / 16., base_uniform.time / 40000.), 4u);
 
-    var x = pow(smax(pingpong(v, 0.5), 0.5 - r, 0.65), 2.) / r ;
+    var v = normalize(vec3(uv, 0.) + vec3(0., 0., 0.5)) - vec3(0., 0., t);
 
-    return vec4(vec3(x) * vec3(0.5, 0.5, 1.), 1.);
+    v = rotate(v, vec3(0., 0., 1.), log(r) / log(0.5));
+
+    var f = fractal_noise3(v, 3u);
+    f = (r - f + 0.1) * 3.;
+
+    var c = vec3(clamp((1. - f) * pow(1. - r, 8.), 0., 1.));
+    c = clamp(c + c * vec3(0., 0.4, 0.8), vec3(0.), vec3(1.));
+    // c = 1. -c;
+    return vec4(c, 1.);
 }
 
 
 const PI = 3.141592653589793;
 
+
+fn rotate(v: vec3<f32>, axis: vec3<f32>, angle: f32) -> vec3<f32> {
+    return v * cos(angle) + cross(axis, v) * sin(angle) + axis * dot(axis, v) * (1. - cos(angle));
+}
 
 fn palette(t: f32, a: vec3<f32>, b: vec3<f32>, c: vec3<f32>, d: vec3<f32>) -> vec3<f32> {
     return a + b * cos(6.28318 * (c * t + d));
