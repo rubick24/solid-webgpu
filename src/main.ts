@@ -1,6 +1,10 @@
+import { mat4, vec3 } from 'gl-matrix'
+import ArcRotateCamera from './camera'
+import { DesktopInput } from './input'
 import shaderCode from './main.wgsl?raw'
-import { record } from './record'
+import { computeHeightMap } from './compute-height-map'
 import { textureFromImageUrl } from './utils'
+// import { record } from './record'
 
 const adapter = (await navigator.gpu.requestAdapter())!
 const device = await adapter.requestDevice()
@@ -28,46 +32,62 @@ context.configure({
   alphaMode: 'premultiplied'
 })
 
-const shaderModule = device.createShaderModule({ code: shaderCode })
+// const heightMapTexture = await textureFromImageUrl(device, '/iceland_heightmap.png')
+const heightMapTexture = await textureFromImageUrl(device, '/a.png')
+const vertexBuffer = await computeHeightMap({ device, texture: heightMapTexture })
+const numStrips = heightMapTexture.height - 1
+const numVerticesPerStrip = heightMapTexture.width * 2
+const indexes = new Uint32Array(numStrips * numVerticesPerStrip)
 
-// vertex buffer
-const vertices = new Float32Array([-1, 1, 1, 1, -1, -1, -1, -1, 1, -1, 1, 1])
-const vertexBuffer = device.createBuffer({
-  size: vertices.byteLength, // make it big enough to store vertices in
-  usage: GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST
-})
-device.queue.writeBuffer(vertexBuffer, 0, vertices, 0, vertices.length)
-const vertexBuffersDescriptors: GPUVertexBufferLayout[] = [
-  {
-    attributes: [
-      {
-        shaderLocation: 0,
-        offset: 0,
-        format: 'float32x2'
-      } // POSITION
-    ],
-    arrayStride: 8,
-    stepMode: 'vertex'
+for (let i = 0; i < heightMapTexture.height - 1; i++) {
+  for (let j = 0; j < heightMapTexture.width; j++) {
+    const index = (i * heightMapTexture.width + j) * 2
+    for (let k = 0; k < 2; k++) {
+      indexes[index + k] = j + heightMapTexture.width * (i + k)
+    }
   }
-]
+}
+
+// const vertices = new Float32Array([1, 1, 0, -1, 1, 0, -1, -1, 0, 1, -1, 0])
+// const indexes = new Uint32Array([0, 1, 2, 0, 2, 3])
+// const vertexBuffer = device.createBuffer({
+//   size: vertices.byteLength, // make it big enough to store vertices in
+//   usage: GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST
+// })
+// device.queue.writeBuffer(vertexBuffer, 0, vertices, 0, vertices.length)
+
+const indexBuffer = device.createBuffer({
+  size: indexes.byteLength,
+  usage: GPUBufferUsage.INDEX | GPUBufferUsage.COPY_DST
+})
+device.queue.writeBuffer(indexBuffer, 0, indexes, 0, indexes.length)
+
+const camera = new ArcRotateCamera(vec3.fromValues(0, 0, 0), Math.PI / 2, Math.PI / 2, 3)
+const di = new DesktopInput(canvas)
 
 // uniform
 const baseUniformBuffer = device.createBuffer({
-  size: 16, // 2 * 4 bytes
+  size: (4 + 48) * Float32Array.BYTES_PER_ELEMENT,
   usage: GPUBufferUsage.COPY_DST | GPUBufferUsage.UNIFORM
 })
-const baseUniformValues = new Float32Array([width, height, 0, 0])
+
+const modelMatrix = mat4.create()
+const scale = 4 / heightMapTexture.width
+
+mat4.scale(modelMatrix, modelMatrix, [scale, 0.06, scale])
+mat4.translate(modelMatrix, modelMatrix, [-0.5 * heightMapTexture.width, 0, -0.5 * heightMapTexture.height])
+// width, height, t, dt, mvp
+const baseUniformValues = new Float32Array(4 + 48)
+baseUniformValues[0] = width
+baseUniformValues[1] = height
+
+baseUniformValues.set(modelMatrix, 4)
+baseUniformValues.set(camera.viewMatrix, 20)
+
+const projectionMatrix = camera.getProjectionMatrix(canvas.width / canvas.height, 0.01, 1000)
+baseUniformValues.set(projectionMatrix, 36)
+
 device.queue.writeBuffer(baseUniformBuffer, 0, baseUniformValues)
-
-const baseColorTexture = await textureFromImageUrl(device, '/a.png')
-
-const baseColorSampler = device.createSampler({
-  magFilter: 'linear',
-  minFilter: 'linear',
-  mipmapFilter: 'linear',
-  addressModeU: 'repeat',
-  addressModeV: 'repeat'
-})
 
 const bindGroupLayout = device.createBindGroupLayout({
   entries: [
@@ -75,16 +95,6 @@ const bindGroupLayout = device.createBindGroupLayout({
       binding: 0, // baseUniform
       visibility: GPUShaderStage.VERTEX | GPUShaderStage.FRAGMENT,
       buffer: {}
-    },
-    {
-      binding: 1, // baseColor texture
-      visibility: GPUShaderStage.FRAGMENT,
-      texture: {}
-    },
-    {
-      binding: 2, // baseColor sampler
-      visibility: GPUShaderStage.FRAGMENT,
-      sampler: {}
     }
   ]
 })
@@ -94,29 +104,31 @@ const bindGroup = device.createBindGroup({
     {
       binding: 0,
       resource: { buffer: baseUniformBuffer }
-    },
-    {
-      binding: 1,
-      resource: baseColorTexture.createView()
-    },
-    {
-      binding: 2,
-      resource: baseColorSampler
     }
   ]
 })
 
-const pipelineLayout = device.createPipelineLayout({
-  bindGroupLayouts: [
-    bindGroupLayout // @group(0)
-  ]
-})
+const shaderModule = device.createShaderModule({ code: shaderCode })
 const pipeline = device.createRenderPipeline({
-  layout: pipelineLayout,
+  layout: device.createPipelineLayout({
+    bindGroupLayouts: [bindGroupLayout]
+  }),
   vertex: {
     module: shaderModule,
     entryPoint: 'vs_main',
-    buffers: vertexBuffersDescriptors
+    buffers: [
+      {
+        attributes: [
+          {
+            shaderLocation: 0,
+            offset: 0,
+            format: 'float32x3'
+          } // POSITION
+        ],
+        arrayStride: 12,
+        stepMode: 'vertex'
+      }
+    ]
   },
   fragment: {
     module: shaderModule,
@@ -128,15 +140,17 @@ const pipeline = device.createRenderPipeline({
     ]
   },
   primitive: {
-    topology: 'triangle-list'
+    topology: 'triangle-strip',
+    stripIndexFormat: 'uint32'
   }
 })
 
-const recorder = record(canvas)
 const frame = (t: number) => {
+  camera.processDesktopInput(di)
   const dt = t - baseUniformValues[2]
   baseUniformValues[2] = t
   baseUniformValues[3] = dt
+  baseUniformValues.set(camera.viewMatrix, 20)
   device.queue.writeBuffer(baseUniformBuffer, 0, baseUniformValues)
 
   const commandEncoder = device.createCommandEncoder()
@@ -154,25 +168,29 @@ const frame = (t: number) => {
   })
   passEncoder.setPipeline(pipeline)
   passEncoder.setVertexBuffer(0, vertexBuffer)
+  passEncoder.setIndexBuffer(indexBuffer, 'uint32')
   passEncoder.setBindGroup(0, bindGroup)
-  passEncoder.draw(6)
+
+  for (let strip = 0; strip < numStrips; strip++) {
+    passEncoder.drawIndexed(numVerticesPerStrip, 1, numVerticesPerStrip * strip)
+  }
   passEncoder.end()
 
   device.queue.submit([commandEncoder.finish()])
   requestAnimationFrame(frame)
 }
 
-recorder.start()
-
-setTimeout(async () => {
-  const v = await recorder.stop()
-  const url = URL.createObjectURL(v)
-  const a = document.createElement('a')
-  a.innerHTML = 'download'
-  a.href = url
-  a.download = 'video.webm'
-  document.body.appendChild(a)
-}, 10000)
+// const recorder = record(canvas)
+// recorder.start()
+// setTimeout(async () => {
+//   const v = await recorder.stop()
+//   const url = URL.createObjectURL(v)
+//   const a = document.createElement('a')
+//   a.innerHTML = 'download'
+//   a.href = url
+//   a.download = 'video.webm'
+//   document.body.appendChild(a)
+// }, 10000)
 requestAnimationFrame(frame)
 
 export {}
