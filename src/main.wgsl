@@ -26,7 +26,7 @@ fn vs_main(@location(0) position: vec3f) -> VertexOutput {
 
 @fragment
 fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
-    return vec4(vec3(in.vert_pos.y * 0.8 + 0.2), 1.);
+    return vec4(vec3(in.vert_pos.y), 1.);
 }
 
 

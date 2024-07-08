@@ -32,8 +32,8 @@ context.configure({
   alphaMode: 'premultiplied'
 })
 
-// const heightMapTexture = await textureFromImageUrl(device, '/iceland_heightmap.png')
-const heightMapTexture = await textureFromImageUrl(device, '/a.png')
+const heightMapTexture = await textureFromImageUrl(device, '/iceland_heightmap.png')
+// const heightMapTexture = await textureFromImageUrl(device, '/a.png')
 const vertexBuffer = await computeHeightMap({ device, texture: heightMapTexture })
 const numStrips = heightMapTexture.height - 1
 const numVerticesPerStrip = heightMapTexture.width * 2
@@ -142,11 +142,24 @@ const pipeline = device.createRenderPipeline({
   primitive: {
     topology: 'triangle-strip',
     stripIndexFormat: 'uint32'
+  },
+  depthStencil: {
+    depthWriteEnabled: true,
+    depthCompare: 'less',
+    format: 'depth24plus'
   }
+})
+
+const depthTexture = device.createTexture({
+  size: [canvas.width, canvas.height],
+  format: 'depth24plus',
+  usage: GPUTextureUsage.RENDER_ATTACHMENT
 })
 
 const frame = (t: number) => {
   camera.processDesktopInput(di)
+  // camera.alpha += 0.001
+
   const dt = t - baseUniformValues[2]
   baseUniformValues[2] = t
   baseUniformValues[3] = dt
@@ -154,17 +167,22 @@ const frame = (t: number) => {
   device.queue.writeBuffer(baseUniformBuffer, 0, baseUniformValues)
 
   const commandEncoder = device.createCommandEncoder()
-  const textureView = context.getCurrentTexture().createView()
 
   const passEncoder = commandEncoder.beginRenderPass({
     colorAttachments: [
       {
-        view: textureView,
+        view: context.getCurrentTexture().createView(),
         clearValue: { r: 0.0, g: 0.0, b: 0.0, a: 1.0 },
         loadOp: 'clear',
         storeOp: 'store'
       }
-    ]
+    ],
+    depthStencilAttachment: {
+      view: depthTexture.createView(),
+      depthClearValue: 1.0,
+      depthLoadOp: 'clear',
+      depthStoreOp: 'store'
+    }
   })
   passEncoder.setPipeline(pipeline)
   passEncoder.setVertexBuffer(0, vertexBuffer)
