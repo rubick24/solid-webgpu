@@ -13,8 +13,8 @@ struct VertexOutput {
 }
 
 @group(0) @binding(0) var<uniform> base_uniform: BaseUniform;
-@group(0) @binding(1) var baseColor : texture_2d<f32>;
-@group(0) @binding(2) var baseColorSampler : sampler;
+@group(0) @binding(1) var base_texture: texture_2d<f32>;
+@group(0) @binding(2) var base_sampler: sampler;
 
 @vertex
 fn vs_main(@location(0) position: vec3f) -> VertexOutput {
@@ -26,7 +26,11 @@ fn vs_main(@location(0) position: vec3f) -> VertexOutput {
 
 @fragment
 fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
-    return vec4(vec3(in.vert_pos.y), 1.);
+
+    let uv = (in.vert_pos.xy + 1.) / 2.;
+    let a = textureSample(base_texture, base_sampler, uv);
+
+    return vec4(a);
 }
 
 

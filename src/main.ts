@@ -2,8 +2,8 @@ import { mat4, vec3 } from 'gl-matrix'
 import ArcRotateCamera from './camera'
 import { DesktopInput } from './input'
 import shaderCode from './main.wgsl?raw'
-import { computeHeightMap } from './compute-height-map'
 import { textureFromImageUrl } from './utils'
+import { gaussianBlur } from './gaussian-blur'
 // import { record } from './record'
 
 const adapter = (await navigator.gpu.requestAdapter())!
@@ -32,29 +32,25 @@ context.configure({
   alphaMode: 'premultiplied'
 })
 
-const heightMapTexture = await textureFromImageUrl(device, '/iceland_heightmap.png')
-// const heightMapTexture = await textureFromImageUrl(device, '/a.png')
-const vertexBuffer = await computeHeightMap({ device, texture: heightMapTexture })
-const numStrips = heightMapTexture.height - 1
-const numVerticesPerStrip = heightMapTexture.width * 2
-const indexes = new Uint32Array(numStrips * numVerticesPerStrip)
+const inputTexture = await textureFromImageUrl(device, '/a.png')
 
-for (let i = 0; i < heightMapTexture.height - 1; i++) {
-  for (let j = 0; j < heightMapTexture.width; j++) {
-    const index = (i * heightMapTexture.width + j) * 2
-    for (let k = 0; k < 2; k++) {
-      indexes[index + k] = j + heightMapTexture.width * (i + k)
-    }
-  }
-}
+const baseTexture = gaussianBlur({ device, texture: inputTexture, sigma: 10 })
 
-// const vertices = new Float32Array([1, 1, 0, -1, 1, 0, -1, -1, 0, 1, -1, 0])
-// const indexes = new Uint32Array([0, 1, 2, 0, 2, 3])
-// const vertexBuffer = device.createBuffer({
-//   size: vertices.byteLength, // make it big enough to store vertices in
-//   usage: GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST
-// })
-// device.queue.writeBuffer(vertexBuffer, 0, vertices, 0, vertices.length)
+const sampler = device.createSampler({
+  magFilter: 'linear',
+  minFilter: 'linear',
+  mipmapFilter: 'linear',
+  addressModeU: 'repeat',
+  addressModeV: 'repeat'
+})
+
+const vertices = new Float32Array([1, 1, 0, -1, 1, 0, -1, -1, 0, 1, -1, 0])
+const indexes = new Uint32Array([0, 1, 2, 0, 2, 3])
+const vertexBuffer = device.createBuffer({
+  size: vertices.byteLength, // make it big enough to store vertices in
+  usage: GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST
+})
+device.queue.writeBuffer(vertexBuffer, 0, vertices, 0, vertices.length)
 
 const indexBuffer = device.createBuffer({
   size: indexes.byteLength,
@@ -72,10 +68,6 @@ const baseUniformBuffer = device.createBuffer({
 })
 
 const modelMatrix = mat4.create()
-const scale = 4 / heightMapTexture.width
-
-mat4.scale(modelMatrix, modelMatrix, [scale, 0.06, scale])
-mat4.translate(modelMatrix, modelMatrix, [-0.5 * heightMapTexture.width, 0, -0.5 * heightMapTexture.height])
 // width, height, t, dt, mvp
 const baseUniformValues = new Float32Array(4 + 48)
 baseUniformValues[0] = width
@@ -95,6 +87,16 @@ const bindGroupLayout = device.createBindGroupLayout({
       binding: 0, // baseUniform
       visibility: GPUShaderStage.VERTEX | GPUShaderStage.FRAGMENT,
       buffer: {}
+    },
+    {
+      binding: 1, // texture
+      visibility: GPUShaderStage.FRAGMENT,
+      texture: {}
+    },
+    {
+      binding: 2, // sampler
+      visibility: GPUShaderStage.FRAGMENT,
+      sampler: {}
     }
   ]
 })
@@ -104,6 +106,14 @@ const bindGroup = device.createBindGroup({
     {
       binding: 0,
       resource: { buffer: baseUniformBuffer }
+    },
+    {
+      binding: 1,
+      resource: baseTexture.createView()
+    },
+    {
+      binding: 2,
+      resource: sampler
     }
   ]
 })
@@ -157,6 +167,9 @@ const depthTexture = device.createTexture({
 })
 
 const frame = (t: number) => {
+  const v = (t / 500) % 60
+  gaussianBlur({ device, texture: inputTexture, sigma: v, output: baseTexture })
+
   camera.processDesktopInput(di)
   // camera.alpha += 0.001
 
@@ -189,9 +202,8 @@ const frame = (t: number) => {
   passEncoder.setIndexBuffer(indexBuffer, 'uint32')
   passEncoder.setBindGroup(0, bindGroup)
 
-  for (let strip = 0; strip < numStrips; strip++) {
-    passEncoder.drawIndexed(numVerticesPerStrip, 1, numVerticesPerStrip * strip)
-  }
+  passEncoder.drawIndexed(6, 1)
+
   passEncoder.end()
 
   device.queue.submit([commandEncoder.finish()])
