@@ -150,6 +150,8 @@ const pipeline = device.createRenderPipeline({
     ]
   },
   primitive: {
+    cullMode: 'back',
+    frontFace: 'ccw', // counter-clockwise winding,
     topology: 'triangle-strip',
     stripIndexFormat: 'uint32'
   },

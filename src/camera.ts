@@ -93,7 +93,7 @@ export default class ArcRotateCamera {
 
   public getProjectionMatrix(aspect: number, near: number, far: number): mat4 {
     // return mat4.ortho(this._tempMat4, -aspect*3, aspect*3, -3, 3, near, far)
-    return mat4.perspective(this._tempMat4, this.fovY, aspect, near, far)
+    return mat4.perspectiveZO(this._tempMat4, this.fovY, aspect, near, far)
   }
   public getOrthographicProjectionMatrix(width: number, height: number, near: number, far: number): mat4 {
     const hw = width / 2
