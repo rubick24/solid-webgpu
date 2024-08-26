@@ -21,8 +21,7 @@ export default class ArcRotateCamera {
     public alpha: number,
     public beta: number,
     public radius: number,
-    public fovY = Math.PI / 4,
-    public allowUpsideDown = true
+    public fovY = Math.PI / 4
   ) {
     this.updateViewMatrix()
     return new Proxy(this, {
