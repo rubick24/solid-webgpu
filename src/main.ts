@@ -1,5 +1,5 @@
-import { mat4, vec3 } from 'gl-matrix'
-import ArcRotateCamera from './camera'
+import { Mat4 } from './math'
+import { ArcRotateCamera } from './camera'
 import { DesktopInput } from './input'
 import shaderCode from './pbr.wgsl?raw'
 import { textureFromImageUrl } from './utils'
@@ -72,22 +72,24 @@ const uvBuffer = device.createBuffer({
 new Float32Array(uvBuffer.getMappedRange()).set(uv)
 uvBuffer.unmap()
 
-const camera = new ArcRotateCamera(vec3.fromValues(0, 0, 0), Math.PI / 2, Math.PI / 2, 3)
+const camera = new ArcRotateCamera({ aspect: canvas.width / canvas.height })
+camera.updateMatrix()
 console.log(camera.position)
+
 const di = new DesktopInput(canvas)
-const projectionMatrix = camera.getProjectionMatrix(canvas.width / canvas.height, 0.001, 1000)
+// const projectionMatrix =  //camera.getProjectionMatrix(canvas.width / canvas.height, 0.001, 1000)
 
 // uniform
 const vertexUniformBuffer = device.createBuffer({
   size: 16 * 3 * Float32Array.BYTES_PER_ELEMENT,
   usage: GPUBufferUsage.COPY_DST | GPUBufferUsage.UNIFORM
 })
-const modelMatrix = mat4.create()
+const modelMatrix = Mat4.create()
 // mat4.translate(modelMatrix, modelMatrix, [0, 0, 1])
 const vertexUniformValues = new Float32Array(48)
 vertexUniformValues.set(modelMatrix, 0)
 vertexUniformValues.set(camera.viewMatrix, 16)
-vertexUniformValues.set(projectionMatrix, 32)
+vertexUniformValues.set(camera.projectionMatrix, 32)
 device.queue.writeBuffer(vertexUniformBuffer, 0, vertexUniformValues)
 
 const bindGroupLayout0 = device.createBindGroupLayout({
@@ -271,6 +273,7 @@ const depthTexture = device.createTexture({
 
 const frame = () => {
   camera.processDesktopInput(di)
+  camera.updateMatrix()
 
   vertexUniformValues.set(camera.viewMatrix, 16)
   device.queue.writeBuffer(vertexUniformBuffer, 0, vertexUniformValues)

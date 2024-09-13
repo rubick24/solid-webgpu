@@ -1,103 +1,132 @@
-import { vec3, mat4 } from 'gl-matrix'
+import { DEG2RAD, GLM_EPSILON, Mat4, Vec3 } from './math'
+import { Vec3Like } from './math/types'
+import { Object3D } from './object3d'
 import { DesktopInput } from './input'
+import { Frustum } from './frustum'
 
-const up = vec3.fromValues(0, 1, 0)
+export class Camera extends Object3D {
+  /**
+   * A projection matrix. Useful for projecting transforms.
+   */
+  readonly projectionMatrix = new Mat4()
+  /**
+   * A view matrix. Useful for aligning transforms with the camera.
+   */
+  readonly viewMatrix = new Mat4()
+  /**
+   * A projection-view matrix. Used internally for checking whether objects are in view.
+   */
+  readonly projectionViewMatrix = new Mat4()
+  /**
+   * Frustum clipping planes. Used to calculate a frustum representation.
+   */
+  readonly frustum = new Frustum()
 
-export default class ArcRotateCamera {
-  public rotationMatrix: mat4 = mat4.identity(mat4.create())
-  public maxAlphaLimit = Math.PI * 2
-  public minAlphaLimit = -Math.PI * 2
-  public maxBetaLimit = Math.PI
-  public minBetaLimit = 0
+  _lookAtMatrix = new Mat4()
 
-  private _viewMatrix: mat4 = mat4.create()
-  private _position: vec3 = vec3.create()
-  private _tempMat4: mat4 = mat4.create()
-  private _tempAxis: vec3 = vec3.create()
-  private _tempUp: vec3 = vec3.create()
+  updateMatrix() {
+    super.updateMatrix()
+    if (this.matrixAutoUpdate) this.viewMatrix.copy(this.matrix).invert()
+  }
+}
+
+/**
+ * Constructs a camera with a perspective projection. Useful for 3D rendering.
+ */
+export class PerspectiveCamera extends Camera {
+  /** Vertical field of view in degrees. Default is `75` */
+  public fov = 75 * DEG2RAD
+  /** Frustum aspect ratio. Default is `1` */
+  public aspect = 1
+  /** Frustum near plane (minimum). Default is `0.1` */
+  public near = 0.1
+  /** Frustum far plane (maximum). Default is `1000` */
+  public far = 1000
+  constructor(options?: { fov?: number; aspect?: number; near?: number; far?: number }) {
+    super()
+    if (options?.fov !== undefined) this.fov = options.fov
+    if (options?.aspect !== undefined) this.aspect = options.aspect
+    if (options?.near !== undefined) this.near = options.near
+    if (options?.far !== undefined) this.far = options.far
+  }
+
+  updateMatrix(): void {
+    super.updateMatrix()
+    if (this.matrixAutoUpdate) {
+      Mat4.perspectiveZO(this.projectionMatrix, this.fov, this.aspect, this.near, this.far)
+    }
+  }
+}
+
+/**
+ * Constructs a camera with an orthographic projection. Useful for 2D and isometric rendering.
+ */
+export class OrthographicCamera extends Camera {
+  /** Frustum near plane (minimum). Default is `0.1` */
+  public near = 0.1
+  /** Frustum far plane (maximum). Default is `1000` */
+  public far = 1000
+  /** Frustum left plane. Default is `-1` */
+  public left = -1
+  /** Frustum right plane. Default is `1` */
+  public right = 1
+  /** Frustum bottom plane. Default is `-1` */
+  public bottom = -1
+  /** Frustum top plane. Default is `1` */
+  public top = 1
+  constructor(options?: { near?: number; far?: number; left?: number; right?: number; bottom?: number; top?: number }) {
+    super()
+    if (options?.near !== undefined) this.near = options.near
+    if (options?.far !== undefined) this.far = options.far
+    if (options?.left !== undefined) this.left = options.left
+    if (options?.right !== undefined) this.right = options.right
+    if (options?.bottom !== undefined) this.bottom = options.bottom
+    if (options?.top !== undefined) this.top = options.top
+  }
+
+  updateMatrix(): void {
+    super.updateMatrix()
+    if (this.matrixAutoUpdate) {
+      Mat4.orthoZO(this.projectionMatrix, this.left, this.right, this.bottom, this.top, this.near, this.far)
+    }
+  }
+}
+
+export class ArcRotateCamera extends PerspectiveCamera {
+  public target: Vec3 = Vec3.create()
+  public theta: number = Math.PI / 2
+  public phi: number = Math.PI / 2
+  public radius: number = 3
 
   constructor(
-    public target: vec3,
-    public alpha: number,
-    public beta: number,
-    public radius: number,
-    public fovY = Math.PI / 4
+    options?: ConstructorParameters<typeof PerspectiveCamera>[0] & {
+      target?: Vec3Like
+      theta?: number
+      phi?: number
+      radius?: number
+    }
   ) {
-    this.updateViewMatrix()
-    return new Proxy(this, {
-      set: (t, key, value, receiver) => {
-        const result = Reflect.set(t, key, value, receiver)
-        const observable = ['alpha', 'beta', 'radius', 'target']
-        if (observable.some(v => v === key)) {
-          t._checkLimit()
-          t.updateViewMatrix()
-        }
-        return result
-      }
-    })
+    super(options)
+    if (options?.target !== undefined) this.target.copy(options.target)
+    if (options?.theta !== undefined) this.theta = options.theta
+    if (options?.phi !== undefined) this.phi = options.phi
+    if (options?.radius !== undefined) this.radius = options.radius
   }
 
-  public get viewMatrix() {
-    return this._viewMatrix
-  }
+  updateMatrix(): void {
+    const cosA = Math.cos(this.theta)
+    const sinA = Math.sin(this.theta)
+    const cosB = Math.cos(this.phi)
+    const sinB = Math.sin(this.phi) !== 0 ? Math.sin(this.phi) : GLM_EPSILON
 
-  public get position() {
-    return this._position
-  }
+    Vec3.set(this.position, cosA * sinB, cosB, sinA * sinB)
 
-  public get up() {
-    const m = this.rotationMatrix
-    this._tempUp[0] = m[1]
-    this._tempUp[1] = m[5]
-    this._tempUp[2] = m[9]
-    return this._tempUp
-  }
+    this.position.scale(this.radius)
 
-  public _checkLimit() {
-    this.alpha = this.alpha % (Math.PI * 2)
-    this.beta = this.beta % (Math.PI * 2)
-    if (this.alpha > this.maxAlphaLimit) {
-      this.alpha = this.maxAlphaLimit
-    } else if (this.alpha < this.minAlphaLimit) {
-      this.alpha = this.minAlphaLimit
-    }
-    if (this.beta > this.maxBetaLimit) {
-      this.beta = this.maxBetaLimit
-    } else if (this.beta < this.minBetaLimit) {
-      this.beta = this.minBetaLimit
-    }
-    if (this.radius <= 0.1) {
-      this.radius = 0.1
-    }
-  }
+    Mat4.targetTo(this._lookAtMatrix, this.position, this.target, this.up)
+    Mat4.getRotation(this.quaternion, this._lookAtMatrix)
 
-  public updateViewMatrix() {
-    const cosA = Math.cos(this.alpha)
-    const sinA = Math.sin(this.alpha)
-    const cosB = Math.cos(this.beta)
-    const sinB = Math.sin(this.beta) !== 0 ? Math.sin(this.beta) : Number.EPSILON
-
-    if (!vec3.equals(this.up, up)) {
-      vec3.cross(this._tempAxis, up, this.up)
-      vec3.normalize(this._tempAxis, this._tempAxis)
-      const angle = Math.acos(vec3.dot(up, this._tempAxis))
-      mat4.fromRotation(this.rotationMatrix, angle, this._tempAxis)
-    }
-    const trans = vec3.fromValues(this.radius * cosA * sinB, this.radius * cosB, this.radius * sinA * sinB)
-    // vec3.normalize(trans, trans)
-    vec3.transformMat4(trans, trans, this.rotationMatrix)
-    vec3.add(this._position, this.target, trans)
-    mat4.lookAt(this._viewMatrix, this.position, this.target, this.up)
-  }
-
-  public getProjectionMatrix(aspect: number, near: number, far: number): mat4 {
-    // return mat4.ortho(this._tempMat4, -aspect*3, aspect*3, -3, 3, near, far)
-    return mat4.perspectiveZO(this._tempMat4, this.fovY, aspect, near, far)
-  }
-  public getOrthographicProjectionMatrix(width: number, height: number, near: number, far: number): mat4 {
-    const hw = width / 2
-    const hh = height / 2
-    return mat4.ortho(this._tempMat4, -hw, hw, -hh, hh, near, far)
+    super.updateMatrix()
   }
 
   public processDesktopInput(di: DesktopInput) {
@@ -106,30 +135,10 @@ export default class ArcRotateCamera {
       const deltaY = di.mouseInput.y - di.mouseInput.lastY
       const radianX = (deltaX / di.el.clientWidth) * Math.PI * 2
       const radianY = -(deltaY / di.el.clientHeight) * Math.PI * 2
-      this.alpha += radianX
-      this.beta += radianY
+      this.theta += radianX
+      this.phi += radianY
     }
     const deltaWheel = di.mouseInput.lastWheel - di.mouseInput.wheel
     this.radius += deltaWheel / 1000
   }
-
-  // public processTouchInput(ti: TouchInput) {
-  //   const deltas = ti.touchList.map((touch, i) => {
-  //     const lastTouch = ti.lastTouchList.find(v => v.identifier === touch.identifier)
-  //     if (lastTouch) {
-  //       return {
-  //         deltaX: touch.screenX - lastTouch.screenX,
-  //         deltaY: touch.screenY - lastTouch.screenY
-  //       }
-  //     } else {
-  //       return { deltaX: 0, deltaY: 0 }
-  //     }
-  //   })
-  //   if (deltas.length === 1) {
-  //     const radianX = (deltas[0].deltaX / ti.el.clientWidth) * Math.PI
-  //     const radianY = -(deltas[0].deltaY / ti.el.clientHeight) * Math.PI
-  //     this.alpha += radianX
-  //     this.beta += radianY
-  //   }
-  // }
 }

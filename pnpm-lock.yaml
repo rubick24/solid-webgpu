@@ -11,12 +11,6 @@ importers:
       '@webgpu/types':
         specifier: ^0.1.40
         version: 0.1.40
-      gl-matrix:
-        specifier: ^3.4.3
-        version: 3.4.3
-      wgpu-matrix:
-        specifier: ^3.0.1
-        version: 3.0.1
     devDependencies:
       typescript:
         specifier: ^5.2.2
@@ -261,9 +255,6 @@ packages:
     engines: {node: ^8.16.0 || ^10.6.0 || >=11.0.0}
     os: [darwin]
 
-  gl-matrix@3.4.3:
-    resolution: {integrity: sha512-wcCp8vu8FT22BnvKVPjXa/ICBWRq/zjFfdofZy1WSpQZpphblv12/bOQLBC1rMM7SGOFS9ltVmKOHil5+Ml7gA==}
-
   nanoid@3.3.7:
     resolution: {integrity: sha512-eSRppjcPIatRIMC1U6UngP8XFcz8MQWGQdt1MTBQ7NaAmvXDfvNxbvWV3x2y6CdEUciCSsDHDQZbhYaB8QEo2g==}
     engines: {node: ^10 || ^12 || ^13.7 || ^14 || >=15.0.1}
@@ -317,9 +308,6 @@ packages:
         optional: true
       terser:
         optional: true
-
-  wgpu-matrix@3.0.1:
-    resolution: {integrity: sha512-TnpsW61o2eUtDW/WU9/gzAAWyp2rbwlw9nBa6ieWjU1MVWUaPi4jt9igLR1dttyvWHRBQ5xeWiR+GGw5eoTKEQ==}
 
 snapshots:
 
@@ -473,8 +461,6 @@ snapshots:
   fsevents@2.3.3:
     optional: true
 
-  gl-matrix@3.4.3: {}
-
   nanoid@3.3.7: {}
 
   picocolors@1.0.0: {}
@@ -518,5 +504,3 @@ snapshots:
       rollup: 4.14.3
     optionalDependencies:
       fsevents: 2.3.3
-
-  wgpu-matrix@3.0.1: {}
