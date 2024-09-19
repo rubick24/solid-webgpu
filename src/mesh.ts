@@ -3,8 +3,6 @@ import { Material } from './material'
 import { Mat4 } from './math'
 import { Object3D } from './object3d'
 
-export type Mode = 'triangles' | 'points' | 'lines'
-
 export class Mesh extends Object3D {
   /**
    * World space transforms relative to the active camera.
@@ -15,9 +13,9 @@ export class Mesh extends Object3D {
    */
   readonly normalMatrix = Mat4.create()
   /**
-   * Which {@link Mode} to render with. Default is `triangles`.
+   * Which {@link GPUPrimitiveTopology} to render with. Default is `triangle-list`.
    */
-  public mode: Mode = 'triangles'
+  public topology: GPUPrimitiveTopology = 'triangle-list'
   /**
    * The number of instances to render of this mesh. Default is `1`.
    */

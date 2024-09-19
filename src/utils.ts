@@ -19,3 +19,22 @@ export const textureFromImageUrl = async (device: GPUDevice, url: string) => {
 
   return textureFromImageData(device, imgBitmap)
 }
+
+/**
+ * A collection of disposable objects and their GPU resource.
+ */
+export class Collection<K extends object, V> extends WeakMap<K, V> {
+  set<T extends K & { dispose?: never }>(object: T, compiled: V): this
+  set<T extends K & { dispose(): void }>(object: T, compiled: V, dispose: () => void): this
+  set(object: K, compiled: V, dispose?: () => void): this {
+    if ('dispose' in object && typeof object.dispose === 'function') {
+      const prevDispose = object.dispose.bind(object)
+      object.dispose = () => {
+        dispose?.()
+        prevDispose()
+        this.delete(object)
+      }
+    }
+    return super.set(object, compiled)
+  }
+}
