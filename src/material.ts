@@ -1,54 +1,6 @@
-export type Uniform = number | number[] | Float32Array | GPUTexture
+import { BufferData } from './utils'
 
-
-export type BlendOperation = 'add' | 'subtract' | 'reverse-subtract' | 'min' | 'max'
-
-export type BlendFactor =
-  | 'zero'
-  | 'one'
-  | 'src'
-  | 'one-minus-src'
-  | 'src-alpha'
-  | 'one-minus-src-alpha'
-  | 'dst'
-  | 'one-minus-dst'
-  | 'dst-alpha'
-  | 'one-minus-dst-alpha'
-  | 'src-alpha-saturated'
-  | 'constant'
-  | 'one-minus-constant'
-
-/**
- * Describes blending between a material and a color buffer's components.
- */
-export interface BlendComponent {
-  /**
-   * The {@link BlendOperation} to use when applying blending.
-   */
-  operation?: BlendOperation
-  /**
-   * The {@link BlendFactor} to be used on values from the fragment shader.
-   */
-  srcFactor?: BlendFactor
-  /**
-   * The {@link BlendFactor} to be used on values to a color buffer.
-   */
-  dstFactor?: BlendFactor
-}
-
-/**
- * How a material should blend into a color buffer and its components.
- */
-export interface Blending {
-  /**
-   * The {@link BlendComponent} to use for color values.
-   */
-  color: BlendComponent
-  /**
-   * The {@link BlendComponent} to use for alpha values.
-   */
-  alpha: BlendComponent
-}
+export type Uniform = BufferData | GPUTexture | GPUSampler
 
 /**
  * {@link Material} constructor parameters. Accepts shaders, their uniforms, and various blending & culling options.
@@ -57,15 +9,15 @@ export interface MaterialOptions {
   /**
    * User-defined program uniforms.
    */
-  uniforms?: Record<string, Uniform>
+  readonly uniforms?: Uniform[]
   /**
    * Stringified vertex shader code.
    */
-  vertex: string
+  readonly vertex: string
   /**
    * Stringified fragment shader code.
    */
-  fragment: string
+  readonly fragment: string
   /**
    * cull mode
    */
@@ -85,18 +37,18 @@ export interface MaterialOptions {
   /**
    * How the material should blend into a color buffer and its components.
    */
-  blending?: Blending
+  blending?: GPUBlendState
 }
 
 export class Material implements MaterialOptions {
-  readonly uniforms: Record<string, Uniform> = {}
+  readonly uniforms: Uniform[] = []
   public vertex!: string
   public fragment!: string
   public cullMode: GPUCullMode = 'back'
   public transparent = false
   public depthTest = true
   public depthWrite = true
-  public blending?: Blending
+  public blending?: GPUBlendState
 
   constructor(options?: MaterialOptions) {
     if (options?.transparent) {
@@ -115,12 +67,5 @@ export class Material implements MaterialOptions {
     }
 
     Object.assign(this, options)
-  }
-
-  /**
-   * Disposes material from GPU memory.
-   */
-  dispose(): void {
-    // Implemented by renderer
   }
 }
