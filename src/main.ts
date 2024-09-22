@@ -305,7 +305,7 @@ const frame = () => {
   passEncoder.setBindGroup(0, bindGroup0)
   passEncoder.setBindGroup(1, bindGroup1)
 
-  passEncoder.drawIndexed(6, 1)
+  passEncoder.drawIndexed(indexes.length, 1)
 
   passEncoder.end()
 

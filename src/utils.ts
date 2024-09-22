@@ -20,6 +20,10 @@ export const textureFromImageUrl = async (device: GPUDevice, url: string) => {
   return textureFromImageData(device, imgBitmap)
 }
 
+export type Optional<T, K extends keyof T> = Partial<Pick<T, K>> & Omit<T, K>
+
+export type Updatable<T> = T & { needsUpdate?: boolean }
+
 export type BufferData =
   | Float32Array
   | Int8Array
@@ -89,3 +93,24 @@ export type BufferData =
 //     return super.set(object, compiled)
 //   }
 // }
+
+let _cacheMap = new WeakMap()
+export const cached = <T extends WeakKey, U>(
+  k: T,
+  onCreate: () => U,
+  options?: {
+    cacheMap?: WeakMap<T, U>
+    /**
+     * check if old value stale, can also add dispose call for old value here
+     */
+    stale?: (old: U) => boolean
+  }
+): U => {
+  let cacheMap = options?.cacheMap ?? (_cacheMap as WeakMap<T, U>)
+  let target = cacheMap.get(k)
+  if (target === undefined || options?.stale?.(target)) {
+    target = onCreate()
+    cacheMap.set(k, target)
+  }
+  return target
+}

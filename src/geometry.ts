@@ -1,12 +1,15 @@
 import { BufferData } from './utils'
 
+export type VertexBuffer = {
+  layout: GPUVertexBufferLayout
+  buffer: BufferData
+  needsUpdate: boolean
+}
+
 export class Geometry {
-  bufferLayouts: GPUVertexBufferLayout[] = []
-  buffers: {
-    layout: GPUVertexBufferLayout
-    buffer: BufferData
-    needsUpdate: boolean
-  }[] = []
+  vertexBuffers: VertexBuffer[] = []
+
+  indexBuffer?: BufferData
 
   constructor() {}
 }

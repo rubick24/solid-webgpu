@@ -1,23 +1,50 @@
-import { BufferData } from './utils'
+import { Mat4 } from './math'
+import { BufferData, Optional, Updatable } from './utils'
 
-export type Uniform = BufferData | GPUTexture | GPUSampler
+// needsUpdate
+
+// | HTMLVideoElement
+export type ImageRepresentation =
+  | ImageBitmap
+  | ImageData
+  | HTMLImageElement
+  | VideoFrame
+  | HTMLCanvasElement
+  | OffscreenCanvas
+
+export type Texture = Updatable<{
+  type: 'texture'
+  descriptor: Optional<GPUTextureDescriptor, 'usage'>
+  image?: ImageRepresentation
+}>
+
+export type ExternalTexture = Updatable<{
+  type: 'externalTexture'
+  descriptor: GPUTextureDescriptor
+  video?: HTMLVideoElement
+}>
+
+export type Sampler = Updatable<{ type: 'sampler'; descriptor: GPUSamplerDescriptor }>
+
+export type Uniform = Updatable<{ type: 'buffer'; value: BufferData }> | Texture | ExternalTexture | Sampler
+
+export type BaseUniform = {
+  modelMatrix: Mat4
+  viewMatrix: Mat4
+  projectionMatrix: Mat4
+  modelViewMatrix: Mat4
+  normalMatrix: Mat4
+}
 
 /**
  * {@link Material} constructor parameters. Accepts shaders, their uniforms, and various blending & culling options.
  */
 export interface MaterialOptions {
-  /**
-   * User-defined program uniforms.
-   */
-  readonly uniforms?: Uniform[]
+  uniforms?: Uniform[]
   /**
    * Stringified vertex shader code.
    */
-  readonly vertex: string
-  /**
-   * Stringified fragment shader code.
-   */
-  readonly fragment: string
+  shaderCode: string
   /**
    * cull mode
    */
@@ -42,8 +69,7 @@ export interface MaterialOptions {
 
 export class Material implements MaterialOptions {
   readonly uniforms: Uniform[] = []
-  public vertex!: string
-  public fragment!: string
+  public shaderCode!: string
   public cullMode: GPUCullMode = 'back'
   public transparent = false
   public depthTest = true
