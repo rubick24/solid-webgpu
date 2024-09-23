@@ -3,10 +3,6 @@ import { Material } from './material'
 import { Object3D } from './object3d'
 
 export class Mesh extends Object3D {
-  /**
-   * Which {@link GPUPrimitiveTopology} to render with. Default is `triangle-list`.
-   */
-  public topology: GPUPrimitiveTopology = 'triangle-list'
 
   constructor(
     /**

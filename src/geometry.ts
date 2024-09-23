@@ -1,15 +1,30 @@
-import { BufferData } from './utils'
+import { BufferData, Updatable } from './utils'
 
-export type VertexBuffer = {
+export type VertexBuffer = Updatable<{
   layout: GPUVertexBufferLayout
   buffer: BufferData
-  needsUpdate: boolean
-}
+}>
 
 export class Geometry {
   vertexBuffers: VertexBuffer[] = []
+  indexBuffer?: Updatable<{
+    buffer: BufferData
+    arrayStride: number
+  }>
 
-  indexBuffer?: BufferData
+  topology: GPUPrimitiveTopology = 'triangle-list'
+  instanceCount = 1
+  drawRange: { start: number; count: number } = { start: 0, count: Infinity }
 
-  constructor() {}
+  constructor(options?: {
+    vertexBuffers: VertexBuffer[]
+    indexBuffer?: {
+      buffer: BufferData
+    }
+    topology?: GPUPrimitiveTopology
+    instanceCount?: number
+    drawRange?: { start: number; count: number }
+  }) {
+    Object.assign(this, options)
+  }
 }

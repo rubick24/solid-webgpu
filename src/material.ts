@@ -1,4 +1,4 @@
-import { Mat4 } from './math'
+import { Mat3, Mat4, Vec3 } from './math'
 import { BufferData, Optional, Updatable } from './utils'
 
 // needsUpdate
@@ -12,10 +12,12 @@ export type ImageRepresentation =
   | HTMLCanvasElement
   | OffscreenCanvas
 
+export type UniformBuffer = Updatable<{ type: 'buffer'; value: BufferData | ArrayBuffer }>
+
 export type Texture = Updatable<{
   type: 'texture'
-  descriptor: Optional<GPUTextureDescriptor, 'usage'>
-  image?: ImageRepresentation
+  descriptor: Optional<GPUTextureDescriptor, 'usage' | 'format'>
+  image?: ImageBitmap | ImageData | HTMLCanvasElement | OffscreenCanvas
 }>
 
 export type ExternalTexture = Updatable<{
@@ -26,14 +28,15 @@ export type ExternalTexture = Updatable<{
 
 export type Sampler = Updatable<{ type: 'sampler'; descriptor: GPUSamplerDescriptor }>
 
-export type Uniform = Updatable<{ type: 'buffer'; value: BufferData }> | Texture | ExternalTexture | Sampler
+export type Uniform = UniformBuffer | Texture | ExternalTexture | Sampler
 
 export type BaseUniform = {
   modelMatrix: Mat4
   viewMatrix: Mat4
   projectionMatrix: Mat4
   modelViewMatrix: Mat4
-  normalMatrix: Mat4
+  normalMatrix: Mat3
+  cameraPosition: Vec3
 }
 
 /**

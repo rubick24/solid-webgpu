@@ -1,3 +1,5 @@
+import { Texture } from './material'
+
 export const textureFromImageData = (
   device: GPUDevice,
   source: ImageBitmap | ImageData | HTMLCanvasElement | OffscreenCanvas
@@ -12,12 +14,26 @@ export const textureFromImageData = (
   return texture
 }
 
-export const textureFromImageUrl = async (device: GPUDevice, url: string) => {
+export const imageBitmapFromImageUrl = async (url: string) => {
   const response = await fetch(url)
   const blob = await response.blob()
-  const imgBitmap = await createImageBitmap(blob)
+  return createImageBitmap(blob)
+}
 
+export const textureFromImageUrl = async (device: GPUDevice, url: string) => {
+  const imgBitmap = await imageBitmapFromImageUrl(url)
   return textureFromImageData(device, imgBitmap)
+}
+
+export const textureFromUrl = async (url: string) => {
+  const imgBitmap = await imageBitmapFromImageUrl(url)
+  return {
+    type: 'texture',
+    image: imgBitmap,
+    descriptor: {
+      size: { width: imgBitmap.width, height: imgBitmap.height }
+    }
+  } as Texture
 }
 
 export type Optional<T, K extends keyof T> = Partial<Pick<T, K>> & Omit<T, K>

@@ -1,5 +1,5 @@
 import { Camera } from './camera'
-import { ExternalTexture, Sampler, Texture, Uniform } from './material'
+import { ExternalTexture, Sampler, Texture, Uniform, UniformBuffer } from './material'
 import { Mat3, Mat4, Vec3 } from './math'
 import { Mesh } from './mesh'
 import { Object3D } from './object3d'
@@ -79,7 +79,7 @@ export class WebGPURenderer implements WebGPURendererOptions {
       alphaMode: 'premultiplied'
     })
     const size = [this.canvas.width, this.canvas.height]
-    const usage = GPUTextureUsage.RENDER_ATTACHMENT
+    const usage = GPUTextureUsage.COPY_DST | GPUTextureUsage.RENDER_ATTACHMENT
     const sampleCount = this.samples
 
     if (this._msaaTexture) this._msaaTexture.destroy()
@@ -110,14 +110,13 @@ export class WebGPURenderer implements WebGPURendererOptions {
     this._resizeSwapchain()
   }
 
-  private _createBuffer(data: BufferData, usage: GPUBufferUsageFlags) {
+  private _createBuffer(data: BufferData | ArrayBuffer, usage: GPUBufferUsageFlags, label?: string) {
     const buffer = this.device.createBuffer({
+      label,
       size: data.byteLength,
-      usage: usage | GPUBufferUsage.COPY_DST | GPUBufferUsage.STORAGE,
-      mappedAtCreation: true
+      usage: usage | GPUBufferUsage.COPY_DST | GPUBufferUsage.STORAGE
     })
-    new (data.constructor as Float32ArrayConstructor)(buffer.getMappedRange()).set(data)
-    buffer.unmap()
+    this.device.queue.writeBuffer(buffer, 'byteOffset' in data ? data.byteOffset : 0, data)
     return buffer
   }
 
@@ -141,11 +140,13 @@ export class WebGPURenderer implements WebGPURendererOptions {
       () => {
         const target = this.device.createTexture({
           ...texture.descriptor,
+          format: texture.descriptor.format ?? this.format,
           usage:
             (texture.descriptor.usage ?? 0) |
-            GPUTextureUsage.COPY_DST |
             GPUTextureUsage.TEXTURE_BINDING |
-            GPUTextureUsage.COPY_SRC
+            GPUTextureUsage.RENDER_ATTACHMENT |
+            GPUTextureUsage.COPY_SRC |
+            GPUTextureUsage.COPY_DST
         })
         if ('image' in texture && texture.image) {
           this.device.queue.copyExternalImageToTexture(
@@ -170,75 +171,75 @@ export class WebGPURenderer implements WebGPURendererOptions {
   }
 
   private _updatePipeline(mesh: Mesh, camera: Camera) {
-    const baseUniformBuffer = new Float32Array(73)
-    const modelMatrix = Mat4.copy(baseUniformBuffer.subarray(0, 16), mesh.matrix)
-    const viewMatrix = Mat4.copy(baseUniformBuffer.subarray(16, 32), camera.viewMatrix)
+    /**
+     * uniform setup
+     */
+    const { uniforms, bindGroupLayout } = this._cached(mesh.material.uniforms, () => {
+      const baseUniformBuffer = new Float32Array(80)
+      const uniforms: Uniform[] = [
+        {
+          type: 'buffer',
+          value: baseUniformBuffer
+        },
+        ...mesh.material.uniforms
+      ]
+      const bindGroupLayout = this.device.createBindGroupLayout({
+        entries: uniforms.map((v, i) => {
+          if (v.type === 'buffer') {
+            return {
+              binding: i,
+              visibility: GPUShaderStage.VERTEX | GPUShaderStage.FRAGMENT,
+              buffer: {}
+            }
+          } else if (v.type === 'texture' || v.type === 'externalTexture') {
+            return {
+              binding: i,
+              visibility: GPUShaderStage.FRAGMENT,
+              texture: {}
+            }
+          } else {
+            // sampler
+            return {
+              binding: i,
+              visibility: GPUShaderStage.FRAGMENT,
+              sampler: {}
+            }
+          }
+        })
+      })
+      return { uniforms, bindGroupLayout }
+    })
+
+    /**
+     * update base uniform
+     */
+    const baseUniformBuffer = uniforms[0] as UniformBuffer
+    const bo = baseUniformBuffer.value as Float32Array
+    const modelMatrix = Mat4.copy(bo.subarray(0, 16), mesh.matrix)
+    const viewMatrix = Mat4.copy(bo.subarray(16, 32), camera.viewMatrix)
     // projectionMatrix
-    Mat4.copy(baseUniformBuffer.subarray(32, 48), camera.projectionMatrix)
-    const modelViewMatrix = Mat4.copy(baseUniformBuffer.subarray(48, 64), viewMatrix)
+    Mat4.copy(bo.subarray(32, 48), camera.projectionMatrix)
+    const modelViewMatrix = Mat4.copy(bo.subarray(48, 64), viewMatrix)
     Mat4.mul(modelViewMatrix, modelViewMatrix, modelMatrix)
     // normalMatrix
-    Mat3.normalFromMat4(baseUniformBuffer.subarray(64, 73), modelViewMatrix)
+    Mat3.normalFromMat4(bo.subarray(64, 73), modelViewMatrix)
+    // cameraPosition
+    Vec3.copy(bo.subarray(76, 79), camera.position)
+    baseUniformBuffer.needsUpdate = true
 
-    // TODO: check update here?
-    const uniforms: Uniform[] = [
-      {
-        type: 'buffer',
-        value: baseUniformBuffer
-      },
-      ...mesh.material.uniforms
-    ]
-
-    const transparent = mesh.material.transparent
-    const cullMode = mesh.material.cullMode
-    const topology = mesh.topology
-    const depthWriteEnabled = mesh.material.depthWrite
-    const depthCompare = (mesh.material.depthTest ? 'less' : 'always') as GPUCompareFunction
-    const blending = mesh.material.blending
-    const colorAttachments = 1
-    const samples = this.samples
-
-    const vertexBufferLayouts = mesh.geometry.vertexBuffers.map(v => v.layout)
-    const pipelineCacheKey = JSON.stringify([
-      transparent,
-      cullMode,
-      topology,
-      depthWriteEnabled,
-      depthCompare,
-      vertexBufferLayouts,
-      blending,
-      colorAttachments,
-      samples
-    ])
-
-    // uniform
-    const bindGroupLayout = this.device.createBindGroupLayout({
-      entries: uniforms.map((v, i) => {
-        if (v.type === 'buffer') {
-          return {
-            binding: i,
-            visibility: GPUShaderStage.VERTEX | GPUShaderStage.FRAGMENT,
-            buffer: {}
-          }
-        } else if (v.type === 'texture' || v.type === 'externalTexture') {
-          return {
-            binding: i,
-            visibility: GPUShaderStage.FRAGMENT,
-            texture: {}
-          }
-        } else {
-          // sampler
-          return {
-            binding: i,
-            visibility: GPUShaderStage.FRAGMENT,
-            sampler: {}
-          }
-        }
-      })
-    })
-    const entries: GPUBindGroupEntry[] = uniforms.map((v, i) => {
+    /**
+     * uniform binding
+     */
+    const bindGroupEntries: GPUBindGroupEntry[] = uniforms.map((v, i) => {
       if (v.type === 'buffer') {
-        const buffer = this._cached(v, () => this._createBuffer(v.value, GPUBufferUsage.UNIFORM))
+        const buffer = this._cached(v, () =>
+          this._createBuffer(v.value, GPUBufferUsage.UNIFORM, `uniform ${i} ${v.type}`)
+        )
+        if (v.needsUpdate) {
+          const data = v.value
+          this.device.queue.writeBuffer(buffer, 'byteOffset' in data ? data.byteOffset : 0, data)
+          v.needsUpdate = false
+        }
         return { binding: i, resource: { buffer } }
       } else if (v.type === 'texture' || v.type === 'externalTexture') {
         const texture = this._updateTexture(v)
@@ -252,7 +253,21 @@ export class WebGPURenderer implements WebGPURendererOptions {
       }
     })
 
-    // pipeline
+    /**
+     * pipeline setup
+     */
+    const pipelineOption = {
+      transparent: mesh.material.transparent,
+      cullMode: mesh.material.cullMode,
+      topology: mesh.geometry.topology,
+      depthWriteEnabled: mesh.material.depthWrite,
+      depthCompare: (mesh.material.depthTest ? 'less' : 'always') as GPUCompareFunction,
+      vertexBufferLayouts: mesh.geometry.vertexBuffers.map(v => v.layout),
+      blending: mesh.material.blending,
+      colorAttachments: 1,
+      samples: this.samples
+    }
+    const pipelineCacheKey = JSON.stringify(pipelineOption)
     const pipeline = this._cached(
       mesh,
       () => {
@@ -266,7 +281,7 @@ export class WebGPURenderer implements WebGPURendererOptions {
           vertex: {
             module: shaderModule,
             entryPoint: 'vs_main',
-            buffers: vertexBufferLayouts
+            buffers: pipelineOption.vertexBufferLayouts
           },
           fragment: {
             module: shaderModule,
@@ -279,15 +294,15 @@ export class WebGPURenderer implements WebGPURendererOptions {
           },
           primitive: {
             frontFace: 'ccw',
-            cullMode,
-            topology
+            cullMode: mesh.material.cullMode,
+            topology: mesh.geometry.topology
           },
           depthStencil: {
-            depthWriteEnabled,
-            depthCompare,
+            depthWriteEnabled: pipelineOption.depthWriteEnabled,
+            depthCompare: pipelineOption.depthCompare,
             format: 'depth24plus-stencil8'
           },
-          multisample: { count: samples }
+          multisample: { count: pipelineOption.samples }
         })
       },
       {
@@ -299,28 +314,28 @@ export class WebGPURenderer implements WebGPURendererOptions {
     const ib = mesh.geometry.indexBuffer
     if (ib) {
       const buffer = this._cached(ib, () => {
-        return this._createBuffer(ib, GPUBufferUsage.INDEX)
+        return this._createBuffer(ib.buffer, GPUBufferUsage.INDEX)
       })
-      this._passEncoder.setIndexBuffer(buffer, `uint${ib.BYTES_PER_ELEMENT * 8}` as GPUIndexFormat)
+      this._passEncoder.setIndexBuffer(buffer, `uint${ib.buffer.BYTES_PER_ELEMENT * 8}` as GPUIndexFormat)
     }
     mesh.geometry.vertexBuffers.forEach((vb, i) => {
       const buffer = this._cached(vb, () => {
         vb.needsUpdate = false
-        return this._createBuffer(vb.buffer, GPUBufferUsage.INDEX)
+        return this._createBuffer(vb.buffer, GPUBufferUsage.VERTEX)
       })
 
       if (vb.needsUpdate) {
         const data = vb.buffer
-        this.device.queue.writeBuffer(buffer, data.byteOffset, data, 0, data.length)
+        this.device.queue.writeBuffer(buffer, data.byteOffset, data)
         vb.needsUpdate = false
       }
       this._passEncoder.setVertexBuffer(i, buffer)
     })
 
-    if (entries.length) {
+    if (bindGroupEntries.length) {
       const bindGroup = this.device.createBindGroup({
         layout: bindGroupLayout,
-        entries
+        entries: bindGroupEntries
       })
       this._passEncoder.setBindGroup(0, bindGroup)
     }
@@ -335,7 +350,6 @@ export class WebGPURenderer implements WebGPURendererOptions {
     if (camera?.matrixAutoUpdate) {
       camera.projectionViewMatrix.copy(camera.projectionMatrix).multiply(camera.viewMatrix)
       // camera.frustum.fromMatrix4(camera.projectionViewMatrix)
-      // camera.frustum.normalNDC()
     }
 
     scene.traverse(node => {
@@ -345,7 +359,7 @@ export class WebGPURenderer implements WebGPURendererOptions {
       // Filter to meshes
       if (!(node instanceof Mesh)) return
 
-      // Frustum cull if able
+      // TODO: Frustum cull if able
       // if (camera && node.frustumCulled) {
       //   const inFrustum = camera.frustum.contains(node)
       //   if (!inFrustum) return true
@@ -373,7 +387,64 @@ export class WebGPURenderer implements WebGPURendererOptions {
     })
   }
 
-  render(scene: Object3D, camera: Camera) {}
+  render(scene: Object3D, camera: Camera) {
+    // FBO and render target?
+
+    const samples = this.samples
+    if (this._msaaTexture.sampleCount !== samples) {
+      this._resizeSwapchain()
+    }
+
+    const renderViews = [this._msaaTextureView]
+    const resolveTarget = this.context.getCurrentTexture().createView()
+    const loadOp: GPULoadOp = this.autoClear ? 'clear' : 'load'
+    const storeOp: GPUStoreOp = 'store'
+    this._commandEncoder = this.device.createCommandEncoder()
+    const colorAttachments = renderViews.map<GPURenderPassColorAttachment>(view => ({
+      view,
+      resolveTarget,
+      loadOp,
+      storeOp,
+      clearValue: { r: 0.0, g: 0.0, b: 0.0, a: 1.0 }
+    }))
+    this._passEncoder = this._commandEncoder.beginRenderPass({
+      colorAttachments,
+      depthStencilAttachment: {
+        view: this._depthTextureView,
+        depthClearValue: 1,
+        depthLoadOp: loadOp,
+        depthStoreOp: storeOp,
+        stencilClearValue: 0,
+        stencilLoadOp: loadOp,
+        stencilStoreOp: storeOp
+      }
+    })
+    this._passEncoder.setViewport(0, 0, this.canvas.width, this.canvas.height, 0, 1)
+
+    scene.updateMatrix()
+    camera?.updateMatrix()
+
+    const renderList = this.sort(scene, camera)
+    for (const node of renderList) {
+      this._updatePipeline(node, camera)
+
+      const indexBuffer = node.geometry.indexBuffer
+      const position = node.geometry.vertexBuffers[0]
+
+      // Alternate drawing for indexed and non-indexed children
+      if (indexBuffer) {
+        const count = Math.min(node.geometry.drawRange.count, indexBuffer.buffer.length)
+        this._passEncoder.drawIndexed(count, node.geometry.instanceCount, node.geometry.drawRange.start ?? 0)
+      } else if (position) {
+        const count = Math.min(node.geometry.drawRange.count, position.buffer.length / position.layout.arrayStride)
+        this._passEncoder.draw(count, node.geometry.instanceCount, node.geometry.drawRange.start ?? 0)
+      } else {
+        this._passEncoder.draw(3, node.geometry.instanceCount)
+      }
+    }
+    this._passEncoder.end()
+    this.device.queue.submit([this._commandEncoder.finish()])
+  }
 }
 
 const tempVec3 = Vec3.create()
