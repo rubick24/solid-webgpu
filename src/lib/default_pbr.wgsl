@@ -25,7 +25,7 @@ struct PBRParams {
     metallic: f32,
     roughness: f32,
     ao: f32,
-    use_textures: u32, // Bitfield to indicate which textures to use
+    use_textures: u32, // Bitfield to indicate use value or textures
 };
 
 struct Light {
@@ -60,7 +60,6 @@ fn vs_main(input: VertexInput) -> VertexOutput {
     output.clip_position = uniforms.projection * vec4<f32>(view_position, 1.0);
     output.world_position = world_position;
     output.world_normal = normalize((uniforms.model * vec4<f32>(input.normal, 0.0)).xyz);
-    // output.view_normal = uniforms.normal_matrix * input.normal;
     output.uv = input.uv;
     return output;
 }

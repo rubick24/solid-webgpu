@@ -1,4 +1,4 @@
-import { Mat3, Mat4, Vec3 } from './math'
+import { Mat3, Mat4, Vec3 } from '../math'
 import { BufferData, Optional, Updatable } from './utils'
 
 // needsUpdate

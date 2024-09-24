@@ -1,8 +1,8 @@
 import { Mat4 } from './math'
-import { ArcRotateCamera } from './camera'
+import { ArcRotateCamera } from './lib/camera'
 import { DesktopInput } from './input'
 import shaderCode from './pbr.wgsl?raw'
-import { textureFromImageUrl } from './utils'
+import { textureFromImageUrl } from './lib/utils'
 // import { record } from './record'
 
 const adapter = (await navigator.gpu.requestAdapter())!

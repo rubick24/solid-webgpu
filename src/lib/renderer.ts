@@ -1,6 +1,6 @@
 import { Camera } from './camera'
 import { ExternalTexture, Sampler, Texture, Uniform, UniformBuffer } from './material'
-import { Mat3, Mat4, Vec3 } from './math'
+import { Mat3, Mat4, Vec3 } from '../math'
 import { Mesh } from './mesh'
 import { Object3D } from './object3d'
 import { BufferData, cached } from './utils'

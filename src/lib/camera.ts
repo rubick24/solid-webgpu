@@ -1,7 +1,7 @@
-import { DEG2RAD, GLM_EPSILON, Mat4, Vec3 } from './math'
-import { Vec3Like } from './math/types'
+import { DEG2RAD, GLM_EPSILON, Mat4, Vec3 } from '../math'
+import { Vec3Like } from '../math/types'
 import { Object3D } from './object3d'
-import { DesktopInput } from './input'
+import { DesktopInput } from '../input'
 import { Frustum } from './frustum'
 
 export class Camera extends Object3D {
