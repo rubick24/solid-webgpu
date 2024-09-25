@@ -1,5 +1,5 @@
 import { Mat3, Mat4, Vec3 } from '../math'
-import { BufferData, Optional, Updatable } from './utils'
+import { TypedArray, Optional, Updatable } from './utils'
 
 // needsUpdate
 
@@ -12,7 +12,7 @@ export type ImageRepresentation =
   | HTMLCanvasElement
   | OffscreenCanvas
 
-export type UniformBuffer = Updatable<{ type: 'buffer'; value: BufferData | ArrayBuffer }>
+export type UniformBuffer = Updatable<{ type: 'buffer'; value: TypedArray | ArrayBuffer }>
 
 export type Texture = Updatable<{
   type: 'texture'

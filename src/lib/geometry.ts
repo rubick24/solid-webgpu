@@ -1,14 +1,14 @@
-import { BufferData, Updatable } from './utils'
+import { TypedArray, Updatable } from './utils'
 
 export type VertexBuffer = Updatable<{
   layout: GPUVertexBufferLayout
-  buffer: BufferData
+  buffer: TypedArray
 }>
 
 export class Geometry {
   vertexBuffers: VertexBuffer[] = []
   indexBuffer?: Updatable<{
-    buffer: BufferData
+    buffer: TypedArray
     arrayStride: number
   }>
 
@@ -19,7 +19,7 @@ export class Geometry {
   constructor(options?: {
     vertexBuffers: VertexBuffer[]
     indexBuffer?: {
-      buffer: BufferData
+      buffer: TypedArray
     }
     topology?: GPUPrimitiveTopology
     instanceCount?: number

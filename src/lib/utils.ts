@@ -4,19 +4,23 @@ export const clamp = (min: number, max: number, v: number) => {
   return Math.max(min, Math.min(max, v))
 }
 
-export const textureFromImageData = (
-  device: GPUDevice,
-  source: ImageBitmap | ImageData | HTMLCanvasElement | OffscreenCanvas
-) => {
-  const textureDescriptor: GPUTextureDescriptor = {
-    size: { width: source.width, height: source.height },
-    format: 'rgba8unorm',
-    usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_DST | GPUTextureUsage.RENDER_ATTACHMENT
-  }
-  const texture = device.createTexture(textureDescriptor)
-  device.queue.copyExternalImageToTexture({ source }, { texture }, textureDescriptor.size)
-  return texture
-}
+// const gpuTextureFromImageData = (
+//   device: GPUDevice,
+//   source: ImageBitmap | ImageData | HTMLCanvasElement | OffscreenCanvas
+// ) => {
+//   const textureDescriptor: GPUTextureDescriptor = {
+//     size: { width: source.width, height: source.height },
+//     format: 'rgba8unorm',
+//     usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_DST | GPUTextureUsage.RENDER_ATTACHMENT
+//   }
+//   const texture = device.createTexture(textureDescriptor)
+//   device.queue.copyExternalImageToTexture({ source }, { texture }, textureDescriptor.size)
+//   return texture
+// }
+// const textureFromImageUrl = async (device: GPUDevice, url: string) => {
+//   const imgBitmap = await imageBitmapFromImageUrl(url)
+//   return gpuTextureFromImageData(device, imgBitmap)
+// }
 
 export const imageBitmapFromImageUrl = async (url: string) => {
   const response = await fetch(url)
@@ -24,35 +28,43 @@ export const imageBitmapFromImageUrl = async (url: string) => {
   return createImageBitmap(blob)
 }
 
-export const textureFromImageUrl = async (device: GPUDevice, url: string) => {
-  const imgBitmap = await imageBitmapFromImageUrl(url)
-  return textureFromImageData(device, imgBitmap)
+export const textureFromImageData = (source: ImageBitmap | ImageData | HTMLCanvasElement | OffscreenCanvas) => {
+  return {
+    type: 'texture',
+    image: source,
+    descriptor: {
+      size: { width: source.width, height: source.height }
+    }
+  } as Texture
 }
 
 export const textureFromUrl = async (url: string) => {
   const imgBitmap = await imageBitmapFromImageUrl(url)
-  return {
-    type: 'texture',
-    image: imgBitmap,
-    descriptor: {
-      size: { width: imgBitmap.width, height: imgBitmap.height }
-    }
-  } as Texture
+  return textureFromImageData(imgBitmap)
 }
 
 export type Optional<T, K extends keyof T> = Partial<Pick<T, K>> & Omit<T, K>
 
 export type Updatable<T> = T & { needsUpdate?: boolean }
 
-export type BufferData =
-  | Float32Array
+export type TypedArray =
   | Int8Array
-  | Int16Array
-  | Int32Array
   | Uint8Array
   | Uint8ClampedArray
+  | Int16Array
   | Uint16Array
+  | Int32Array
   | Uint32Array
+  | Float32Array
+export type TypedArrayConstructor =
+  | Int8ArrayConstructor
+  | Uint8ArrayConstructor
+  | Uint8ClampedArrayConstructor
+  | Int16ArrayConstructor
+  | Uint16ArrayConstructor
+  | Int32ArrayConstructor
+  | Uint32ArrayConstructor
+  | Float32ArrayConstructor
 
 // export const observable = <T extends object>(
 //   obj: T,

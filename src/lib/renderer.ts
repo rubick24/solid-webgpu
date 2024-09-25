@@ -3,7 +3,7 @@ import { ExternalTexture, Sampler, Texture, Uniform, UniformBuffer } from './mat
 import { Mat3, Mat4, Vec3 } from '../math'
 import { Mesh } from './mesh'
 import { Object3D } from './object3d'
-import { BufferData, cached } from './utils'
+import { TypedArray, cached } from './utils'
 
 const _adapter = typeof navigator !== 'undefined' ? await navigator.gpu?.requestAdapter() : null
 const _device = await _adapter?.requestDevice()
@@ -110,7 +110,7 @@ export class WebGPURenderer implements WebGPURendererOptions {
     this._resizeSwapchain()
   }
 
-  private _createBuffer(data: BufferData | ArrayBuffer, usage: GPUBufferUsageFlags, label?: string) {
+  private _createBuffer(data: TypedArray | ArrayBuffer, usage: GPUBufferUsageFlags, label?: string) {
     const buffer = this.device.createBuffer({
       label,
       size: data.byteLength,

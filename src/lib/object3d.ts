@@ -3,6 +3,7 @@ import { Mat4, Quat, Vec3 } from '../math'
 export type TraverseCallback = (object: Object3D) => boolean | void
 
 export class Object3D {
+  label: string = ''
   /**
    * Combined transforms of the object in world space.
    */
