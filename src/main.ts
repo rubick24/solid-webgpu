@@ -1,12 +1,10 @@
-import { WebGPURenderer, ArcRotateCamera, Mesh, Geometry, textureFromUrl, PBRMaterial } from './lib'
-import { DesktopInput } from './input'
+import { WebGPURenderer, Mesh, Geometry, textureFromUrl, PBRMaterial, PerspectiveCamera, OrbitControl } from './lib'
 
 const renderer = new WebGPURenderer()
 renderer.setSize(960, 540)
 document.body.appendChild(renderer.canvas)
 
-const camera = new ArcRotateCamera({ aspect: 16 / 9 })
-const di = new DesktopInput(renderer.canvas)
+const camera = new PerspectiveCamera({ aspect: 16 / 9 })
 camera.position.z = 5
 
 const geometry = new Geometry({
@@ -64,9 +62,10 @@ const material = new PBRMaterial({
 })
 
 const mesh = new Mesh(geometry, material)
+const control = new OrbitControl(camera)
+control.connect(renderer.canvas)
 
 const render = () => {
-  camera.processDesktopInput(di)
   renderer.render(mesh, camera)
   requestAnimationFrame(render)
 }

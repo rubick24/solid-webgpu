@@ -1,5 +1,9 @@
 import { Texture } from './material'
 
+export const clamp = (min: number, max: number, v: number) => {
+  return Math.max(min, Math.min(max, v))
+}
+
 export const textureFromImageData = (
   device: GPUDevice,
   source: ImageBitmap | ImageData | HTMLCanvasElement | OffscreenCanvas
