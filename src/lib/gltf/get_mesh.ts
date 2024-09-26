@@ -1,20 +1,17 @@
-import { GlTF } from '../../generated/glTF'
 import { Geometry } from '../geometry'
 import { Mesh } from '../mesh'
 import { getAccessor } from './get_accessor'
 import { getMaterial, defaultMaterial } from './get_material'
+import { LoaderContext } from './types'
 
-export const getMesh = async (
-  index: number,
-  context: {
-    json: GlTF
-    buffers: ArrayBuffer[]
-  }
-) => {
+export const getMesh = async (index: number, context: LoaderContext) => {
   const json = context.json.meshes?.[index]
   if (!json) {
     throw new Error('gltf mesh not found')
   }
+  const _accessor = (i: number) => context._cached(`accessor_${i}`, () => getAccessor(i, context))
+  const _material = (i: number) => context._cached(`material_${i}`, () => getMaterial(i, context))
+
   return await Promise.all(
     json.primitives.map(async primitive => {
       const attributeKeys = Object.keys(primitive.attributes)
@@ -23,14 +20,17 @@ export const getMesh = async (
         indexBuffer:
           primitive.indices !== undefined
             ? {
-                buffer: getAccessor(primitive.indices, context).bufferData
+                buffer: _accessor(primitive.indices).bufferData
               }
             : undefined,
         vertexBuffers: attributeKeys.map((k, i) => {
-          const accessor = getAccessor(primitive.attributes[k], context)
+          const accessor = _accessor(primitive.attributes[k])
           const buffer = accessor.bufferData
-          // TODO: correct shaderLocation here
           return {
+            attribute: {
+              name: k,
+              type: `vec${accessor.itemSize}<${accessor.itemType}>`
+            },
             layout: {
               arrayStride: accessor.arrayStride,
               attributes: [
@@ -46,10 +46,8 @@ export const getMesh = async (
         })
       })
 
-      const material =
-        primitive.material !== undefined ? await getMaterial(primitive.material, context) : defaultMaterial
-      const mesh = new Mesh(geometry, material)
-      mesh.label = json.name ?? `gltf mesh ${index}`
+      const mat = primitive.material !== undefined ? await _material(primitive.material) : defaultMaterial
+      return new Mesh({ geometry, material: mat, label: json.name ?? `gltf mesh ${index}` })
     })
   )
 }

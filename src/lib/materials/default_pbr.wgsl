@@ -1,7 +1,8 @@
 struct VertexInput {
-    @location(0) position: vec3<f32>,
-    @location(1) normal: vec3<f32>,
-    @location(2) uv: vec2<f32>,
+    @location(0) POSITION: vec3<f32>,
+    @location(1) NORMAL: vec3<f32>,
+    @location(2) TENGENT: vec4<f32>,
+    @location(3) TEXCOORD_0: vec2<f32>
 };
 
 struct VertexOutput {
@@ -55,12 +56,12 @@ var texture_sampler: sampler;
 @vertex
 fn vs_main(input: VertexInput) -> VertexOutput {
     var output: VertexOutput;
-    let world_position = (uniforms.model * vec4<f32>(input.position, 1.0)).xyz;
+    let world_position = (uniforms.model * vec4<f32>(input.POSITION, 1.0)).xyz;
     let view_position = (uniforms.view * vec4<f32>(world_position, 1.0)).xyz;
     output.clip_position = uniforms.projection * vec4<f32>(view_position, 1.0);
     output.world_position = world_position;
-    output.world_normal = normalize((uniforms.model * vec4<f32>(input.normal, 0.0)).xyz);
-    output.uv = input.uv;
+    output.world_normal = normalize((uniforms.model * vec4<f32>(input.NORMAL, 0.0)).xyz);
+    output.uv = input.TEXCOORD_0;
     return output;
 }
 

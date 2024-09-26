@@ -4,24 +4,6 @@ export const clamp = (min: number, max: number, v: number) => {
   return Math.max(min, Math.min(max, v))
 }
 
-// const gpuTextureFromImageData = (
-//   device: GPUDevice,
-//   source: ImageBitmap | ImageData | HTMLCanvasElement | OffscreenCanvas
-// ) => {
-//   const textureDescriptor: GPUTextureDescriptor = {
-//     size: { width: source.width, height: source.height },
-//     format: 'rgba8unorm',
-//     usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_DST | GPUTextureUsage.RENDER_ATTACHMENT
-//   }
-//   const texture = device.createTexture(textureDescriptor)
-//   device.queue.copyExternalImageToTexture({ source }, { texture }, textureDescriptor.size)
-//   return texture
-// }
-// const textureFromImageUrl = async (device: GPUDevice, url: string) => {
-//   const imgBitmap = await imageBitmapFromImageUrl(url)
-//   return gpuTextureFromImageData(device, imgBitmap)
-// }
-
 export const imageBitmapFromImageUrl = async (url: string) => {
   const response = await fetch(url)
   const blob = await response.blob()
@@ -42,6 +24,9 @@ export const textureFromUrl = async (url: string) => {
   const imgBitmap = await imageBitmapFromImageUrl(url)
   return textureFromImageData(imgBitmap)
 }
+
+export const white1pxBase64 =
+  'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+ip1sAAAAASUVORK5CYII='
 
 export type Optional<T, K extends keyof T> = Partial<Pick<T, K>> & Omit<T, K>
 
@@ -107,8 +92,8 @@ export type TypedArrayConstructor =
 //   })
 // }
 
-let _cacheMap = new WeakMap()
-export const cached = <T extends WeakKey, U>(
+let _weakCacheMap = new WeakMap()
+export const weakCached = <T extends WeakKey, U>(
   k: T,
   onCreate: () => U,
   options?: {
@@ -119,7 +104,28 @@ export const cached = <T extends WeakKey, U>(
     stale?: (old: U) => boolean
   }
 ): U => {
-  let cacheMap = options?.cacheMap ?? (_cacheMap as WeakMap<T, U>)
+  let cacheMap = options?.cacheMap ?? (_weakCacheMap as WeakMap<T, U>)
+  let target = cacheMap.get(k)
+  if (target === undefined || options?.stale?.(target)) {
+    target = onCreate()
+    cacheMap.set(k, target)
+  }
+  return target
+}
+
+let _cacheMap = new Map()
+export const cached = <T extends string, U>(
+  k: T,
+  onCreate: () => U,
+  options?: {
+    cacheMap?: Map<T, U>
+    /**
+     * check if old value stale, can also add dispose call for old value here
+     */
+    stale?: (old: U) => boolean
+  }
+): U => {
+  let cacheMap = options?.cacheMap ?? (_cacheMap as Map<T, U>)
   let target = cacheMap.get(k)
   if (target === undefined || options?.stale?.(target)) {
     target = onCreate()

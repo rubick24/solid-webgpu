@@ -1,5 +1,6 @@
-import { GlTF, Accessor } from '../../generated/glTF'
+import { Accessor } from '../../generated/glTF'
 import { TypedArrayConstructor } from '../utils'
+import { LoaderContext } from './types'
 
 const accessorTypeSize: Record<Accessor['type'], number> = {
   SCALAR: 1,
@@ -29,6 +30,15 @@ const componentTypeSize: Record<number, number> = {
   5126: 4
 }
 
+const componentValueType: Record<number, string> = {
+  5120: 'i8',
+  5121: 'u8',
+  5122: 'i16',
+  5123: 'u16',
+  5125: 'u32',
+  5126: 'f32'
+}
+
 const formatMap: Record<number, string> = {
   5120: 'sint8',
   5121: 'uint8',
@@ -38,7 +48,7 @@ const formatMap: Record<number, string> = {
   5126: 'float32'
 }
 
-export const getAccessor = (index: number, context: { json: GlTF; buffers: ArrayBuffer[] }) => {
+export const getAccessor = (index: number, context: LoaderContext) => {
   const { json, buffers } = context
 
   const accessor = json.accessors?.[index]
@@ -47,15 +57,19 @@ export const getAccessor = (index: number, context: { json: GlTF; buffers: Array
   }
   const itemSize = accessorTypeSize[accessor.type]
   const bufferView = json.bufferViews![accessor.bufferView as number]
-  const bufferIndex = bufferView.buffer
+
+  const itemType = componentValueType[accessor.componentType]
+  const buffer = buffers[bufferView.buffer]
   const ArrayType = componentTypedArray[accessor.componentType]
   const byteOffset = (bufferView.byteOffset ?? 0) + (accessor.byteOffset ?? 0)
 
   return {
     ...accessor,
     index,
+    itemSize,
+    itemType,
     arrayStride: itemSize * componentTypeSize[accessor.componentType],
     format: `${formatMap[accessor.componentType]}${itemSize > 1 ? `x${itemSize}` : ''}` as GPUVertexFormat,
-    bufferData: new ArrayType(buffers[bufferIndex], byteOffset, itemSize * accessor.count)
+    bufferData: new ArrayType(buffer, byteOffset, itemSize * accessor.count)
   }
 }

@@ -1,10 +1,8 @@
-import { Material, Texture } from './material'
+import { Material, Texture } from '../material'
 import shaderCode from './default_pbr.wgsl?raw'
-import { setBitOfValue, textureFromUrl } from './utils'
-import { Vec3 } from '../math'
+import { setBitOfValue, textureFromUrl, white1pxBase64 } from '../utils'
+import { Vec3 } from '../../math'
 
-const white1pxBase64 =
-  'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+ip1sAAAAASUVORK5CYII='
 const defaultTexture = await textureFromUrl(white1pxBase64)
 
 export class PBRMaterial extends Material {

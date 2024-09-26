@@ -1,6 +1,10 @@
 import { TypedArray, Updatable } from './utils'
 
 export type VertexBuffer = Updatable<{
+  attribute?: {
+    name: string
+    type: string
+  }
   layout: GPUVertexBufferLayout
   buffer: TypedArray
 }>

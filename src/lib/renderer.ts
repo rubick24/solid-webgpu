@@ -3,7 +3,7 @@ import { ExternalTexture, Sampler, Texture, Uniform, UniformBuffer } from './mat
 import { Mat3, Mat4, Vec3 } from '../math'
 import { Mesh } from './mesh'
 import { Object3D } from './object3d'
-import { TypedArray, cached } from './utils'
+import { TypedArray, weakCached } from './utils'
 
 const _adapter = typeof navigator !== 'undefined' ? await navigator.gpu?.requestAdapter() : null
 const _device = await _adapter?.requestDevice()
@@ -49,7 +49,7 @@ export class WebGPURenderer implements WebGPURendererOptions {
   private _commandEncoder!: GPUCommandEncoder
   private _passEncoder!: GPURenderPassEncoder
 
-  private _cacheMap = new WeakMap()
+  private _cacheMap = new WeakMap<object, unknown>()
 
   constructor({ canvas, context, format, device }: Partial<WebGPURendererOptions> = {}) {
     this.canvas = canvas ?? document.createElement('canvas')
@@ -66,9 +66,9 @@ export class WebGPURenderer implements WebGPURendererOptions {
       stale?: (old: U) => boolean
     }
   ): U {
-    return cached(k, onCreate, {
+    return weakCached(k, onCreate, {
       ...options,
-      cacheMap: this._cacheMap
+      cacheMap: this._cacheMap as WeakMap<T, U>
     })
   }
 
@@ -116,7 +116,7 @@ export class WebGPURenderer implements WebGPURendererOptions {
       size: data.byteLength,
       usage: usage | GPUBufferUsage.COPY_DST | GPUBufferUsage.STORAGE
     })
-    this.device.queue.writeBuffer(buffer, 'byteOffset' in data ? data.byteOffset : 0, data)
+    this.device.queue.writeBuffer(buffer, 0, data)
     return buffer
   }
 
@@ -271,7 +271,21 @@ export class WebGPURenderer implements WebGPURendererOptions {
     const pipeline = this._cached(
       mesh,
       () => {
-        const shaderModule = this.device.createShaderModule({ code: mesh.material.shaderCode })
+        let code = mesh.material.shaderCode
+        /**
+         * set builtin vertexInput if defined in vertexBuffer
+         */
+        const vertexInputStr = mesh.geometry.vertexBuffers
+          .filter(v => v.attribute?.name && builtinAttributeNames.includes(v.attribute?.name))
+          .map((v, i) => `  @location(${i}) ${v.attribute!.name}: ${v.attribute!.type}`)
+          .join(',\n')
+        if (vertexInputStr) {
+          const old = code.match(/^struct VertexInput {\n(.|\n)*?}/)?.[0]
+          const rep = `struct VertexInput {\n${vertexInputStr}\n}`
+          code = old?.length ? code.replace(old, rep) : rep + '\n' + code
+        }
+
+        const shaderModule = this.device.createShaderModule({ code })
 
         return this.device.createRenderPipeline({
           layout: this.device.createPipelineLayout({
@@ -448,3 +462,4 @@ export class WebGPURenderer implements WebGPURendererOptions {
 }
 
 const tempVec3 = Vec3.create()
+const builtinAttributeNames = ['POSITION', 'NORMAL', 'TANGENT', 'TEXCOORD_0']

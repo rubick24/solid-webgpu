@@ -156,7 +156,7 @@ export class OrbitControl {
     }
 
     element.addEventListener('contextmenu', this._onContextMenu)
-    element.addEventListener('wheel', this._onWheel, { passive: true })
+    element.addEventListener('wheel', this._onWheel)
     element.addEventListener('pointerdown', this._onPointerDown)
     element.addEventListener('pointermove', this._onPointerMove)
     element.addEventListener('pointerup', this._onPointerUp)

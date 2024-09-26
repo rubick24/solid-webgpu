@@ -9,19 +9,19 @@ export const parseGLB = async (url: string): Promise<[GlTF, ArrayBuffer[]]> => {
 
   const header = new DataView(glb, 0, 12)
   if (header.getUint32(0, true) !== ASCII_GLTF) {
-    throw new Error('glTFLoader: File is not valid binary glTF')
+    throw new Error('File is not valid binary glTF')
   }
 
   const version = header.getUint32(4, true)
   if (version !== 2) {
-    throw new Error('glTFLoader: Only support glTF version 2')
+    throw new Error('Only support glTF version 2')
   }
 
   const length = header.getUint32(8, true)
   const jsonChunkHeader = new DataView(glb, 12, 8)
   const jsonChunkLength = jsonChunkHeader.getUint32(0, true)
   if (jsonChunkHeader.getUint32(4, true) !== ASCII_JSON) {
-    throw new Error('glTFLoader: first chunk must be structured JSON content')
+    throw new Error('first chunk must be structured JSON content')
   }
   const jsonChunkContent = new DataView(glb, 20, jsonChunkLength)
   const textDecoder = new TextDecoder('utf-8')
@@ -31,7 +31,7 @@ export const parseGLB = async (url: string): Promise<[GlTF, ArrayBuffer[]]> => {
   let currentLength = 20 + jsonChunkLength
 
   if (currentLength >= length) {
-    throw new Error('glTFLoader: glb parsing error')
+    throw new Error('glb parsing error')
   }
 
   const chunkHeader = new DataView(glb, currentLength, 8)

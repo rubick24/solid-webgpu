@@ -1,10 +1,10 @@
-import { GlTF } from '../../generated/glTF'
 import { Mat4, Quat, Vec3 } from '../../math'
 import { Mat4Like } from '../../math/types'
 import { Object3D } from '../object3d'
 import { getMesh } from './get_mesh'
+import { LoaderContext } from './types'
 
-export const getNode = async (index: number, context: { json: GlTF; buffers: ArrayBuffer[] }) => {
+export const getNode = async (index: number, context: LoaderContext) => {
   const json = context.json.nodes?.[index]
   if (!json) {
     throw new Error('node not found')
@@ -35,13 +35,13 @@ export const getNode = async (index: number, context: { json: GlTF; buffers: Arr
 
   node.label = json.name ?? `gltf node ${index}`
 
-  if (json.mesh) {
-    const meshes = await getMesh(json.mesh, context)
+  if (json.mesh !== undefined) {
+    const meshes = await context._cached(`mesh_${index}`, () => getMesh(json.mesh!, context))
     node.add(...meshes)
   }
 
   for (const child of json.children ?? []) {
-    const childNode = await getNode(child, context)
+    const childNode = await context._cached(`node_${child}`, () => getNode(child, context))
     node.add(childNode)
   }
 

@@ -1,14 +1,8 @@
-import { GlTF } from '../../generated/glTF'
+import { LoaderContext } from './types'
 import { textureFromImageData } from '../utils'
 import { getImage } from './get_image'
 
-export const getTexture = async (
-  textureIndex: number,
-  context: {
-    json: GlTF
-    buffers: ArrayBuffer[]
-  }
-) => {
+export const getTexture = async (textureIndex: number, context: LoaderContext) => {
   const json = context.json.textures?.[textureIndex]
   if (!json) {
     throw new Error('gltf texture not found')
@@ -25,7 +19,7 @@ export const getTexture = async (
   //     )
   //   : defaultSampler
 
-  const image = await getImage(json.source, context)
+  const image = await context._cached(`image_${json.source}`, () => getImage(json.source!, context))
 
   return textureFromImageData(image)
 }
