@@ -1,7 +1,7 @@
 struct VertexInput {
     @location(0) POSITION: vec3<f32>,
     @location(1) NORMAL: vec3<f32>,
-    @location(2) TENGENT: vec4<f32>,
+    @location(2) TANGENT: vec4<f32>,
     @location(3) TEXCOORD_0: vec2<f32>
 };
 
