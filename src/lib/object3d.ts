@@ -1,4 +1,4 @@
-import { Mat4, Quat, Vec3 } from '../math'
+import { Mat4, Quat, Vec3 } from './math'
 
 export type TraverseCallback = (object: Object3D) => boolean | void
 

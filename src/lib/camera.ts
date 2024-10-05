@@ -1,4 +1,4 @@
-import { DEG2RAD, Mat4, Vec3 } from '../math'
+import { DEG2RAD, Mat4, Vec3 } from './math'
 import { Object3D } from './object3d'
 import { Frustum } from './frustum'
 

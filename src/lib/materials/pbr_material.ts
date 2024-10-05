@@ -1,7 +1,7 @@
 import { Material, Texture } from '../material'
 import shaderCode from './default_pbr.wgsl?raw'
 import { setBitOfValue, textureFromUrl, white1pxBase64 } from '../utils'
-import { Vec3 } from '../../math'
+import { Vec3 } from '../math'
 
 const defaultTexture = await textureFromUrl(white1pxBase64)
 

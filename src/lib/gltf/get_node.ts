@@ -1,5 +1,5 @@
-import { Mat4, Quat, Vec3 } from '../../math'
-import { Mat4Like } from '../../math/types'
+import { Mat4, Quat, Vec3 } from '../math'
+import { Mat4Like } from '../math/types'
 import { Object3D } from '../object3d'
 import { getMesh } from './get_mesh'
 import { LoaderContext } from './types'

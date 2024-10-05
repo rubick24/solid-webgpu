@@ -1,4 +1,4 @@
-import { Vec3 } from '../math'
+import { Vec3 } from './math'
 import { Camera } from './camera'
 import { clamp } from './utils'
 

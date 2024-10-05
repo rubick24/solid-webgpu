@@ -1,4 +1,4 @@
-import { Vec3 } from '../../math'
+import { Vec3 } from '../math'
 import { PBRMaterial, UnlitMaterial } from '../materials'
 import { getTexture } from './get_texture'
 import { LoaderContext } from './types'
