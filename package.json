@@ -9,13 +9,15 @@
     "preview": "vite preview"
   },
   "devDependencies": {
+    "@types/draco3d": "^1.4.10",
     "@types/node": "^22.5.5",
+    "@webgpu/types": "^0.1.40",
     "json-schema-to-typescript": "^15.0.2",
     "tsx": "^4.19.1",
     "typescript": "^5.2.2",
     "vite": "^5.4.8"
   },
   "dependencies": {
-    "@webgpu/types": "^0.1.40"
+    "draco3d": "^1.5.7"
   }
 }

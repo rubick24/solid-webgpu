@@ -14,6 +14,13 @@ export const getMesh = async (index: number, context: LoaderContext) => {
 
   return await Promise.all(
     json.primitives.map(async primitive => {
+      const draco = primitive.extensions?.['KHR_draco_mesh_compression'] as {
+        bufferView: number
+        attributes: Record<string, number>
+      }
+      if (draco) {
+        throw new Error('KHR_draco_mesh_compression not supported')
+      }
       const attributeKeys = Object.keys(primitive.attributes)
 
       const geometry = new Geometry({

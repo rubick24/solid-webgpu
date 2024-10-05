@@ -8,13 +8,19 @@ importers:
 
   .:
     dependencies:
-      '@webgpu/types':
-        specifier: ^0.1.40
-        version: 0.1.40
+      draco3d:
+        specifier: ^1.5.7
+        version: 1.5.7
     devDependencies:
+      '@types/draco3d':
+        specifier: ^1.4.10
+        version: 1.4.10
       '@types/node':
         specifier: ^22.5.5
         version: 22.5.5
+      '@webgpu/types':
+        specifier: ^0.1.40
+        version: 0.1.40
       json-schema-to-typescript:
         specifier: ^15.0.2
         version: 15.0.2
@@ -407,6 +413,9 @@ packages:
     cpu: [x64]
     os: [win32]
 
+  '@types/draco3d@1.4.10':
+    resolution: {integrity: sha512-AX22jp8Y7wwaBgAixaSvkoG4M/+PlAcm3Qs4OW8yT9DM4xUpWKeFhLueTAyZF39pviAdcDdeJoACapiAceqNcw==}
+
   '@types/estree@1.0.5':
     resolution: {integrity: sha512-/kYRxGDLWzHOB7q+wtSUQlFrtcdUccpfy+X+9iMBpHK8QLLhx2wIPYuS5DYtR9Wa/YlZAbIovy7qVdB1Aq6Lyw==}
 
@@ -457,6 +466,9 @@ packages:
   cross-spawn@7.0.3:
     resolution: {integrity: sha512-iRDPJKUPVEND7dHPO8rkbOnPpyDygcDFtWjpeWNCgy8WP2rXcxXL8TskReQl6OrB2G7+UJrags1q15Fudc7G6w==}
     engines: {node: '>= 8'}
+
+  draco3d@1.5.7:
+    resolution: {integrity: sha512-m6WCKt/erDXcw+70IJXnG7M3awwQPAsZvJGX5zY7beBqpELw6RDGkYVU0W43AFxye4pDZ5i2Lbyc/NNGqwjUVQ==}
 
   eastasianwidth@0.2.0:
     resolution: {integrity: sha512-I88TYZWc9XiYHRQ4/3c5rjjfgkjhLyW2luGIheGERbNQ6OY7yTybanSpDXZa8y7VUP9YmDcYa+eyq4ca7iLqWA==}
@@ -873,6 +885,8 @@ snapshots:
   '@rollup/rollup-win32-x64-msvc@4.22.4':
     optional: true
 
+  '@types/draco3d@1.4.10': {}
+
   '@types/estree@1.0.5': {}
 
   '@types/json-schema@7.0.15': {}
@@ -914,6 +928,8 @@ snapshots:
       path-key: 3.1.1
       shebang-command: 2.0.0
       which: 2.0.2
+
+  draco3d@1.5.7: {}
 
   eastasianwidth@0.2.0: {}
 
