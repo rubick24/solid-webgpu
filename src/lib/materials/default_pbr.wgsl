@@ -29,9 +29,24 @@ struct PBRParams {
     use_textures: u32, // Bitfield to indicate use value or textures
 };
 
-struct Light {
+struct PointLight {
     position: vec3<f32>,
     color: vec3<f32>,
+    intensity: f32
+};
+struct DirectionalLight {
+    color: vec3<f32>,
+    direction: vec3<f32>,
+    intensity: f32
+};
+struct SpotLight {
+    position: vec3<f32>,
+    color: vec3<f32>,
+    direction: vec3<f32>,
+    intensity: f32,
+    radius: f32,
+    inner_angle: f32,
+    outer_angle: f32
 };
 
 
@@ -42,7 +57,7 @@ var<uniform> uniforms: BaseUniforms;
 var<uniform> pbr_params: PBRParams;
 
 @group(0) @binding(2)
-var<uniform> lights: Light;
+var<uniform> point_lights: array<PointLight, 1>;
 
 @group(0) @binding(3)
 var albedo_texture: texture_2d<f32>;
@@ -116,45 +131,120 @@ fn fresnelSchlick(cosTheta: f32, F0: vec3<f32>) -> vec3<f32> {
     return F0 + (1.0 - F0) * pow(clamp(1.0 - cosTheta, 0.0, 1.0), 5.0);
 }
 
-@fragment
-fn fs_main(input: VertexOutput) -> @location(0) vec4<f32> {
-
-
-    let pbr_values = get_pbr_values(input.uv);
-
+fn calculatePointLight(light: PointLight, input: VertexOutput, pbr_values: PBRParams) -> vec3<f32> {
     let N = normalize(input.world_normal);
     let V = normalize(uniforms.camera_position - input.world_position);
 
     let F0 = mix(vec3<f32>(0.04), pbr_values.albedo, pbr_values.metallic);
 
+    // Calculate per-light radiance
+    let L = normalize(light.position - input.world_position);
+    let H = normalize(V + L);
+    let distance = length(light.position - input.world_position);
+    let attenuation = 1.0 / (distance * distance);
+    let radiance = light.color * attenuation;
+
+    // Cook-Torrance BRDF
+    let NDF = DistributionGGX(N, H, pbr_values.roughness);
+    let G = GeometrySmith(N, V, L, pbr_values.roughness);
+    let F = fresnelSchlick(max(dot(H, V), 0.0), F0);
+
+    let numerator = NDF * G * F;
+    let denominator = 4.0 * max(dot(N, V), 0.0) * max(dot(N, L), 0.0) + 0.0001;
+    let specular = numerator / denominator;
+
+    let kS = F;
+    let kD = (vec3(1.0) - kS) * (1.0 - pbr_values.metallic);
+
+    let NdotL = max(dot(N, L), 0.0);
+    return (kD * pbr_values.albedo / PI + specular) * radiance * NdotL;
+}
+
+fn calculateDirectionalLight(light: DirectionalLight, input: VertexOutput, pbr_values: PBRParams) -> vec3<f32> {
+    let N = normalize(input.world_normal);
+    let V = normalize(uniforms.camera_position - input.world_position);
+
+    let F0 = mix(vec3<f32>(0.04), pbr_values.albedo, pbr_values.metallic);
+
+    let L = normalize(-light.direction);
+    let H = normalize(V + L);
+
+    // Cook-Torrance BRDF
+    let NDF = DistributionGGX(N, H, pbr_values.roughness);
+    let G = GeometrySmith(N, V, L, pbr_values.roughness);
+    let F = fresnelSchlick(max(dot(H, V), 0.0), F0);
+
+    let numerator = NDF * G * F;
+    let denominator = 4.0 * max(dot(N, V), 0.0) * max(dot(N, L), 0.0) + 0.0001;
+    let specular = numerator / denominator;
+
+    let kS = F;
+    let kD = (vec3(1.0) - kS) * (1.0 - pbr_values.metallic);
+
+    let NdotL = max(dot(N, L), 0.0);
+    return (kD * pbr_values.albedo / PI + specular) * light.color * light.intensity * NdotL;
+}
+
+fn calculateSpotLight(light: SpotLight, input: VertexOutput, pbr_values: PBRParams) -> vec3<f32> {
+    let N = normalize(input.world_normal);
+    let V = normalize(uniforms.camera_position - input.world_position);
+    let F0 = mix(vec3<f32>(0.04), pbr_values.albedo, pbr_values.metallic);
+
+
+    let L = normalize(light.position - input.world_position);
+    let H = normalize(V + L);
+    let distance = length(light.position - input.world_position);
+    let attenuation = 1.0 / (distance * distance);
+
+    let cos_theta = dot(L, normalize(-light.direction));
+    let epsilon = cos(light.inner_angle) - cos(light.outer_angle);
+    let intensity = clamp((cos_theta - cos(light.outer_angle)) / epsilon, 0.0, 1.0);
+
+    if intensity <= 0.0 {
+        return vec3<f32>(0.0);
+    }
+    
+    // Cook-Torrance BRDF
+    let NDF = DistributionGGX(N, H, pbr_values.roughness);
+    let G = GeometrySmith(N, V, L, pbr_values.roughness);
+    let F = fresnelSchlick(max(dot(H, V), 0.0), F0);
+
+    let numerator = NDF * G * F;
+    let denominator = 4.0 * max(dot(N, V), 0.0) * max(dot(N, L), 0.0) + 0.0001;
+    let specular = numerator / denominator;
+
+    let kS = F;
+    let kD = (vec3(1.0) - kS) * (1.0 - pbr_values.metallic);
+
+    let NdotL = max(dot(N, L), 0.0);
+    return (kD * pbr_values.albedo / PI + specular) * light.color * light.intensity * NdotL * attenuation * intensity;
+}
+
+@fragment
+fn fs_main(input: VertexOutput) -> @location(0) vec4<f32> {
+
+    let pbr_values = get_pbr_values(input.uv);
+
     var Lo = vec3<f32>(0.0);
 
     for (var i = 0; i < 1; i++) {
-        let light = lights;
-        // Calculate per-light radiance
-        let L = normalize(light.position - input.world_position);
-        let H = normalize(V + L);
-        let distance = length(light.position - input.world_position);
-        let attenuation = 1.0 / (distance * distance);
-        let radiance = light.color * attenuation;
-
-        // Cook-Torrance BRDF
-        let NDF = DistributionGGX(N, H, pbr_values.roughness);
-        let G = GeometrySmith(N, V, L, pbr_values.roughness);
-        let F = fresnelSchlick(max(dot(H, V), 0.0), F0);
-
-        let numerator = NDF * G * F;
-        let denominator = 4.0 * max(dot(N, V), 0.0) * max(dot(N, L), 0.0) + 0.0001;
-        let specular = numerator / denominator;
-
-        let kS = F;
-        let kD = (vec3(1.0) - kS) * (1.0 - pbr_values.metallic);
-
-        let NdotL = max(dot(N, L), 0.0);
-        Lo += (kD * pbr_values.albedo / PI + specular) * radiance * NdotL;
-
-        // return vec4(Lo, 1.0);
+        let light = point_lights[i];
+        Lo += calculatePointLight(light, input, pbr_values);
     }
+    let directional_lights = array<DirectionalLight, 1>(
+        DirectionalLight(vec3f(0., 0.5, 1.), vec3f(0., 0., -1.), 1.)
+    );
+    for (var i = 0; i < 1; i++) {
+        let light = directional_lights[i];
+        Lo += calculateDirectionalLight(light, input, pbr_values);
+    }
+    // let spot_lights = array<SpotLight, 1>(
+    //     SpotLight(vec3f(0., 0., 3.), vec3f(0.5, 0.5, 0.), vec3f(0., 0., -1.), 10., 0.5, 0.3, 0.5)
+    // );
+    // for (var i = 0; i < 1; i++) {
+    //     let light = spot_lights[i];
+    //     Lo += calculateSpotLight(light, input, pbr_values);
+    // }
 
     let ambient = vec3<f32>(0.03) * pbr_values.albedo * pbr_values.ao;
     let color = ambient + Lo;
