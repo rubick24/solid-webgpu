@@ -21,7 +21,7 @@ export class PBRMaterial extends Material {
   }) {
     const v = {
       albedo: options?.albedo ?? Vec3.fromValues(1, 1, 1),
-      metallic: options?.metallic ?? 0.5,
+      metallic: options?.metallic ?? 0,
       roughness: options?.roughness ?? 0.5,
       occlusion: options?.occlusion ?? 1.0
     }
