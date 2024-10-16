@@ -36,7 +36,11 @@ export class PBRMaterial extends Material {
     pbrFlag[0] = setBitOfValue(pbrFlag[0], 0, !!options?.albedoTexture)
     pbrFlag[0] = setBitOfValue(pbrFlag[0], 1, !!options?.occlusionRoughnessMetallicTexture)
 
-    const lightValues = new Float32Array([2, 2, 2, 0, 10, 10, 10, 0])
+    const lightValues = new Float32Array([0.25, 3, 0, 0, 0, -1, 0, 0, 1, 1, 1, 100, Infinity, 0, Math.PI / 12, 0])
+
+    console.log(lightValues)
+    // 设置light_type
+    new DataView(lightValues.buffer).setUint32(60, 2, true)
 
     super({
       shaderCode,
@@ -44,10 +48,6 @@ export class PBRMaterial extends Material {
         {
           type: 'buffer',
           value: _pbrBuffer
-        },
-        {
-          type: 'buffer',
-          value: lightValues
         },
         options?.albedoTexture ?? defaultTexture,
         options?.occlusionRoughnessMetallicTexture ?? defaultTexture,
@@ -60,6 +60,10 @@ export class PBRMaterial extends Material {
             addressModeU: 'repeat',
             addressModeV: 'repeat'
           }
+        },
+        {
+          type: 'buffer',
+          value: lightValues
         }
       ]
     })
