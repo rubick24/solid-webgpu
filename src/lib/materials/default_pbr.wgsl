@@ -110,15 +110,14 @@ fn geometrySmith(NdotV: f32, NdotL: f32, roughness: f32) -> f32 {
 
 fn calculatePointLight(light: PunctualLight, input: VertexOutput, pbr_values: PBRParams) -> vec3<f32> {
     let distance = length(light.position - input.world_position);
-    if distance > light.range {
-        return vec3(0.);
-    }
+
 
     let light_dir = normalize(light.position - input.world_position);
     let view_dir = normalize(uniforms.camera_position - input.world_position);
 
     // Attenuation
-    let attenuation = 1.0 / (distance * distance);
+    let attenuation = clamp(1.0 - pow(distance / light.range, 4.), 0., 1.) / (distance * distance);
+
     let radiance = light.color * light.intensity * attenuation;
 
     // Cook-Torrance BRDF
@@ -194,7 +193,7 @@ fn calculateSpotLight(light: PunctualLight, input: VertexOutput, pbr_values: PBR
     let view_dir = normalize(uniforms.camera_position - input.world_position);
     let light_dir = normalize(light.position - input.world_position);
     // Attenuation
-    let attenuation = 1.0 / (distance * distance);
+    let attenuation = clamp(1.0 - pow(distance / light.range, 4.), 0., 1.) / (distance * distance);
 
     // Spot light cone attenuation
     let spot_factor = getSpotFactor(light, light_dir);

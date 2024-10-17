@@ -38,7 +38,6 @@ export class PBRMaterial extends Material {
 
     const lightValues = new Float32Array([0.25, 3, 0, 0, 0, -1, 0, 0, 1, 1, 1, 100, Infinity, 0, Math.PI / 12, 0])
 
-    console.log(lightValues)
     // 设置light_type
     new DataView(lightValues.buffer).setUint32(60, 2, true)
 

@@ -92,40 +92,68 @@ export type TypedArrayConstructor =
 //   })
 // }
 
-let _weakCacheMap = new WeakMap()
-export const weakCached = <T extends WeakKey, U>(
-  k: T,
-  onCreate: () => U,
+export class MultipleKeyWeakMap<V> {
+  wm: WeakMap<WeakKey, V | WeakMap<WeakKey, V>> = new WeakMap()
+
+  set(keys: WeakKey[], value: V) {
+    let current = this.wm
+    for (let i = 0; i < keys.length - 1; i++) {
+      const ki = keys[i]
+      if (!current.has(ki)) {
+        current.set(keys[i], new WeakMap<WeakKey, V>())
+      }
+      current = current.get(keys[i]) as WeakMap<WeakKey, V>
+    }
+    current.set(keys[keys.length - 1], value)
+  }
+
+  get(keys: WeakKey[]) {
+    let current = this.wm
+    for (let key of keys) {
+      if (!current?.has(key)) {
+        return undefined
+      }
+      current = current.get(key) as WeakMap<object, V>
+    }
+    return current as V
+  }
+}
+
+let _weakCacheMap = new MultipleKeyWeakMap()
+export const weakCached = <V>(
+  keys: WeakKey[],
+  onCreate: () => V,
+
   options?: {
-    cacheMap?: WeakMap<T, U>
+    cacheMap?: MultipleKeyWeakMap<V>
     /**
      * check if old value stale, can also add dispose call for old value here
      */
-    stale?: (old: U) => boolean
+    stale?: (old: V) => boolean
   }
-): U => {
-  let cacheMap = options?.cacheMap ?? (_weakCacheMap as WeakMap<T, U>)
-  let target = cacheMap.get(k)
+): V => {
+  const cacheMap = options?.cacheMap ?? _weakCacheMap
+  let target = cacheMap.get(keys) as V | undefined
   if (target === undefined || options?.stale?.(target)) {
     target = onCreate()
-    cacheMap.set(k, target)
+    cacheMap.set(keys, target)
   }
   return target
 }
 
 let _cacheMap = new Map()
-export const cached = <T extends string, U>(
-  k: T,
-  onCreate: () => U,
+export const cached = <V>(
+  k: string,
+  onCreate: () => V,
   options?: {
-    cacheMap?: Map<T, U>
+    cacheMap?: Map<string, V>
     /**
      * check if old value stale, can also add dispose call for old value here
      */
-    stale?: (old: U) => boolean
+    stale?: (old: V) => boolean
   }
-): U => {
-  let cacheMap = options?.cacheMap ?? (_cacheMap as Map<T, U>)
+): V => {
+  let cacheMap = options?.cacheMap ?? (_cacheMap as Map<string, V>)
   let target = cacheMap.get(k)
   if (target === undefined || options?.stale?.(target)) {
     target = onCreate()

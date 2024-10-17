@@ -2,6 +2,7 @@ import { Mat4, Quat, Vec3 } from '../math'
 import { Mat4Like } from '../math/types'
 import { Object3D } from '../object3d'
 import { getMesh } from './get_mesh'
+import { getPunctualLight } from './get_punctual_light'
 import { LoaderContext } from './types'
 
 export const getNode = async (index: number, context: LoaderContext) => {
@@ -10,6 +11,11 @@ export const getNode = async (index: number, context: LoaderContext) => {
     throw new Error('node not found')
   }
   const node = new Object3D()
+  const lightIndex = json.extensions?.KHR_lights_punctual?.light as number | undefined
+  if (lightIndex !== undefined) {
+    const light = context._cached(`punctual_light_${index}`, () => getPunctualLight(lightIndex, context))
+    node.add(light)
+  }
   if (json.matrix) {
     Mat4.getScaling(node.scale, json.matrix as Mat4Like)
     // To extract a correct rotation, the scaling component must be eliminated.

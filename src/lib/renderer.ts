@@ -3,7 +3,7 @@ import { ExternalTexture, Sampler, Texture, Uniform, UniformBuffer } from './mat
 import { Mat3, Mat4, Vec3 } from './math'
 import { Mesh } from './mesh'
 import { Object3D } from './object3d'
-import { TypedArray, weakCached } from './utils'
+import { MultipleKeyWeakMap, TypedArray, weakCached } from './utils'
 
 const _adapter = typeof navigator !== 'undefined' ? await navigator.gpu?.requestAdapter() : null
 const _device = await _adapter?.requestDevice()
@@ -49,7 +49,7 @@ export class WebGPURenderer implements WebGPURendererOptions {
   private _commandEncoder!: GPUCommandEncoder
   private _passEncoder!: GPURenderPassEncoder
 
-  private _cacheMap = new WeakMap<object, unknown>()
+  private _cacheMap = new Map<string, MultipleKeyWeakMap<unknown>>()
 
   constructor({ canvas, context, format, device }: Partial<WebGPURendererOptions> = {}) {
     this.canvas = canvas ?? document.createElement('canvas')
@@ -59,16 +59,24 @@ export class WebGPURenderer implements WebGPURendererOptions {
     this._resizeSwapchain()
   }
 
-  _cached<T extends WeakKey, U>(
-    k: T,
-    onCreate: () => U,
+  _cached<V>(
+    keys: WeakKey[],
+    onCreate: () => V,
     options?: {
-      stale?: (old: U) => boolean
+      space?: string
+      stale?: (old: V) => boolean
     }
-  ): U {
-    return weakCached(k, onCreate, {
+  ): V {
+    const space = options?.space ?? ''
+    let cache = this._cacheMap.get(space)
+    if (!cache) {
+      cache = new MultipleKeyWeakMap()
+      this._cacheMap.set(space, cache)
+    }
+
+    return weakCached([this, ...keys], onCreate, {
       ...options,
-      cacheMap: this._cacheMap as WeakMap<T, U>
+      cacheMap: cache as MultipleKeyWeakMap<V>
     })
   }
 
@@ -122,7 +130,7 @@ export class WebGPURenderer implements WebGPURendererOptions {
 
   private _updateSampler(sampler: Sampler) {
     return this._cached(
-      sampler,
+      [sampler],
       () => {
         const target = this.device.createSampler(sampler.descriptor)
         sampler.needsUpdate = false
@@ -136,7 +144,7 @@ export class WebGPURenderer implements WebGPURendererOptions {
 
   private _updateTexture(texture: Texture | ExternalTexture) {
     return this._cached(
-      texture,
+      [texture],
       () => {
         const target = this.device.createTexture({
           ...texture.descriptor,
@@ -174,7 +182,7 @@ export class WebGPURenderer implements WebGPURendererOptions {
     /**
      * uniform setup
      */
-    const { uniforms, bindGroupLayout } = this._cached(mesh.material.uniforms, () => {
+    const { uniforms, bindGroupLayout } = this._cached([mesh.material], () => {
       const baseUniformBuffer = new Float32Array(80)
       const uniforms: Uniform[] = [
         {
@@ -230,25 +238,25 @@ export class WebGPURenderer implements WebGPURendererOptions {
     /**
      * uniform binding
      */
-    const bindGroupEntries: GPUBindGroupEntry[] = uniforms.map((v, i) => {
-      if (v.type === 'buffer') {
-        const buffer = this._cached(v, () =>
-          this._createBuffer(v.value, GPUBufferUsage.UNIFORM, `uniform ${i} ${v.type}`)
+    const bindGroupEntries: GPUBindGroupEntry[] = uniforms.map((uniform, i) => {
+      if (uniform.type === 'buffer') {
+        const buffer = this._cached([uniform], () =>
+          this._createBuffer(uniform.value, GPUBufferUsage.UNIFORM, `uniform ${i} ${uniform.type}`)
         )
-        if (v.needsUpdate) {
-          const data = v.value
+        if (uniform.needsUpdate) {
+          const data = uniform.value
           this.device.queue.writeBuffer(buffer, 'byteOffset' in data ? data.byteOffset : 0, data)
-          v.needsUpdate = false
+          uniform.needsUpdate = false
         }
         return { binding: i, resource: { buffer } }
-      } else if (v.type === 'texture' || v.type === 'externalTexture') {
-        const texture = this._updateTexture(v)
+      } else if (uniform.type === 'texture' || uniform.type === 'externalTexture') {
+        const texture = this._updateTexture(uniform)
         return {
           binding: i,
           resource: 'createView' in texture ? texture.createView() : texture
         }
       } else {
-        const sampler = this._updateSampler(v)
+        const sampler = this._updateSampler(uniform)
         return { binding: i, resource: sampler }
       }
     })
@@ -269,7 +277,7 @@ export class WebGPURenderer implements WebGPURendererOptions {
     }
     const pipelineCacheKey = JSON.stringify(pipelineOption)
     const pipeline = this._cached(
-      mesh,
+      [mesh],
       () => {
         let code = mesh.material.shaderCode
         /**
@@ -327,13 +335,13 @@ export class WebGPURenderer implements WebGPURendererOptions {
 
     const ib = mesh.geometry.indexBuffer
     if (ib) {
-      const buffer = this._cached(ib, () => {
+      const buffer = this._cached([ib], () => {
         return this._createBuffer(ib.buffer, GPUBufferUsage.INDEX)
       })
       this._passEncoder.setIndexBuffer(buffer, `uint${ib.buffer.BYTES_PER_ELEMENT * 8}` as GPUIndexFormat)
     }
     mesh.geometry.vertexBuffers.forEach((vb, i) => {
-      const buffer = this._cached(vb, () => {
+      const buffer = this._cached([vb], () => {
         vb.needsUpdate = false
         return this._createBuffer(vb.buffer, GPUBufferUsage.VERTEX)
       })
