@@ -247,7 +247,7 @@ export class WebGPURenderer implements WebGPURendererOptions {
           // normalMatrix
           Mat3.normalFromMat4(bo.subarray(64, 73), modelViewMatrix)
           // cameraPosition
-          Vec3.copy(bo.subarray(76, 79), camera.position)
+          Vec3.copy(bo.subarray(76, 79), camera.matrix.subarray(12, 15))
           uniform.needsUpdate = true
         } else if (uniform.builtin_type === 'punctual_lights') {
           const lightValues = uniform.value as Float32Array
@@ -258,8 +258,9 @@ export class WebGPURenderer implements WebGPURendererOptions {
               console.warn('extra lights are ignored')
               break
             }
-            Vec3.copy(lightValues.subarray(offset + 0, offset + 3), light.position)
-
+            // position
+            Vec3.copy(lightValues.subarray(offset + 0, offset + 3), light.matrix.subarray(12, 15))
+            // direction
             Vec3.copy(lightValues.subarray(offset + 4, offset + 7), light.matrix.subarray(8, 11))
             Vec3.copy(lightValues.subarray(offset + 8, offset + 11), light.color)
 

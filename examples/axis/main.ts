@@ -35,15 +35,8 @@ scene.add(light2)
 const control = new OrbitControl(camera)
 control.connect(renderer.canvas)
 
-let f = 0
 const render = () => {
-  scene.position.add([0, 0, 0])
   renderer.render(scene, camera)
-  if (f === 0) {
-    console.log(light.matrix[8], light.matrix[9], light.matrix[10])
-    f = 1
-  }
-
   requestAnimationFrame(render)
 }
 requestAnimationFrame(render)
