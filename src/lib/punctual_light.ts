@@ -1,5 +1,5 @@
 import { Vec3 } from './math'
-import { Object3D } from './object3d'
+import { Object3D, Object3DConstructor } from './object3d'
 
 export class PunctualLight extends Object3D {
   color = Vec3.fromValues(1, 1, 1)
@@ -22,7 +22,8 @@ export class PunctualLight extends Object3D {
             outerConeAngle: number
           }
       )
-    >
+    > &
+      ConstructorParameters<Object3DConstructor>[0]
   ) {
     super()
     Object.assign(this, options)

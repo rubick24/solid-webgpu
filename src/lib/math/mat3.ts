@@ -53,6 +53,10 @@ export class Mat3 extends Float32Array {
   // Instance methods
   // ===================
 
+  subarray(begin: number, end: number) {
+    return new Float32Array(this.buffer, this.byteOffset + begin * 4, end - begin)
+  }
+
   /**
    * Copy the values from another {@link Mat3} into `this`.
    * @category Methods

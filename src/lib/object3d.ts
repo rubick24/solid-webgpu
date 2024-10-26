@@ -46,13 +46,9 @@ export class Object3D {
    */
   public frustumCulled = true
 
-  /**
-   * Rotates to face a point in world space.
-   */
-  // lookAt(target: Vec3): void {
-
-  //   // this.quaternion.lookAt(this.position, target, this.up)
-  // }
+  constructor(options?: { position?: Vec3; quaternion?: Quat; scale?: Vec3 }) {
+    Object.assign(this, options)
+  }
 
   /**
    * Used internally to calculate matrix transforms.
@@ -60,7 +56,19 @@ export class Object3D {
   updateMatrix(): void {
     if (this.matrixAutoUpdate) {
       Mat4.fromRotationTranslationScale(this.matrix, this.quaternion, this.position, this.scale)
-      if (this.parent) this.matrix.multiply(this.parent.matrix)
+
+      // if (this.label === 'light') {
+      //   // console.log(this.quaternion)
+      //   console.log(this.matrix)
+      // }
+      if (this.parent) {
+        Mat4.mul(this.matrix, this.parent.matrix, this.matrix)
+        // this.matrix.multiply(this.parent.matrix)
+      }
+      // if (this.label === 'light') {
+      //   // console.log(this.quaternion)
+      //   console.log(this.matrix)
+      // }
       for (const child of this.children) child.updateMatrix()
     }
   }
@@ -94,3 +102,5 @@ export class Object3D {
     for (const child of this.children) child.traverse(callback)
   }
 }
+
+export type Object3DConstructor = typeof Object3D

@@ -737,7 +737,13 @@ export class Quat extends Float32Array {
    * @param {'xyz'|'xzy'|'yxz'|'yzx'|'zxy'|'zyx'} order - Intrinsic order for conversion, default is zyx.
    * @returns `out`
    */
-  static fromEuler(out: QuatLike, x: number, y: number, z: number, order = Quat.DEFAULT_ANGLE_ORDER): QuatLike {
+  static fromEuler<T extends Quat | QuatLike>(
+    out: T,
+    x: number,
+    y: number,
+    z: number,
+    order = Quat.DEFAULT_ANGLE_ORDER
+  ): T {
     const halfToRad = (0.5 * Math.PI) / 180.0
     x *= halfToRad
     y *= halfToRad

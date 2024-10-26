@@ -53,6 +53,10 @@ export class Mat2d extends Float32Array {
   // Instances methods
   // ===================
 
+  subarray(begin: number, end: number) {
+    return new Float32Array(this.buffer, this.byteOffset + begin * 4, end - begin)
+  }
+
   /**
    * Copy the values from another {@link Mat2d} into `this`.
    * @category Methods

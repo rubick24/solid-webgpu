@@ -1,4 +1,16 @@
-import { WebGPURenderer, PerspectiveCamera, OrbitControl, Geometry, Mesh, PBRMaterial, textureFromUrl } from '../../src'
+import {
+  WebGPURenderer,
+  PerspectiveCamera,
+  OrbitControl,
+  Geometry,
+  Mesh,
+  PBRMaterial,
+  textureFromUrl,
+  Object3D,
+  Vec3,
+  Quat
+} from '../../src'
+import { PunctualLight } from '../../src/lib/punctual_light'
 
 const renderer = new WebGPURenderer()
 renderer.setSize(960, 540)
@@ -77,10 +89,20 @@ const material = new PBRMaterial({
   occlusionRoughnessMetallicTexture: texture
 })
 
+const scene = new Object3D()
+
 const mesh = new Mesh({ geometry, material })
+const light = new PunctualLight({
+  type: 'spot',
+  position: Vec3.fromValues(0, 1.5, 0.5),
+  quaternion: Quat.fromEuler(Quat.create(), 90, 0, 0),
+  color: Vec3.fromValues(1, 1, 1),
+  intensity: 100
+})
+scene.add(mesh, light)
 
 const render = () => {
-  renderer.render(mesh, camera)
+  renderer.render(scene, camera)
   requestAnimationFrame(render)
 }
 requestAnimationFrame(render)

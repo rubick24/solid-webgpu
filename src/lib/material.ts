@@ -1,4 +1,3 @@
-import { Mat3, Mat4, Vec3 } from './math'
 import { TypedArray, Optional, Updatable } from './utils'
 
 // needsUpdate
@@ -28,16 +27,16 @@ export type ExternalTexture = Updatable<{
 
 export type Sampler = Updatable<{ type: 'sampler'; descriptor: GPUSamplerDescriptor }>
 
-export type Uniform = UniformBuffer | Texture | ExternalTexture | Sampler
+export type BuiltinUniformType = 'base' | 'punctual_lights'
+export type BuiltinUniform<T extends BuiltinUniformType = BuiltinUniformType> = { builtin_type: T }
+export type BuiltinUniformInternal<T extends BuiltinUniformType = BuiltinUniformType> = BuiltinUniform<T> &
+  {
+    base: UniformBuffer
+    punctual_lights: UniformBuffer
+  }[T]
 
-export type BaseUniform = {
-  modelMatrix: Mat4
-  viewMatrix: Mat4
-  projectionMatrix: Mat4
-  modelViewMatrix: Mat4
-  normalMatrix: Mat3
-  cameraPosition: Vec3
-}
+export type Uniform = UniformBuffer | Texture | ExternalTexture | Sampler | BuiltinUniform
+export type UniformInternal = UniformBuffer | Texture | ExternalTexture | Sampler | BuiltinUniformInternal
 
 /**
  * {@link Material} constructor parameters. Accepts shaders, their uniforms, and various blending & culling options.

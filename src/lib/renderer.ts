@@ -1,8 +1,9 @@
 import { Camera } from './camera'
-import { ExternalTexture, Sampler, Texture, Uniform, UniformBuffer } from './material'
+import { BuiltinUniformInternal, ExternalTexture, Sampler, Texture, UniformInternal } from './material'
 import { Mat3, Mat4, Vec3 } from './math'
 import { Mesh } from './mesh'
 import { Object3D } from './object3d'
+import { PunctualLight } from './punctual_light'
 import { MultipleKeyWeakMap, TypedArray, weakCached } from './utils'
 
 const _adapter = typeof navigator !== 'undefined' ? await navigator.gpu?.requestAdapter() : null
@@ -178,19 +179,31 @@ export class WebGPURenderer implements WebGPURendererOptions {
     )
   }
 
-  private _updatePipeline(mesh: Mesh, camera: Camera) {
+  private _updatePipeline(mesh: Mesh, camera: Camera, lightList: PunctualLight[]) {
     /**
      * uniform setup
      */
     const { uniforms, bindGroupLayout } = this._cached([mesh.material], () => {
-      const baseUniformBuffer = new Float32Array(80)
-      const uniforms: Uniform[] = [
-        {
-          type: 'buffer',
-          value: baseUniformBuffer
-        },
-        ...mesh.material.uniforms
-      ]
+      const uniforms = mesh.material.uniforms.map(v => {
+        if ('builtin_type' in v) {
+          if (v.builtin_type === 'base') {
+            const baseUniformBuffer = new Float32Array(80)
+            return {
+              builtin_type: 'base',
+              type: 'buffer',
+              value: baseUniformBuffer
+            } satisfies BuiltinUniformInternal<'base'>
+          } else if (v.builtin_type === 'punctual_lights') {
+            const baseUniformBuffer = new Float32Array(16 * 4)
+            return {
+              builtin_type: 'punctual_lights',
+              type: 'buffer',
+              value: baseUniformBuffer
+            } satisfies BuiltinUniformInternal<'punctual_lights'>
+          }
+        }
+        return v
+      }) as UniformInternal[]
       const bindGroupLayout = this.device.createBindGroupLayout({
         entries: uniforms.map((v, i) => {
           if (v.type === 'buffer') {
@@ -219,21 +232,57 @@ export class WebGPURenderer implements WebGPURendererOptions {
     })
 
     /**
-     * update base uniform
+     * update built-in uniform
      */
-    const baseUniformBuffer = uniforms[0] as UniformBuffer
-    const bo = baseUniformBuffer.value as Float32Array
-    const modelMatrix = Mat4.copy(bo.subarray(0, 16), mesh.matrix)
-    const viewMatrix = Mat4.copy(bo.subarray(16, 32), camera.viewMatrix)
-    // projectionMatrix
-    Mat4.copy(bo.subarray(32, 48), camera.projectionMatrix)
-    const modelViewMatrix = Mat4.copy(bo.subarray(48, 64), viewMatrix)
-    Mat4.mul(modelViewMatrix, modelViewMatrix, modelMatrix)
-    // normalMatrix
-    Mat3.normalFromMat4(bo.subarray(64, 73), modelViewMatrix)
-    // cameraPosition
-    Vec3.copy(bo.subarray(76, 79), camera.position)
-    baseUniformBuffer.needsUpdate = true
+    for (const uniform of uniforms) {
+      if ('builtin_type' in uniform) {
+        if (uniform.builtin_type === 'base') {
+          const bo = uniform.value as Float32Array
+          const modelMatrix = Mat4.copy(bo.subarray(0, 16), mesh.matrix)
+          const viewMatrix = Mat4.copy(bo.subarray(16, 32), camera.viewMatrix)
+          // projectionMatrix
+          Mat4.copy(bo.subarray(32, 48), camera.projectionMatrix)
+          const modelViewMatrix = Mat4.copy(bo.subarray(48, 64), viewMatrix)
+          Mat4.mul(modelViewMatrix, modelViewMatrix, modelMatrix)
+          // normalMatrix
+          Mat3.normalFromMat4(bo.subarray(64, 73), modelViewMatrix)
+          // cameraPosition
+          Vec3.copy(bo.subarray(76, 79), camera.position)
+          uniform.needsUpdate = true
+        } else if (uniform.builtin_type === 'punctual_lights') {
+          const lightValues = uniform.value as Float32Array
+          for (let i = 0; i < lightList.length; i++) {
+            const light = lightList[i]
+            const offset = i * 16
+            if (lightValues.length < offset + 16) {
+              console.warn('extra lights are ignored')
+              break
+            }
+            Vec3.copy(lightValues.subarray(offset + 0, offset + 3), light.position)
+
+            Vec3.copy(lightValues.subarray(offset + 4, offset + 7), light.matrix.subarray(8, 11))
+            Vec3.copy(lightValues.subarray(offset + 8, offset + 11), light.color)
+
+            lightValues[offset + 11] = light.intensity
+            lightValues[offset + 12] = light.range ?? Infinity
+            lightValues[offset + 13] = light.innerConeAngle
+            lightValues[offset + 14] = light.outerConeAngle
+
+            const m: Record<typeof light.type, number> = {
+              directional: 1,
+              point: 2,
+              spot: 3
+            }
+
+            // if (offset === 16) {
+            //   console.log(m[light.type])
+            // }
+            new DataView(lightValues.buffer).setUint32((offset + 15) * 4, m[light.type], true)
+          }
+          uniform.needsUpdate = true
+        }
+      }
+    }
 
     /**
      * uniform binding
@@ -366,8 +415,15 @@ export class WebGPURenderer implements WebGPURendererOptions {
   /**
    * Returns a list of visible meshes. Will frustum cull and depth-sort with a camera if available.
    */
-  sort(scene: Object3D, camera?: Camera): Mesh[] {
+  sort(
+    scene: Object3D,
+    camera?: Camera
+  ): {
+    renderList: Mesh[]
+    lightList: PunctualLight[]
+  } {
     const renderList: Mesh[] = []
+    const lightList: PunctualLight[] = []
 
     if (camera?.matrixAutoUpdate) {
       camera.projectionViewMatrix.copy(camera.projectionMatrix).multiply(camera.viewMatrix)
@@ -379,18 +435,19 @@ export class WebGPURenderer implements WebGPURendererOptions {
       if (!node.visible) return true
 
       // Filter to meshes
-      if (!(node instanceof Mesh)) return
-
-      // TODO: Frustum cull if able
-      // if (camera && node.frustumCulled) {
-      //   const inFrustum = camera.frustum.contains(node)
-      //   if (!inFrustum) return true
-      // }
-
-      renderList.push(node)
+      if (node instanceof PunctualLight) {
+        lightList.push(node)
+      } else if (node instanceof Mesh) {
+        // TODO: Frustum cull if able
+        // if (camera && node.frustumCulled) {
+        //   const inFrustum = camera.frustum.contains(node)
+        //   if (!inFrustum) return true
+        // }
+        renderList.push(node)
+      }
     })
 
-    return renderList.sort((a, b) => {
+    renderList.sort((a, b) => {
       // Push UI to front
       let res = (b.material.depthTest as unknown as number) - (a.material.depthTest as unknown as number)
 
@@ -407,6 +464,8 @@ export class WebGPURenderer implements WebGPURendererOptions {
       res = res || (a.material.transparent as unknown as number) - (b.material.transparent as unknown as number)
       return res
     })
+
+    return { renderList, lightList }
   }
 
   render(scene: Object3D, camera: Camera) {
@@ -446,9 +505,9 @@ export class WebGPURenderer implements WebGPURendererOptions {
     scene.updateMatrix()
     camera?.updateMatrix()
 
-    const renderList = this.sort(scene, camera)
+    const { renderList, lightList } = this.sort(scene, camera)
     for (const node of renderList) {
-      this._updatePipeline(node, camera)
+      this._updatePipeline(node, camera, lightList)
 
       const indexBuffer = node.geometry.indexBuffer
       const position = node.geometry.vertexBuffers[0]

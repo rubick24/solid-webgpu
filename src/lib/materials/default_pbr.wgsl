@@ -37,7 +37,7 @@ struct PunctualLight {
     range: f32,
     inner_cone_angle: f32,
     outer_cone_angle: f32,
-    light_type: u32,
+    light_type: u32, // 0: disable, 1: directional, 2: point, 3: spot
 }
 
 @group(0) @binding(0)
@@ -55,8 +55,11 @@ var occlusion_roughness_metallic_texture: texture_2d<f32>;
 @group(0) @binding(4)
 var texture_sampler: sampler;
 
+
+const light_num = 4;
+
 @group(0) @binding(5)
-var<uniform> punctual_lights: array<PunctualLight, 1>;
+var<uniform> punctual_lights: array<PunctualLight, light_num>;
 
 @vertex
 fn vs_main(input: VertexInput) -> VertexOutput {
@@ -231,17 +234,17 @@ fn fs_main(input: VertexOutput) -> @location(0) vec4<f32> {
 
     var Lo = vec3<f32>(0.0);
 
-    for (var i = 0; i < 1; i++) {
+    for (var i = 0; i < light_num; i++) {
         let light = punctual_lights[i];
 
         // Lo += calculatePointLight(light, input, pbr_values);
         // Lo += calculateDirectionalLight(light, input, pbr_values);
         // Lo += calculateSpotLight(light, input, pbr_values);
-        if light.light_type == 0u {
+        if light.light_type == 1u {
             Lo += calculateDirectionalLight(light, input, pbr_values);
-        } else if light.light_type == 1u {
-            Lo += calculatePointLight(light, input, pbr_values);
         } else if light.light_type == 2u {
+            Lo += calculatePointLight(light, input, pbr_values);
+        } else if light.light_type == 3u {
             Lo += calculateSpotLight(light, input, pbr_values);
         }
     }
