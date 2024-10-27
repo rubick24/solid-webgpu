@@ -11,7 +11,7 @@
   "devDependencies": {
     "@types/draco3d": "^1.4.10",
     "@types/node": "^22.5.5",
-    "@webgpu/types": "^0.1.40",
+    "@webgpu/types": "^0.1.49",
     "json-schema-to-typescript": "^15.0.2",
     "tsx": "^4.19.1",
     "typescript": "^5.2.2",

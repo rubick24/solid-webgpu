@@ -19,8 +19,8 @@ importers:
         specifier: ^22.5.5
         version: 22.5.5
       '@webgpu/types':
-        specifier: ^0.1.40
-        version: 0.1.40
+        specifier: ^0.1.49
+        version: 0.1.49
       json-schema-to-typescript:
         specifier: ^15.0.2
         version: 15.0.2
@@ -428,8 +428,8 @@ packages:
   '@types/node@22.5.5':
     resolution: {integrity: sha512-Xjs4y5UPO/CLdzpgR6GirZJx36yScjh73+2NlLlkFRSoQN8B0DpfXPdZGnvVmLRLOsqDpOfTNv7D9trgGhmOIA==}
 
-  '@webgpu/types@0.1.40':
-    resolution: {integrity: sha512-/BBkHLS6/eQjyWhY2H7Dx5DHcVrS2ICj9owvSRdgtQT6KcafLZA86tPze0xAOsd4FbsYKCUBUQyNi87q7gV7kw==}
+  '@webgpu/types@0.1.49':
+    resolution: {integrity: sha512-NMmS8/DofhH/IFeW+876XrHVWel+J/vdcFCHLDqeJgkH9x0DeiwjVd8LcBdaxdG/T7Rf8VUAYsA8X1efMzLjRQ==}
 
   ansi-regex@5.0.1:
     resolution: {integrity: sha512-quJQXlTSUGL2LH9SUXo8VwsY4soanhgo6LNSm84E1LBcE8s3O0wpdiRzyR9z/ZZJMlMWv37qOOb9pdJlMUEKFQ==}
@@ -897,7 +897,7 @@ snapshots:
     dependencies:
       undici-types: 6.19.8
 
-  '@webgpu/types@0.1.40': {}
+  '@webgpu/types@0.1.49': {}
 
   ansi-regex@5.0.1: {}
 
