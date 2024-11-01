@@ -1,11 +1,13 @@
-const examples = ['base', 'gltf']
+declare const _EXAMPLES: [string, string][]
 
+const examples = _EXAMPLES
 const ul = document.createElement('ul')
-const links = examples.forEach(v => {
+examples.forEach(v => {
+  const [name, filePath] = v
   const a = document.createElement('a')
   a.target = '_blank'
-  a.href = `//${location.host}/examples/${v}/`
-  a.innerText = v
+  a.href = `//${location.host}/examples/${name}/`
+  a.innerText = `${name} (${filePath})`
   const li = document.createElement('li')
   li.appendChild(a)
   ul.appendChild(li)

@@ -1,6 +1,9 @@
-import { readdirSync, statSync, existsSync } from 'fs'
+import { readdirSync, statSync, existsSync, readFileSync } from 'fs'
+import replace from '@rollup/plugin-replace'
 
 const examplesPath = './examples'
+
+const packageJSON = JSON.parse(readFileSync('./package.json'))
 const entries = readdirSync(examplesPath)
   .map(v => {
     let filePath = examplesPath + '/' + v
@@ -15,10 +18,6 @@ const entries = readdirSync(examplesPath)
     }
   })
   .filter(v => v)
-  .reduce((p, c) => {
-    p[`example-${c[0]}`] = c[1]
-    return p
-  }, {})
 
 /** @type {import('vite').UserConfig} */
 export default {
@@ -27,8 +26,20 @@ export default {
     rollupOptions: {
       input: {
         main: 'index.html',
-        ...entries
+        ...entries.reduce((p, c) => {
+          p[`example-${c[0]}`] = c[1]
+          return p
+        }, {})
       }
     }
-  }
+  },
+  plugins: [
+    replace({
+      values: {
+        _PACKAGE_VERSION: `${packageJSON.version}`,
+        _EXAMPLES: `${JSON.stringify(entries)}`
+      },
+      preventAssignment: true
+    })
+  ]
 }
