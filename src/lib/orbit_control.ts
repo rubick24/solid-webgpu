@@ -186,3 +186,5 @@ export class OrbitControl {
     this._element = null
   }
 }
+
+export type OrbitControlConstructor = typeof OrbitControl

@@ -97,3 +97,5 @@ export class Material implements MaterialOptions {
     Object.assign(this, options)
   }
 }
+
+export type MaterialConstructor = typeof Material
