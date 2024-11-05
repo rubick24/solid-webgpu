@@ -1,0 +1,14 @@
+{
+  "extends": "../../tsconfig.json",
+  "compilerOptions": {
+    "outDir": "./dist",
+    "noEmit": true,
+    // "declaration": true,
+    // "emitDeclarationOnly": true,
+
+    "jsx": "preserve",
+    "jsxImportSource": "solid-webgpu"
+  },
+  "include": ["src"],
+  "exclude": ["src/**/*.test.ts"]
+}

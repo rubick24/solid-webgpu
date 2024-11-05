@@ -1,0 +1,23 @@
+{
+  "name": "gltf",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "exports": {
+    ".": {
+      "default": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    }
+  },
+  "scripts": {
+    "build": "rm -rf ./dist && rollup --config ./rollup.config.js && tsc"
+  },
+  "dependencies": {
+    "core": "workspace:*",
+    "math": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/node": "^22.5.5",
+    "json-schema-to-typescript": "^15.0.2"
+  }
+}

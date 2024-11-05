@@ -1,5 +1,10 @@
 {
-  "wgsl-analyzer.server.path": "~/.cargo/bin/wgsl_analyzer",
+  "editor.formatOnSave": true,
+  "editor.codeActionsOnSave": ["source.organizeImports", "source.fixAll.eslint"],
+  "[typescript]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode",
+    "editor.tabSize": 2
+  },
   "[wgsl]": {
     "editor.tabSize": 4
   }
