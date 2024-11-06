@@ -1,7 +1,6 @@
 import { Object3D } from 'core'
 import { createRenderer } from 'solid-js/universal'
-
-// type VNode = Object3D |
+export * from './type'
 
 export const {
   render,
@@ -24,36 +23,48 @@ export const {
     return new Object3D({ label: value })
   },
   replaceText(textNode, value) {
-    textNode.label = value
+    if (textNode instanceof Object3D) {
+      textNode.label = value
+    }
   },
   setProperty(node, name, value) {
-    if (name === 'position') {
+    console.log('setProperty', node, name, value)
+    if (name === 'position' && node instanceof Object3D) {
       node.position.set(value as number[])
     }
-    // console.log('setProperty', node, name, value)
     // if (name === 'style') Object.assign(node.style, value)
     // else if (name.startsWith('on')) node[name.toLowerCase()] = value
     // else if (PROPERTIES.has(name)) node[name] = value
     // else node.setAttribute(name, value)
   },
   insertNode(parent, node, anchor) {
-    parent.add(node)
+    if (parent instanceof Object3D && node instanceof Object3D) {
+      parent.add(node)
+    }
   },
   isTextNode(node) {
     return false
   },
   removeNode(parent, node) {
-    parent.remove(node)
+    if (parent instanceof Object3D && node instanceof Object3D) {
+      parent.remove(node)
+    }
   },
   getParentNode(node) {
-    return node.parent ?? undefined
+    if (node instanceof Object3D) {
+      return node.parent ?? undefined
+    }
   },
   getFirstChild(node) {
-    return node.children[0]
+    if (node instanceof Object3D) {
+      return node.children[0]
+    }
   },
   getNextSibling(node) {
-    const index = node.parent?.children?.findIndex(v => v === node)
-    return node.parent?.children?.[(index ?? 0) + 1]
+    if (node instanceof Object3D) {
+      const index = node.parent?.children?.findIndex(v => v === node)
+      return node.parent?.children?.[(index ?? 0) + 1]
+    }
   }
 })
 

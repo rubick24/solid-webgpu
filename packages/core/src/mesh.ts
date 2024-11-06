@@ -1,6 +1,11 @@
 import { Geometry } from './geometry'
 import { Material } from './material'
-import { Object3D, Object3DConstructor } from './object3d'
+import { Object3D, Object3DProps } from './object3d'
+
+export type MeshProps = Object3DProps & {
+  geometry?: Geometry
+  material?: Material
+}
 
 export class Mesh extends Object3D {
   /**
@@ -12,16 +17,12 @@ export class Mesh extends Object3D {
    */
   public material: Material
 
-  constructor(
-    options?: {
-      geometry?: Geometry
-      material?: Material
-      label?: string
-    } & ConstructorParameters<Object3DConstructor>[0]
-  ) {
+  constructor(options?: MeshProps) {
     super(options)
     this.geometry = options?.geometry ?? new Geometry()
     this.material = options?.material ?? new Material()
     this.label = options?.label ?? ''
   }
 }
+
+export type MeshConstructor = typeof Mesh

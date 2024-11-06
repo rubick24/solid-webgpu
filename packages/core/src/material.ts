@@ -41,7 +41,7 @@ export type UniformInternal = UniformBuffer | Texture | ExternalTexture | Sample
 /**
  * {@link Material} constructor parameters. Accepts shaders, their uniforms, and various blending & culling options.
  */
-export interface MaterialOptions {
+export type MaterialProps = {
   uniforms?: Uniform[]
   /**
    * Stringified vertex shader code.
@@ -69,7 +69,7 @@ export interface MaterialOptions {
   blending?: GPUBlendState
 }
 
-export class Material implements MaterialOptions {
+export class Material implements MaterialProps {
   readonly uniforms: Uniform[] = []
   public shaderCode!: string
   public cullMode: GPUCullMode = 'back'
@@ -78,7 +78,7 @@ export class Material implements MaterialOptions {
   public depthWrite = true
   public blending?: GPUBlendState
 
-  constructor(options?: MaterialOptions) {
+  constructor(options?: MaterialProps) {
     if (options?.transparent) {
       this.blending = {
         color: {

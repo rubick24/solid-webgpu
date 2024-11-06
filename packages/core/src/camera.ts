@@ -1,6 +1,6 @@
 import { DEG2RAD, Mat4, Vec3 } from 'math'
 import { Frustum } from './frustum'
-import { Object3D } from './object3d'
+import { Object3D, Object3DProps } from './object3d'
 
 export class Camera extends Object3D {
   /**
@@ -33,6 +33,8 @@ export class Camera extends Object3D {
   }
 }
 
+export type PerspectiveCameraProps = Object3DProps & { fov?: number; aspect?: number; near?: number; far?: number }
+
 /**
  * Constructs a camera with a perspective projection. Useful for 3D rendering.
  */
@@ -45,7 +47,7 @@ export class PerspectiveCamera extends Camera {
   public near = 0.1
   /** Frustum far plane (maximum). Default is `1000` */
   public far = 1000
-  constructor(options?: { fov?: number; aspect?: number; near?: number; far?: number }) {
+  constructor(options?: PerspectiveCameraProps) {
     super()
     if (options?.fov !== undefined) this.fov = options.fov
     if (options?.aspect !== undefined) this.aspect = options.aspect
@@ -60,7 +62,16 @@ export class PerspectiveCamera extends Camera {
     }
   }
 }
+export type PerspectiveCameraConstructor = typeof PerspectiveCamera
 
+export type OrthographicCameraProps = Object3DProps & {
+  near?: number
+  far?: number
+  left?: number
+  right?: number
+  bottom?: number
+  top?: number
+}
 /**
  * Constructs a camera with an orthographic projection. Useful for 2D and isometric rendering.
  */
@@ -77,7 +88,7 @@ export class OrthographicCamera extends Camera {
   public bottom = -1
   /** Frustum top plane. Default is `1` */
   public top = 1
-  constructor(options?: { near?: number; far?: number; left?: number; right?: number; bottom?: number; top?: number }) {
+  constructor(options?: OrthographicCameraProps) {
     super()
     if (options?.near !== undefined) this.near = options.near
     if (options?.far !== undefined) this.far = options.far
@@ -94,3 +105,5 @@ export class OrthographicCamera extends Camera {
     }
   }
 }
+
+export type OrthographicCameraConstructor = typeof OrthographicCamera

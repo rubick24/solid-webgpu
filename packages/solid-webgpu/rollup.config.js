@@ -1,7 +1,9 @@
 import { babel } from '@rollup/plugin-babel'
 import { nodeResolve } from '@rollup/plugin-node-resolve'
+import { isAbsolute } from 'path'
 
 export default {
+  external: id => !(isAbsolute(id) || id.startsWith('.')),
   input: 'src/index.ts',
   output: {
     file: 'dist/index.js',

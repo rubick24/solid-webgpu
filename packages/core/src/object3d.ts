@@ -2,6 +2,14 @@ import { Mat4, Quat, Vec3 } from 'math'
 
 export type TraverseCallback = (object: Object3D) => boolean | void
 
+export type Object3DProps = {
+  position?: Vec3
+  quaternion?: Quat
+  scale?: Vec3
+  label?: string
+  children?: Object3D[]
+}
+
 export class Object3D {
   label: string = ''
   /**
@@ -46,7 +54,7 @@ export class Object3D {
    */
   public frustumCulled = true
 
-  constructor(options?: { position?: Vec3; quaternion?: Quat; scale?: Vec3; label?: string }) {
+  constructor(options?: Object3DProps) {
     Object.assign(this, options)
   }
 

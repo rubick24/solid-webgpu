@@ -39,26 +39,20 @@ importers:
         specifier: ^5.4.8
         version: 5.4.8(@types/node@22.5.5)
 
-  packages/core:
-    dependencies:
-      math:
-        specifier: workspace:*
-        version: link:../math
-
-  packages/examples:
+  examples:
     dependencies:
       core:
         specifier: workspace:*
-        version: link:../core
+        version: link:../packages/core
       gltf:
         specifier: workspace:*
-        version: link:../gltf
+        version: link:../packages/gltf
       math:
         specifier: workspace:*
-        version: link:../math
+        version: link:../packages/math
       solid-webgpu:
         specifier: workspace:*
-        version: link:../solid-webgpu
+        version: link:../packages/solid-webgpu
     devDependencies:
       solid-js:
         specifier: ^1.9.3
@@ -66,6 +60,12 @@ importers:
       vite-plugin-solid:
         specifier: ^2.10.2
         version: 2.10.2(solid-js@1.9.3)(vite@5.4.8(@types/node@22.5.5))
+
+  packages/core:
+    dependencies:
+      math:
+        specifier: workspace:*
+        version: link:../math
 
   packages/gltf:
     dependencies:

@@ -9,6 +9,16 @@ export type VertexBuffer = Updatable<{
   buffer: TypedArray
 }>
 
+export type GeometryProps = {
+  vertexBuffers: VertexBuffer[]
+  indexBuffer?: {
+    buffer: TypedArray
+  }
+  topology?: GPUPrimitiveTopology
+  instanceCount?: number
+  drawRange?: { start: number; count: number }
+}
+
 export class Geometry {
   vertexBuffers: VertexBuffer[] = []
   indexBuffer?: Updatable<{
@@ -20,15 +30,9 @@ export class Geometry {
   instanceCount = 1
   drawRange: { start: number; count: number } = { start: 0, count: Infinity }
 
-  constructor(options?: {
-    vertexBuffers: VertexBuffer[]
-    indexBuffer?: {
-      buffer: TypedArray
-    }
-    topology?: GPUPrimitiveTopology
-    instanceCount?: number
-    drawRange?: { start: number; count: number }
-  }) {
+  constructor(options?: GeometryProps) {
     Object.assign(this, options)
   }
 }
+
+export type GeometryConstructor = typeof Geometry
