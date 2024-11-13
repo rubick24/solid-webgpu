@@ -12,10 +12,10 @@
     "core": "workspace:*",
     "gltf": "workspace:*",
     "math": "workspace:*",
-    "solid-webgpu": "workspace:*"
+    "solid-webgpu": "workspace:*",
+    "solid-js": "^1.9.3"
   },
   "devDependencies": {
-    "solid-js": "^1.9.3",
     "vite-plugin-solid": "^2.10.2"
   }
 }

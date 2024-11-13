@@ -1,9 +1,9 @@
-import { Vec3 } from 'math'
+import { Vec3, Vec3Like } from 'math'
 import { Object3D, Object3DProps } from './object3d'
 
 export type PunctualLightProps = Object3DProps &
   Partial<
-    { label: string; color: Vec3; intensity: number; range?: number } & (
+    { label: string; color: Vec3Like; intensity: number; range?: number } & (
       | {
           type: 'directional' | 'point'
         }
@@ -25,7 +25,15 @@ export class PunctualLight extends Object3D {
 
   constructor(options?: PunctualLightProps) {
     super()
-    Object.assign(this, options)
+    if (options?.color) this.color.copy(options.color)
+    if (options?.label) this.label = options.label
+    if (options?.intensity !== undefined) this.intensity = options.intensity
+    if (options?.range !== undefined) this.range = options.range
+    if (options?.type) this.type = options.type
+    if (options && 'innerConeAngle' in options && options.innerConeAngle !== undefined)
+      this.innerConeAngle = options.innerConeAngle
+    if (options && 'outerConeAngle' in options && options.outerConeAngle !== undefined)
+      this.outerConeAngle = options.outerConeAngle
   }
 }
 

@@ -1,11 +1,11 @@
-import { Mat4, Quat, Vec3 } from 'math'
+import { Mat4, Quat, QuatLike, Vec3, Vec3Like } from 'math'
 
 export type TraverseCallback = (object: Object3D) => boolean | void
 
 export type Object3DProps = {
-  position?: Vec3
-  quaternion?: Quat
-  scale?: Vec3
+  position?: Vec3Like
+  quaternion?: QuatLike
+  scale?: Vec3Like
   label?: string
   children?: Object3D[]
 }
@@ -55,7 +55,12 @@ export class Object3D {
   public frustumCulled = true
 
   constructor(options?: Object3DProps) {
-    Object.assign(this, options)
+    if (options?.label) this.label = options.label
+    if (options?.children) this.children.push(...options.children)
+    if (options?.position) this.position.copy(options.position)
+
+    if (options?.quaternion) this.quaternion.copy(options.quaternion)
+    if (options?.scale) this.scale.copy(options.scale)
   }
 
   /**
@@ -65,18 +70,10 @@ export class Object3D {
     if (this.matrixAutoUpdate) {
       Mat4.fromRotationTranslationScale(this.matrix, this.quaternion, this.position, this.scale)
 
-      // if (this.label === 'light') {
-      //   // console.log(this.quaternion)
-      //   console.log(this.matrix)
-      // }
       if (this.parent) {
         Mat4.mul(this.matrix, this.parent.matrix, this.matrix)
-        // this.matrix.multiply(this.parent.matrix)
       }
-      // if (this.label === 'light') {
-      //   // console.log(this.quaternion)
-      //   console.log(this.matrix)
-      // }
+
       for (const child of this.children) child.updateMatrix()
     }
   }

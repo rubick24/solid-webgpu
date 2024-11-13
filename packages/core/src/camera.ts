@@ -48,7 +48,7 @@ export class PerspectiveCamera extends Camera {
   /** Frustum far plane (maximum). Default is `1000` */
   public far = 1000
   constructor(options?: PerspectiveCameraProps) {
-    super()
+    super(options)
     if (options?.fov !== undefined) this.fov = options.fov
     if (options?.aspect !== undefined) this.aspect = options.aspect
     if (options?.near !== undefined) this.near = options.near
@@ -89,7 +89,7 @@ export class OrthographicCamera extends Camera {
   /** Frustum top plane. Default is `1` */
   public top = 1
   constructor(options?: OrthographicCameraProps) {
-    super()
+    super(options)
     if (options?.near !== undefined) this.near = options.near
     if (options?.far !== undefined) this.far = options.far
     if (options?.left !== undefined) this.left = options.left

@@ -9,26 +9,26 @@ import { MultipleKeyWeakMap, TypedArray, weakCached } from './utils'
 const _adapter = typeof navigator !== 'undefined' ? await navigator.gpu?.requestAdapter() : null
 const _device = await _adapter?.requestDevice()
 
-export interface WebGPURendererOptions {
+export interface WebGPURendererProps {
   /**
    * An optional {@link HTMLCanvasElement} to draw to.
    */
-  canvas: HTMLCanvasElement
+  canvas?: HTMLCanvasElement
   /**
    * An optional {@link GPUCanvasContext} to draw with.
    */
-  context: GPUCanvasContext
+  context?: GPUCanvasContext
   /**
    * An optional {@link GPUDevice} to send GPU commands to.
    */
-  device: GPUDevice
+  device?: GPUDevice
   /**
    * An optional {@link GPUTextureFormat} to create texture views with.
    */
-  format: GPUTextureFormat
+  format?: GPUTextureFormat
 }
 
-export class WebGPURenderer implements WebGPURendererOptions {
+export class WebGPURenderer implements Required<WebGPURendererProps> {
   readonly canvas: HTMLCanvasElement
   public device: GPUDevice
   public format: GPUTextureFormat
@@ -52,7 +52,7 @@ export class WebGPURenderer implements WebGPURendererOptions {
 
   private _cacheMap = new Map<string, MultipleKeyWeakMap<unknown>>()
 
-  constructor({ canvas, context, format, device }: Partial<WebGPURendererOptions> = {}) {
+  constructor({ canvas, context, format, device }: WebGPURendererProps = {}) {
     this.canvas = canvas ?? document.createElement('canvas')
     this.context = context ?? this.canvas.getContext('webgpu')!
     this.format = format ?? navigator.gpu.getPreferredCanvasFormat()
