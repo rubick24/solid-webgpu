@@ -41,6 +41,9 @@ importers:
 
   examples:
     dependencies:
+      '@solid-primitives/jsx-tokenizer':
+        specifier: ^1.0.10
+        version: 1.0.10(solid-js@1.9.3)
       core:
         specifier: workspace:*
         version: link:../packages/core
@@ -53,9 +56,6 @@ importers:
       solid-js:
         specifier: ^1.9.3
         version: 1.9.3
-      solid-webgpu:
-        specifier: workspace:*
-        version: link:../packages/solid-webgpu
     devDependencies:
       vite-plugin-solid:
         specifier: ^2.10.2
@@ -687,6 +687,16 @@ packages:
     resolution: {integrity: sha512-LTw1Dfd0mBIEqUVCxbvTE/LLo+9ZxVC9k99v1v4ahg9Aak6FpqOfNu5kRkeTAn0wphoC4JU7No1/rL+bBCEwhg==}
     cpu: [x64]
     os: [win32]
+
+  '@solid-primitives/jsx-tokenizer@1.0.10':
+    resolution: {integrity: sha512-OziPOhJcVneuEwuC4Ys2atePcBhXZK00h93Tg+dGw5GUijB8hvP97qXZ9Q8oNai0FCInlGUOYQnOgM9piBoSMQ==}
+    peerDependencies:
+      solid-js: ^1.6.12
+
+  '@solid-primitives/utils@6.2.3':
+    resolution: {integrity: sha512-CqAwKb2T5Vi72+rhebSsqNZ9o67buYRdEJrIFzRXz3U59QqezuuxPsyzTSVCacwS5Pf109VRsgCJQoxKRoECZQ==}
+    peerDependencies:
+      solid-js: ^1.6.12
 
   '@types/babel__core@7.20.5':
     resolution: {integrity: sha512-qoQprZvz5wQFJwMDqeseRXWv3rqMvhgpbXFfVyWhbx9X47POIA6i/+dXefEmZKoAgOaTdaIgNSMqMIU61yRyzA==}
@@ -1610,6 +1620,15 @@ snapshots:
 
   '@rollup/rollup-win32-x64-msvc@4.24.4':
     optional: true
+
+  '@solid-primitives/jsx-tokenizer@1.0.10(solid-js@1.9.3)':
+    dependencies:
+      '@solid-primitives/utils': 6.2.3(solid-js@1.9.3)
+      solid-js: 1.9.3
+
+  '@solid-primitives/utils@6.2.3(solid-js@1.9.3)':
+    dependencies:
+      solid-js: 1.9.3
 
   '@types/babel__core@7.20.5':
     dependencies:

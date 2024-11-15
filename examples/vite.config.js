@@ -41,10 +41,10 @@ export default {
       preventAssignment: true
     }),
     solidPlugin({
-      solid: {
-        moduleName: 'solid-webgpu',
-        generate: 'universal'
-      }
+      // solid: {
+      //   moduleName: 'solid-webgpu',
+      //   generate: 'universal'
+      // }
     })
   ]
 }
