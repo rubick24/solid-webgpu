@@ -1,6 +1,12 @@
+import { Quat } from 'math'
 import { createSignal, Show } from 'solid-js'
 import { render } from 'solid-js/web'
-import { CameraToken, Canvas, Object3D, PerspectiveCamera } from './tokenizer'
+import { PerspectiveCamera } from './camera'
+import { Canvas } from './canvas'
+import { Mesh } from './mesh'
+import { Object3D } from './object3d'
+import { PunctualLight } from './punctual_light'
+import { CameraToken } from './tokenizer'
 
 const App = () => {
   const [p, setP] = createSignal(0)
@@ -12,13 +18,21 @@ const App = () => {
     <>
       <Canvas camera={camera()}>
         <PerspectiveCamera label="main_camera" ref={setCamera} position={[0, 0, 5]} aspect={16 / 9} />
+        <PunctualLight
+          type="spot"
+          position={[0, 1.5, 0.5]}
+          quaternion={Quat.fromEuler(Quat.create(), 90, 0, 0)}
+          color={[1, 1, 1]}
+          intensity={100}
+        />
         <Object3D>
-          <Object3D position={[p(), 1, 1]}></Object3D>
+          <Mesh position={[p(), 1, 1]} />
 
-          <Show when={s()}>
-            <Object3D position={[2, 2, 2]}></Object3D>
-            <Object3D position={[3, 3, 3]}></Object3D>
-          </Show>
+          <Object3D position={[2, 2, 2]}>
+            <Show when={s()}>
+              <Object3D position={[3, 3, 3]}></Object3D>
+            </Show>
+          </Object3D>
         </Object3D>
       </Canvas>
 

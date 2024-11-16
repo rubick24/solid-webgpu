@@ -44,6 +44,9 @@ importers:
       '@solid-primitives/jsx-tokenizer':
         specifier: ^1.0.10
         version: 1.0.10(solid-js@1.9.3)
+      '@solid-primitives/raf':
+        specifier: ^2.2.0
+        version: 2.2.0(solid-js@1.9.3)
       core:
         specifier: workspace:*
         version: link:../packages/core
@@ -690,6 +693,11 @@ packages:
 
   '@solid-primitives/jsx-tokenizer@1.0.10':
     resolution: {integrity: sha512-OziPOhJcVneuEwuC4Ys2atePcBhXZK00h93Tg+dGw5GUijB8hvP97qXZ9Q8oNai0FCInlGUOYQnOgM9piBoSMQ==}
+    peerDependencies:
+      solid-js: ^1.6.12
+
+  '@solid-primitives/raf@2.2.0':
+    resolution: {integrity: sha512-U/rgOn7Utd5PvJaZg8jVbxvPem6c43UY0RRv3Ao4yk5QtYybjhkclSelOQbSz5FB5y54iNb9AtlD1u2b/H9opw==}
     peerDependencies:
       solid-js: ^1.6.12
 
@@ -1622,6 +1630,11 @@ snapshots:
     optional: true
 
   '@solid-primitives/jsx-tokenizer@1.0.10(solid-js@1.9.3)':
+    dependencies:
+      '@solid-primitives/utils': 6.2.3(solid-js@1.9.3)
+      solid-js: 1.9.3
+
+  '@solid-primitives/raf@2.2.0(solid-js@1.9.3)':
     dependencies:
       '@solid-primitives/utils': 6.2.3(solid-js@1.9.3)
       solid-js: 1.9.3
