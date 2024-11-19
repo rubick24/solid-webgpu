@@ -25,7 +25,7 @@ export type SceneContextT = {
 
 const SceneContext = createContext<SceneContextT>()
 
-type CanvasProps = ParentProps & {
+export type CanvasProps = ParentProps & {
   width?: number
   height?: number
   format?: GPUTextureFormat
@@ -60,7 +60,7 @@ export const Canvas = (_props: CanvasProps) => {
 
           const canvas = (<canvas width={props.width} height={props.height} />) as HTMLCanvasElement
 
-          useRender({ canvas, sceneContext, scene: data, camera: () => props.camera })
+          useRender({ props, canvas, sceneContext, scene: data })
 
           return canvas
         })}

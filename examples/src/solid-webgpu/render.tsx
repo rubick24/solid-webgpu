@@ -1,8 +1,8 @@
 import createRAF from '@solid-primitives/raf'
 import { Mat4, Vec3 } from 'math'
-import { Accessor, onCleanup } from 'solid-js'
+import { Accessor, createEffect, onCleanup } from 'solid-js'
 import { isCamera } from './camera'
-import { SceneContextT } from './canvas'
+import { CanvasProps, SceneContextT } from './canvas'
 import { isMesh } from './mesh'
 import { isObject3D } from './object3d'
 import { isPunctualLight } from './punctual_light'
@@ -12,7 +12,7 @@ export type RenderContext = {
   canvas: HTMLCanvasElement
   sceneContext: SceneContextT
   scene: Accessor<Token[]>
-  camera: Accessor<CameraToken>
+  props: Required<CanvasProps>
 }
 
 const traverse = (node: Token, fn: (v: Token) => boolean | void) => {
@@ -64,14 +64,54 @@ const sort = (
 }
 
 const _adapter = typeof navigator !== 'undefined' ? await navigator.gpu?.requestAdapter() : null
-const _device = await _adapter?.requestDevice()
+const _device = await _adapter?.requestDevice()!
 
 // const cache = new Map<string, unknown>()
 // const withCache = createWithCache(cache)
 
 export const useRender = (ctx: RenderContext) => {
-  const { canvas, sceneContext, scene: s, camera: c } = ctx
+  const { canvas, sceneContext, scene: s } = ctx
   const context = canvas.getContext('webgpu')!
+
+  let device = _device
+  let _msaaTexture!: GPUTexture
+  let _msaaTextureView!: GPUTextureView
+  let _depthTexture!: GPUTexture
+  let _depthTextureView!: GPUTextureView
+  let _commandEncoder!: GPUCommandEncoder
+  let _passEncoder!: GPURenderPassEncoder
+
+  const props = ctx.props
+
+  // _resizeSwapchain
+  createEffect(() => {
+    context.configure({
+      device,
+      format: props.format,
+      alphaMode: 'premultiplied'
+    })
+    const size = [canvas.width, canvas.height]
+    const usage = GPUTextureUsage.COPY_DST | GPUTextureUsage.RENDER_ATTACHMENT
+    const sampleCount = props.samples
+
+    if (_msaaTexture) _msaaTexture.destroy()
+    _msaaTexture = device.createTexture({
+      format: props.format,
+      size,
+      usage,
+      sampleCount
+    })
+    _msaaTextureView = _msaaTexture.createView()
+
+    if (_depthTexture) _depthTexture.destroy()
+    _depthTexture = device.createTexture({
+      format: 'depth24plus-stencil8',
+      size,
+      usage,
+      sampleCount
+    })
+    _depthTextureView = _depthTexture.createView()
+  })
 
   const updateMatrix = (v: Token) => {
     if (!isObject3D(v)) {
@@ -98,17 +138,65 @@ export const useRender = (ctx: RenderContext) => {
 
   const [running, start, stop] = createRAF(t => {
     const scene = s()
-    const camera = c()
+    const camera = props.camera
+    const samples = props.samples
+
+    // if (_msaaTexture.sampleCount !== samples) {
+    //   _resizeSwapchain()
+    // }
+
+    const renderViews = [_msaaTextureView]
+    const resolveTarget = context.getCurrentTexture().createView()
+    const loadOp: GPULoadOp = props.autoClear ? 'clear' : 'load'
+    const storeOp: GPUStoreOp = 'store'
+    _commandEncoder = device.createCommandEncoder()
+    const colorAttachments = renderViews.map<GPURenderPassColorAttachment>(view => ({
+      view,
+      resolveTarget,
+      loadOp,
+      storeOp,
+      clearValue: { r: 0.0, g: 0.0, b: 0.0, a: 1.0 }
+    }))
+    _passEncoder = _commandEncoder.beginRenderPass({
+      colorAttachments,
+      depthStencilAttachment: {
+        view: _depthTextureView,
+        depthClearValue: 1,
+        depthLoadOp: loadOp,
+        depthStoreOp: storeOp,
+        stencilClearValue: 0,
+        stencilLoadOp: loadOp,
+        stencilStoreOp: storeOp
+      }
+    })
+    _passEncoder.setViewport(0, 0, canvas.width, canvas.height, 0, 1)
+
     scene.map(v => updateMatrix(v))
     const { renderList, lightList } = sort(scene, camera)
 
-    console.log(renderList, lightList)
+    // for (const node of renderList) {
+    //   _updatePipeline(node, camera, lightList)
+
+    //   const indexBuffer = node.geometry.indexBuffer
+    //   const position = node.geometry.vertexBuffers[0]
+
+    //   // Alternate drawing for indexed and non-indexed children
+    //   if (indexBuffer) {
+    //     const count = Math.min(node.geometry.drawRange.count, indexBuffer.buffer.length)
+    //     this._passEncoder.drawIndexed(count, node.geometry.instanceCount, node.geometry.drawRange.start ?? 0)
+    //   } else if (position) {
+    //     const count = Math.min(node.geometry.drawRange.count, position.buffer.length / position.layout.arrayStride)
+    //     this._passEncoder.draw(count, node.geometry.instanceCount, node.geometry.drawRange.start ?? 0)
+    //   } else {
+    //     this._passEncoder.draw(3, node.geometry.instanceCount)
+    //   }
+    // }
   })
   start()
 
   setTimeout(() => {
     stop()
-  }, 100)
+  }, 3000)
 
   onCleanup(() => stop())
 }

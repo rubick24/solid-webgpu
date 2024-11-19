@@ -9,7 +9,7 @@ import { PunctualLight } from './punctual_light'
 import { CameraToken } from './tokenizer'
 
 const App = () => {
-  const [p, setP] = createSignal(0)
+  const [p, setP] = createSignal(1)
   const [s, setS] = createSignal(false)
 
   const [camera, setCamera] = createSignal<CameraToken>()
