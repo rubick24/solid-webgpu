@@ -1,54 +1,39 @@
 import { createToken } from '@solid-primitives/jsx-tokenizer'
 import { Mat4, Quat, QuatLike, Vec3, Vec3Like } from 'math'
-import { createEffect, createUniqueId, ParentProps } from 'solid-js'
-import { useSceneContext } from './canvas'
-import { Object3DToken, Token, tokenizer, useParentToken } from './tokenizer'
+import { createEffect, ParentProps } from 'solid-js'
+import { CommonTokenProps, Object3DToken, Token, tokenizer, useCommonToken, useParentToken } from './tokenizer'
 
-export type Object3DProps = ParentProps & {
-  ref?: (v: Token) => void
-  label?: string
-  position?: Vec3Like
-  quaternion?: QuatLike
-  scale?: Vec3Like
-}
+export type Object3DProps = CommonTokenProps<Object3DToken> &
+  ParentProps & {
+    position?: Vec3Like
+    quaternion?: QuatLike
+    scale?: Vec3Like
+  }
 
-export const useObject3DToken = (props: Omit<Object3DProps, 'ref'>) => {
-  const resolve = useParentToken(props)
-  const id = createUniqueId()
+export const useObject3DToken = <T extends Object3DToken>(
+  types: string[],
+  props: Omit<Object3DProps, 'ref'>,
+  init?: object
+) => {
+  const resolveChildren = useParentToken(props)
 
-  const token: Object3DToken = {
-    type: ['Object3D'],
-    id,
-    label: props.label ?? '',
-    resolve,
-
+  const token = useCommonToken<T>(['Object3D'].concat(types), props, {
     matrix: Mat4.create(),
     position: Vec3.create(),
     quaternion: Quat.create(),
-    scale: Vec3.create()
-  }
-  createEffect(() => {
-    if (props.position !== undefined) {
-      token.position.copy(props.position)
-    }
+    scale: Vec3.create(),
+    resolveChildren,
+    ...init
   })
-  createEffect(() => {
-    if (props.quaternion !== undefined) {
-      token.quaternion.copy(props.quaternion)
-    }
-  })
-  createEffect(() => {
-    if (props.scale !== undefined) {
-      token.scale.copy(props.scale)
-    }
-  })
+
+  createEffect(() => token.position.copy(props.position ?? [0, 0, 0]))
+  createEffect(() => token.quaternion.copy(props.quaternion ?? [0, 0, 0, 1]))
+  createEffect(() => token.scale.copy(props.scale ?? [1, 1, 1]))
   return token
 }
 
 export const Object3D = createToken(tokenizer, (props: Object3DProps) => {
-  const token = useObject3DToken(props)
-  const scene = useSceneContext()
-  scene.nodes[token.id] = token
+  const token = useObject3DToken([], props)
   props.ref?.(token)
   return token
 })

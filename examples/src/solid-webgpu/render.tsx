@@ -1,12 +1,14 @@
-import createRAF from '@solid-primitives/raf'
+import { createRAF } from '@solid-primitives/raf'
 import { Mat4, Vec3 } from 'math'
 import { Accessor, createEffect, onCleanup } from 'solid-js'
 import { isCamera } from './camera'
-import { CanvasProps, SceneContextT } from './canvas'
+import { CanvasProps } from './canvas'
 import { isMesh } from './mesh'
 import { isObject3D } from './object3d'
 import { isPunctualLight } from './punctual_light'
-import { CameraToken, MeshToken, Object3DToken, PunctualLightToken, Token } from './tokenizer'
+import { SceneContextT } from './scene_context'
+import { CameraToken, MeshToken, Object3DToken, PunctualLightToken, SamplerToken, Token } from './tokenizer'
+import { createWithCache, TypedArray } from './utils'
 
 export type RenderContext = {
   canvas: HTMLCanvasElement
@@ -18,7 +20,7 @@ export type RenderContext = {
 const traverse = (node: Token, fn: (v: Token) => boolean | void) => {
   if (fn(node)) return
 
-  if (node.children) {
+  if ('children' in node && node.children?.length) {
     for (const child of node.children) {
       traverse(child, fn)
     }
@@ -63,11 +65,36 @@ const sort = (
   return { renderList, lightList }
 }
 
+const createBuffer = (options: { device: GPUDevice; data: TypedArray; usage: GPUBufferUsageFlags; label?: string }) => {
+  const { device, data, usage, label } = options
+  const buffer = device.createBuffer({
+    label,
+    size: data.byteLength,
+    usage: usage | GPUBufferUsage.COPY_DST | GPUBufferUsage.STORAGE
+  })
+  device.queue.writeBuffer(buffer, 0, data)
+  return buffer
+}
+
+const updateSampler = (v: SamplerToken, device: GPUDevice) => {
+  return withCache(v.id, () => {
+    const target = device.createSampler(v.descriptor)
+    return target
+  })
+}
+
+const updatePipeline = (options: { mesh: MeshToken; camera: CameraToken; lightList: PunctualLightToken[] }) => {
+  const { mesh, camera, lightList } = options
+  // const { uniforms, bindGroupLayout } = withCache(mesh.material!.id, () => {
+  //   const uniforms = mesh.material?.uniforms.map(v => {})
+  // })
+}
+
 const _adapter = typeof navigator !== 'undefined' ? await navigator.gpu?.requestAdapter() : null
 const _device = await _adapter?.requestDevice()!
 
-// const cache = new Map<string, unknown>()
-// const withCache = createWithCache(cache)
+const cache = new Map<string, unknown>()
+const withCache = createWithCache(cache)
 
 export const useRender = (ctx: RenderContext) => {
   const { canvas, sceneContext, scene: s } = ctx

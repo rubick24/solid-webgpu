@@ -30,7 +30,7 @@ const App = () => {
 
           <Object3D position={[2, 2, 2]}>
             <Show when={s()}>
-              <Object3D position={[3, 3, 3]}></Object3D>
+              <Object3D position={[3, 3, 3]} />
             </Show>
           </Object3D>
         </Object3D>

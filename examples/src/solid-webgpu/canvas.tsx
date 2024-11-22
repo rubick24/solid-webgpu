@@ -1,14 +1,15 @@
 import { resolveTokens } from '@solid-primitives/jsx-tokenizer'
 import { Mat4, Quat, Vec3 } from 'math'
-import { createContext, createMemo, createUniqueId, mergeProps, ParentProps, untrack, useContext } from 'solid-js'
+import { createMemo, createUniqueId, mergeProps, ParentProps, untrack } from 'solid-js'
 import { useRender } from './render'
-import { CameraToken, Token, tokenizer } from './tokenizer'
+import { SceneContext, SceneContextT } from './scene_context'
+import { CameraToken, tokenizer } from './tokenizer'
 
 const defaultCameraToken: CameraToken = {
   type: ['Object3D'],
   id: createUniqueId(),
   label: '',
-  resolve: () => [],
+  resolveChildren: () => [],
   matrix: Mat4.create(),
   position: Vec3.create(),
   quaternion: Quat.create(),
@@ -19,12 +20,6 @@ const defaultCameraToken: CameraToken = {
   _lookAtMatrix: new Mat4()
 }
 
-export type SceneContextT = {
-  nodes: Record<string, Token>
-}
-
-const SceneContext = createContext<SceneContextT>()
-
 export type CanvasProps = ParentProps & {
   width?: number
   height?: number
@@ -33,9 +28,6 @@ export type CanvasProps = ParentProps & {
   samples?: number
   camera?: CameraToken
 }
-
-export const useSceneContext = () => useContext(SceneContext)!
-
 export const Canvas = (_props: CanvasProps) => {
   const props = mergeProps(
     {
@@ -56,7 +48,12 @@ export const Canvas = (_props: CanvasProps) => {
       <SceneContext.Provider value={sceneContext}>
         {untrack(() => {
           const tokens = resolveTokens(tokenizer, () => props.children)
-          const data = createMemo(() => tokens().map(v => ({ ...v.data, children: v.data.resolve(v.data) })))
+          const data = createMemo(() =>
+            tokens().map(v => ({
+              ...v.data,
+              children: 'resolveChildren' in v.data ? v.data.resolveChildren?.(v.data) : undefined
+            }))
+          )
 
           const canvas = (<canvas width={props.width} height={props.height} />) as HTMLCanvasElement
 

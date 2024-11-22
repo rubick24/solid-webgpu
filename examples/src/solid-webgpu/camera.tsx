@@ -1,7 +1,6 @@
 import { createToken } from '@solid-primitives/jsx-tokenizer'
 import { DEG2RAD, Mat4 } from 'math'
 import { createEffect, mergeProps, splitProps } from 'solid-js'
-import { useSceneContext } from './canvas'
 import { Object3DProps, useObject3DToken } from './object3d'
 import { CameraToken, Token, tokenizer } from './tokenizer'
 
@@ -12,20 +11,13 @@ export type CameraProps = Omit<Object3DProps, 'ref'> & {
 }
 
 export const Camera = createToken(tokenizer, (props: CameraProps) => {
-  const token = useObject3DToken(props) as CameraToken
-  token.type.push('Camera')
-  Object.assign(token, {
+  const token = useObject3DToken<CameraToken>(['Camera'], props, {
     projectionMatrix: new Mat4(),
     viewMatrix: new Mat4(),
     projectionViewMatrix: new Mat4(),
     _lookAtMatrix: new Mat4()
   })
 
-  createEffect(() => {})
-
-  const scene = useSceneContext()
-
-  scene.nodes[token.id] = token
   props.ref?.(token)
   return token
 })
