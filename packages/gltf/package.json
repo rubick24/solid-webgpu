@@ -17,7 +17,7 @@
     "math": "workspace:*"
   },
   "devDependencies": {
-    "@types/node": "^22.5.5",
-    "json-schema-to-typescript": "^15.0.2"
+    "@types/node": "^22.9.1",
+    "json-schema-to-typescript": "^15.0.3"
   }
 }
