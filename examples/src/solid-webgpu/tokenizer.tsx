@@ -71,7 +71,7 @@ export type VertexBufferToken = CommonTokenAttr & {
 }
 export type IndexBufferToken = CommonTokenAttr & {
   buffer: TypedArray
-  arrayStride: number
+  // arrayStride: number
 }
 
 export type MaterialToken = CommonTokenAttr & {
@@ -93,6 +93,7 @@ export type TextureToken = CommonTokenAttr & {
 }
 export type UniformBufferToken = CommonTokenAttr & {
   value: TypedArray | ArrayBuffer
+  builtIn?: string
 }
 // TODO: external texture ?
 export type UniformToken = SamplerToken | TextureToken | UniformBufferToken

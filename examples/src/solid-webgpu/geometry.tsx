@@ -54,13 +54,13 @@ export const VertexBuffer = createToken(tokenizer, (props: VertexBufferProps) =>
 
 export type IndexBufferProps = CommonTokenProps<IndexBufferToken> & {
   buffer: TypedArray
-  arrayStride: number
+  // arrayStride: number
 }
 export const IndexBuffer = createToken(tokenizer, (props: IndexBufferProps) => {
   const token = useCommonToken<IndexBufferToken>(['IndexBuffer'], props)
   props.ref?.(token)
 
-  createEffect(() => (token.arrayStride = props.arrayStride))
+  // createEffect(() => (token.arrayStride = props.arrayStride))
   createEffect(() => (token.buffer = props.buffer))
 
   return token

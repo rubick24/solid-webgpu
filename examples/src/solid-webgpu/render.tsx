@@ -1,13 +1,22 @@
 import { createRAF } from '@solid-primitives/raf'
-import { Mat4, Vec3 } from 'math'
+import { Mat3, Mat4, Vec3 } from 'math'
 import { Accessor, createEffect, onCleanup } from 'solid-js'
 import { isCamera } from './camera'
 import { CanvasProps } from './canvas'
+import { isTexture, isUniformBuffer } from './material'
 import { isMesh } from './mesh'
 import { isObject3D } from './object3d'
 import { isPunctualLight } from './punctual_light'
 import { SceneContextT } from './scene_context'
-import { CameraToken, MeshToken, Object3DToken, PunctualLightToken, SamplerToken, Token } from './tokenizer'
+import {
+  CameraToken,
+  MeshToken,
+  Object3DToken,
+  PunctualLightToken,
+  SamplerToken,
+  TextureToken,
+  Token
+} from './tokenizer'
 import { createWithCache, TypedArray } from './utils'
 
 export type RenderContext = {
@@ -65,7 +74,12 @@ const sort = (
   return { renderList, lightList }
 }
 
-const createBuffer = (options: { device: GPUDevice; data: TypedArray; usage: GPUBufferUsageFlags; label?: string }) => {
+const createBuffer = (options: {
+  device: GPUDevice
+  data: TypedArray | ArrayBuffer
+  usage: GPUBufferUsageFlags
+  label?: string
+}) => {
   const { device, data, usage, label } = options
   const buffer = device.createBuffer({
     label,
@@ -76,18 +90,169 @@ const createBuffer = (options: { device: GPUDevice; data: TypedArray; usage: GPU
   return buffer
 }
 
+const updateTexture = (v: TextureToken, device: GPUDevice, format: GPUTextureFormat) => {
+  // TODO: descriptor change
+  return withCache(v.id, () => {
+    const target = device.createTexture({
+      ...v.descriptor,
+      format: v.descriptor.format ?? format,
+      usage:
+        (v.descriptor.usage ?? 0) |
+        GPUTextureUsage.TEXTURE_BINDING |
+        GPUTextureUsage.RENDER_ATTACHMENT |
+        GPUTextureUsage.COPY_SRC |
+        GPUTextureUsage.COPY_DST
+    })
+    if ('image' in v && v.image) {
+      device.queue.copyExternalImageToTexture({ source: v.image }, { texture: target }, v.descriptor.size)
+    }
+    return target
+  })
+}
+
 const updateSampler = (v: SamplerToken, device: GPUDevice) => {
+  // TODO: descriptor change
   return withCache(v.id, () => {
     const target = device.createSampler(v.descriptor)
     return target
   })
 }
 
-const updatePipeline = (options: { mesh: MeshToken; camera: CameraToken; lightList: PunctualLightToken[] }) => {
-  const { mesh, camera, lightList } = options
-  // const { uniforms, bindGroupLayout } = withCache(mesh.material!.id, () => {
-  //   const uniforms = mesh.material?.uniforms.map(v => {})
-  // })
+const updatePipeline = (options: {
+  mesh: MeshToken
+  camera: CameraToken
+  lightList: PunctualLightToken[]
+  device: GPUDevice
+  format: GPUTextureFormat
+}) => {
+  const { mesh, camera, lightList, device, format } = options
+  if (!mesh.material) {
+    // TODO: use default material
+    throw new Error('no material')
+  }
+
+  /**
+   * uniform setup
+   */
+  const { uniforms, bindGroupLayout } = withCache(mesh.material!.id, () => {
+    const uniforms = mesh.material!.uniforms.map(v => {
+      if (isUniformBuffer(v)) {
+        if (v.builtIn && !v.value) {
+          if (v.builtIn === 'base') {
+            v.value = new Float32Array(80)
+          } else if (v.builtIn === 'punctual_lights') {
+            v.value = new Float32Array(16 * 4)
+          }
+        }
+      }
+      return v
+    })
+    const bindGroupLayout = device.createBindGroupLayout({
+      entries: uniforms.map((v, i) => {
+        if (isUniformBuffer(v)) {
+          return {
+            binding: i,
+            visibility: GPUShaderStage.VERTEX | GPUShaderStage.FRAGMENT,
+            buffer: {}
+          }
+        } else if (isTexture(v)) {
+          return {
+            binding: i,
+            visibility: GPUShaderStage.FRAGMENT,
+            texture: {}
+          }
+        } else {
+          return {
+            binding: i,
+            visibility: GPUShaderStage.FRAGMENT,
+            sampler: {}
+          }
+        }
+      })
+    })
+
+    return { uniforms, bindGroupLayout }
+  })
+
+  /**
+   * update built-in uniform
+   */
+  for (const uniform of uniforms) {
+    if (isUniformBuffer(uniform)) {
+      if (uniform.builtIn === 'base') {
+        const bo = uniform.value as Float32Array
+        const modelMatrix = Mat4.copy(bo.subarray(0, 16), mesh.matrix)
+        const viewMatrix = Mat4.copy(bo.subarray(16, 32), camera.viewMatrix)
+        // projectionMatrix
+        Mat4.copy(bo.subarray(32, 48), camera.projectionMatrix)
+        const modelViewMatrix = Mat4.copy(bo.subarray(48, 64), viewMatrix)
+        Mat4.mul(modelViewMatrix, modelViewMatrix, modelMatrix)
+        // normalMatrix
+        Mat3.normalFromMat4(bo.subarray(64, 73), modelViewMatrix)
+        // cameraPosition
+        Vec3.copy(bo.subarray(76, 79), camera.matrix.subarray(12, 15))
+      } else if (uniform.builtIn === 'punctual_lights') {
+        const lightValues = uniform.value as Float32Array
+        for (let i = 0; i < lightList.length; i++) {
+          const light = lightList[i]
+          const offset = i * 16
+          if (lightValues.length < offset + 16) {
+            console.warn('extra lights are ignored')
+            break
+          }
+          // position
+          Vec3.copy(lightValues.subarray(offset + 0, offset + 3), light.matrix.subarray(12, 15))
+          // direction
+          Vec3.copy(lightValues.subarray(offset + 4, offset + 7), light.matrix.subarray(8, 11))
+          Vec3.copy(lightValues.subarray(offset + 8, offset + 11), light.color)
+
+          lightValues[offset + 11] = light.intensity
+          lightValues[offset + 12] = light.range ?? Infinity
+          lightValues[offset + 13] = light.innerConeAngle
+          lightValues[offset + 14] = light.outerConeAngle
+
+          const m: Record<typeof light.lightType, number> = {
+            directional: 1,
+            point: 2,
+            spot: 3
+          }
+
+          new DataView(lightValues.buffer).setUint32((offset + 15) * 4, m[light.lightType], true)
+        }
+      }
+    }
+  }
+
+  /**
+   * uniform binding
+   */
+  const bindGroupEntries: GPUBindGroupEntry[] = uniforms.map((uniform, i) => {
+    if (isUniformBuffer(uniform)) {
+      const buffer = withCache(uniform.id, () =>
+        createBuffer({
+          device,
+          data: uniform.value as TypedArray,
+          usage: GPUBufferUsage.UNIFORM,
+          label: `uniform ${i} ${uniform.type}`
+        })
+      )
+      // if (uniform.needsUpdate) {
+      //   const data = uniform.value
+      //   this.device.queue.writeBuffer(buffer, 'byteOffset' in data ? data.byteOffset : 0, data)
+      //   uniform.needsUpdate = false
+      // }
+      return { binding: i, resource: { buffer } }
+    } else if (isTexture(uniform)) {
+      const texture = updateTexture(uniform, device, format)
+      return {
+        binding: i,
+        resource: 'createView' in texture ? texture.createView() : texture
+      }
+    } else {
+      const sampler = updateSampler(uniform, device)
+      return { binding: i, resource: sampler }
+    }
+  })
 }
 
 const _adapter = typeof navigator !== 'undefined' ? await navigator.gpu?.requestAdapter() : null
@@ -167,10 +332,6 @@ export const useRender = (ctx: RenderContext) => {
     const scene = s()
     const camera = props.camera
     const samples = props.samples
-
-    // if (_msaaTexture.sampleCount !== samples) {
-    //   _resizeSwapchain()
-    // }
 
     const renderViews = [_msaaTextureView]
     const resolveTarget = context.getCurrentTexture().createView()

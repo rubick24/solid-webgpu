@@ -35,6 +35,11 @@ export const imageBitmapFromImageUrl = async (url: string) => {
 //   return textureFromImageData(imgBitmap)
 // }
 
+export const setBitOfValue = (val: number, offset: number, bit: boolean) => {
+  const mask = 1 << offset
+  return (val = bit ? val | mask : val & ~mask)
+}
+
 export const white1pxBase64 =
   'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+ip1sAAAAASUVORK5CYII='
 

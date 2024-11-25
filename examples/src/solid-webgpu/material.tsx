@@ -12,10 +12,10 @@ import {
   useCommonToken,
   useJSXPropArrayToken
 } from './tokenizer'
-import { Optional, TypedArray } from './utils'
+import { imageBitmapFromImageUrl, Optional, TypedArray, white1pxBase64 } from './utils'
 
 export type MaterialProps = CommonTokenProps<MaterialToken> & {
-  uniforms?: JSX.Element[]
+  uniforms?: JSX.Element
   shaderCode: string
   cullMode?: GPUCullMode
   transparent?: boolean
@@ -29,6 +29,8 @@ export const isMaterial = (v: Token): v is MaterialToken => v.type.includes('Mat
 export const isUniform = (v: Token): v is UniformToken => v.type.includes('Uniform')
 
 export const isUniformBuffer = (v: Token): v is UniformBufferToken => v.type.includes('UniformBuffer')
+export const isTexture = (v: Token): v is TextureToken => v.type.includes('Texture')
+export const isSampler = (v: Token): v is SamplerToken => v.type.includes('Sampler')
 
 export const Material = createToken(tokenizer, (props: MaterialProps) => {
   const token = useCommonToken<MaterialToken>(['Material'], props)
@@ -47,14 +49,24 @@ export const Material = createToken(tokenizer, (props: MaterialProps) => {
   return token
 })
 
-export type UniformBufferProps = CommonTokenProps<UniformBufferToken> & {
-  value: TypedArray | ArrayBuffer
-}
+export type UniformBufferProps = CommonTokenProps<UniformBufferToken> &
+  (
+    | {
+        value: TypedArray | ArrayBuffer
+      }
+    | { buildInType: 'base' | 'punctual_lights' }
+  )
 export const UniformBuffer = createToken(tokenizer, (props: UniformBufferProps) => {
   const token = useCommonToken<UniformBufferToken>(['Uniform', 'UniformBuffer'], props)
   props.ref?.(token)
 
-  createEffect(() => (token.value = props.value))
+  createEffect(() => {
+    if ('buildInType' in props) {
+      token.builtIn = props.buildInType
+    } else {
+      token.value = props.value
+    }
+  })
 
   return token
 })
@@ -72,6 +84,21 @@ export const Texture = createToken(tokenizer, (props: TextureProps) => {
 
   return token
 })
+
+const defaultBitmap = await imageBitmapFromImageUrl(white1pxBase64)
+export const DefaultTexture = () => {
+  return (
+    <Texture
+      descriptor={{
+        size: {
+          width: defaultBitmap.width,
+          height: defaultBitmap.height
+        }
+      }}
+      image={defaultBitmap}
+    />
+  )
+}
 
 export type SamplerProps = CommonTokenProps<SamplerToken> & {
   descriptor: GPUSamplerDescriptor
