@@ -123,12 +123,16 @@ const updatePipeline = (options: {
   camera: CameraToken
   lightList: PunctualLightToken[]
   device: GPUDevice
+
   format: GPUTextureFormat
+  samples: number
+
+  passEncoder: GPURenderPassEncoder
 }) => {
-  const { mesh, camera, lightList, device, format } = options
-  if (!mesh.material) {
+  const { mesh, camera, lightList, device, format, samples, passEncoder } = options
+  if (!mesh.material || !mesh.geometry) {
     // TODO: use default material
-    throw new Error('no material')
+    throw new Error('no material or geometry')
   }
 
   /**
@@ -237,9 +241,9 @@ const updatePipeline = (options: {
         })
       )
       // if (uniform.needsUpdate) {
-      //   const data = uniform.value
-      //   this.device.queue.writeBuffer(buffer, 'byteOffset' in data ? data.byteOffset : 0, data)
-      //   uniform.needsUpdate = false
+      const data = uniform.value
+      device.queue.writeBuffer(buffer, 'byteOffset' in data ? data.byteOffset : 0, data)
+      // uniform.needsUpdate = false
       // }
       return { binding: i, resource: { buffer } }
     } else if (isTexture(uniform)) {
@@ -253,6 +257,103 @@ const updatePipeline = (options: {
       return { binding: i, resource: sampler }
     }
   })
+
+  /**
+   * pipeline setup
+   */
+  const pipelineOption = {
+    transparent: mesh.material.transparent,
+    cullMode: mesh.material.cullMode,
+    topology: mesh.geometry.topology,
+    depthWriteEnabled: mesh.material.depthWrite,
+    depthCompare: (mesh.material.depthTest ? 'less' : 'always') as GPUCompareFunction,
+    vertexBufferLayouts: mesh.geometry.vertexBuffers.map(v => v.layout),
+    blending: mesh.material.blending,
+    colorAttachments: 1,
+    samples
+  }
+  const pipelineCacheKey = JSON.stringify(pipelineOption)
+
+  const pipeline = withCache(mesh.id + pipelineCacheKey, () => {
+    let code = mesh.material!.shaderCode
+    /**
+     * set builtin vertexInput if defined in vertexBuffer
+     */
+    const vertexInputStr = mesh
+      .geometry!.vertexBuffers.filter(v => v.attribute?.name && builtinAttributeNames.includes(v.attribute?.name))
+      .map((v, i) => `  @location(${i}) ${v.attribute!.name}: ${v.attribute!.type}`)
+      .join(',\n')
+    if (vertexInputStr) {
+      const old = code.match(/^struct VertexInput {\n(.|\n)*?}/)?.[0]
+      const rep = `struct VertexInput {\n${vertexInputStr}\n}`
+      code = old?.length ? code.replace(old, rep) : rep + '\n' + code
+    }
+
+    const shaderModule = device.createShaderModule({ code })
+
+    return device.createRenderPipeline({
+      layout: device.createPipelineLayout({
+        bindGroupLayouts: [bindGroupLayout]
+      }),
+      label: pipelineCacheKey,
+      vertex: {
+        module: shaderModule,
+        entryPoint: 'vs_main',
+        buffers: pipelineOption.vertexBufferLayouts
+      },
+      fragment: {
+        module: shaderModule,
+        entryPoint: 'fs_main',
+        targets: [
+          {
+            format
+          }
+        ]
+      },
+      primitive: {
+        frontFace: 'ccw',
+        cullMode: mesh.material!.cullMode,
+        topology: mesh.geometry!.topology
+      },
+      depthStencil: {
+        depthWriteEnabled: pipelineOption.depthWriteEnabled,
+        depthCompare: pipelineOption.depthCompare,
+        format: 'depth24plus-stencil8'
+      },
+      multisample: { count: pipelineOption.samples }
+    })
+  })
+
+  passEncoder.setPipeline(pipeline)
+
+  const ib = mesh.geometry.indexBuffer
+  if (ib) {
+    const buffer = withCache(ib.id, () => {
+      return createBuffer({ device, data: ib.buffer, usage: GPUBufferUsage.INDEX })
+    })
+
+    passEncoder.setIndexBuffer(buffer, `uint${ib.buffer.BYTES_PER_ELEMENT * 8}` as GPUIndexFormat)
+  }
+  mesh.geometry.vertexBuffers.forEach((vb, i) => {
+    const buffer = withCache(vb.id, () => {
+      return createBuffer({ device, data: vb.buffer, usage: GPUBufferUsage.VERTEX })
+    })
+
+    // if (vb.needsUpdate) {
+    const data = vb.buffer
+    device.queue.writeBuffer(buffer, data.byteOffset, data)
+    // vb.needsUpdate = false
+    // }
+    passEncoder.setVertexBuffer(i, buffer)
+  })
+
+  if (bindGroupEntries.length) {
+    const bindGroup = device.createBindGroup({
+      layout: bindGroupLayout,
+      entries: bindGroupEntries
+    })
+    passEncoder.setBindGroup(0, bindGroup)
+  }
 }
 
 const _adapter = typeof navigator !== 'undefined' ? await navigator.gpu?.requestAdapter() : null
@@ -361,30 +462,38 @@ export const useRender = (ctx: RenderContext) => {
 
     scene.map(v => updateMatrix(v))
     const { renderList, lightList } = sort(scene, camera)
+    for (const node of renderList) {
+      updatePipeline({
+        mesh: node,
+        camera,
+        lightList,
+        device,
+        format: ctx.props.format,
+        samples,
+        passEncoder: _passEncoder
+      })
 
-    // for (const node of renderList) {
-    //   _updatePipeline(node, camera, lightList)
+      const indexBuffer = node.geometry!.indexBuffer
+      const position = node.geometry!.vertexBuffers[0]
 
-    //   const indexBuffer = node.geometry.indexBuffer
-    //   const position = node.geometry.vertexBuffers[0]
-
-    //   // Alternate drawing for indexed and non-indexed children
-    //   if (indexBuffer) {
-    //     const count = Math.min(node.geometry.drawRange.count, indexBuffer.buffer.length)
-    //     this._passEncoder.drawIndexed(count, node.geometry.instanceCount, node.geometry.drawRange.start ?? 0)
-    //   } else if (position) {
-    //     const count = Math.min(node.geometry.drawRange.count, position.buffer.length / position.layout.arrayStride)
-    //     this._passEncoder.draw(count, node.geometry.instanceCount, node.geometry.drawRange.start ?? 0)
-    //   } else {
-    //     this._passEncoder.draw(3, node.geometry.instanceCount)
-    //   }
-    // }
+      if (!node.geometry) {
+        return
+      }
+      // Alternate drawing for indexed and non-indexed children
+      if (indexBuffer) {
+        const count = Math.min(node.geometry.drawRange.count, indexBuffer.buffer.length)
+        _passEncoder.drawIndexed(count, node.geometry.instanceCount, node.geometry.drawRange.start ?? 0)
+      } else if (position) {
+        const count = Math.min(node.geometry.drawRange.count, position.buffer.length / position.layout.arrayStride)
+        _passEncoder.draw(count, node.geometry.instanceCount, node.geometry.drawRange.start ?? 0)
+      } else {
+        _passEncoder.draw(3, node.geometry.instanceCount)
+      }
+    }
+    _passEncoder.end()
+    device.queue.submit([_commandEncoder.finish()])
   })
   start()
-
-  setTimeout(() => {
-    stop()
-  }, 3000)
 
   onCleanup(() => stop())
 }

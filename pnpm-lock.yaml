@@ -47,6 +47,9 @@ importers:
       '@solid-primitives/raf':
         specifier: ^2.2.0
         version: 2.2.0(solid-js@1.9.3)
+      core:
+        specifier: workspace:*
+        version: link:../packages/core
       gltf:
         specifier: workspace:*
         version: link:../packages/gltf

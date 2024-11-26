@@ -21,7 +21,8 @@ export const useObject3DToken = <T extends Object3DToken>(
     matrix: Mat4.create(),
     position: Vec3.create(),
     quaternion: Quat.create(),
-    scale: Vec3.create(),
+    scale: Vec3.fromValues(1, 1, 1),
+    up: Vec3.fromValues(0, 1, 0),
     resolveChildren,
     ...init
   })

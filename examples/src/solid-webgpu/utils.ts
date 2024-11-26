@@ -1,8 +1,10 @@
+import { Accessor } from 'solid-js'
+
 export const createWithCache = (cache: Map<string, unknown>) => {
-  return <T>(key: string, fn: () => T) => {
-    let c = cache.get(key)
-    if (c !== undefined) {
-      return c as T
+  return <T>(key: string, fn: () => T, options?: { stale?: (old: T) => boolean }) => {
+    let c = cache.get(key) as T | undefined
+    if (c !== undefined && !options?.stale?.(c)) {
+      return c
     }
     c = fn()
     cache.set(key, c)
@@ -19,21 +21,6 @@ export const imageBitmapFromImageUrl = async (url: string) => {
   const blob = await response.blob()
   return createImageBitmap(blob)
 }
-
-// export const textureFromImageData = (source: ImageBitmap | ImageData | HTMLCanvasElement | OffscreenCanvas) => {
-//   return {
-//     type: 'texture',
-//     image: source,
-//     descriptor: {
-//       size: { width: source.width, height: source.height }
-//     }
-//   } as Texture
-// }
-
-// export const textureFromUrl = async (url: string) => {
-//   const imgBitmap = await imageBitmapFromImageUrl(url)
-//   return textureFromImageData(imgBitmap)
-// }
 
 export const setBitOfValue = (val: number, offset: number, bit: boolean) => {
   const mask = 1 << offset
@@ -81,13 +68,8 @@ export type ExternalTexture = Updatable<{
   video?: HTMLVideoElement
 }>
 
-// export type BuiltinUniformType = 'base' | 'punctual_lights'
-// export type BuiltinUniform<T extends BuiltinUniformType = BuiltinUniformType> = { builtin_type: T }
-// export type BuiltinUniformInternal<T extends BuiltinUniformType = BuiltinUniformType> = BuiltinUniform<T> &
-//   {
-//     base: UniformBuffer
-//     punctual_lights: UniformBuffer
-//   }[T]
+export type MaybeAccessor<T> = T | Accessor<T>
+export type MaybeAccessorValue<T extends MaybeAccessor<unknown>> = T extends () => any ? ReturnType<T> : T
 
-// export type Uniform = UniformBuffer | Texture | ExternalTexture | Sampler | BuiltinUniform
-// export type UniformInternal = UniformBuffer | Texture | ExternalTexture | Sampler | BuiltinUniformInternal
+export const access = <T extends MaybeAccessor<any>>(v: T): MaybeAccessorValue<T> =>
+  typeof v === 'function' && !v.length ? v() : v

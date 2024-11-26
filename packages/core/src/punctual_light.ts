@@ -24,7 +24,7 @@ export class PunctualLight extends Object3D {
   outerConeAngle = Math.PI / 4.0 // innerConeAngle ~ PI/2
 
   constructor(options?: PunctualLightProps) {
-    super()
+    super(options)
     if (options?.color) this.color.copy(options.color)
     if (options?.label) this.label = options.label
     if (options?.intensity !== undefined) this.intensity = options.intensity

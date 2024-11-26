@@ -13,11 +13,17 @@ const defaultCameraToken: CameraToken = {
   matrix: Mat4.create(),
   position: Vec3.create(),
   quaternion: Quat.create(),
-  scale: Vec3.create(),
+  scale: Vec3.fromValues(1, 1, 1),
+  up: Vec3.fromValues(0, 1, 0),
   projectionMatrix: new Mat4(),
   viewMatrix: new Mat4(),
   projectionViewMatrix: new Mat4(),
-  _lookAtMatrix: new Mat4()
+  _lookAtMatrix: new Mat4(),
+
+  lookAt: (target: Vec3) => {
+    Mat4.targetTo(defaultCameraToken._lookAtMatrix, defaultCameraToken.position, target, defaultCameraToken.up)
+    Mat4.getRotation(defaultCameraToken.quaternion, defaultCameraToken._lookAtMatrix)
+  }
 }
 
 export type CanvasProps = ParentProps & {
@@ -27,6 +33,7 @@ export type CanvasProps = ParentProps & {
   autoClear?: boolean
   samples?: number
   camera?: CameraToken
+  ref?: (v: HTMLCanvasElement) => void
 }
 export const Canvas = (_props: CanvasProps) => {
   const props = mergeProps(
@@ -56,6 +63,8 @@ export const Canvas = (_props: CanvasProps) => {
           )
 
           const canvas = (<canvas width={props.width} height={props.height} />) as HTMLCanvasElement
+
+          props.ref?.(canvas)
 
           useRender({ props, canvas, sceneContext, scene: data })
 

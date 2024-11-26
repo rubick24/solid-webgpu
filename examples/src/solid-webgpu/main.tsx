@@ -8,14 +8,21 @@ import { PBRMaterial } from './material/pbr-material'
 import { Mesh } from './mesh'
 import { PunctualLight } from './punctual_light'
 import { CameraToken } from './tokenizer'
+import { createOrbitControl } from './use_orbit_control'
+import { imageBitmapFromImageUrl } from './utils'
+
+const t = await imageBitmapFromImageUrl('/a.png')
 
 const App = () => {
-  const [p, setP] = createSignal(1)
+  const [p, setP] = createSignal(0)
   const [camera, setCamera] = createSignal<CameraToken>()
+  const [canvas, setCanvas] = createSignal<HTMLCanvasElement>()
+
+  createOrbitControl(canvas, camera)
 
   return (
     <>
-      <Canvas camera={camera()}>
+      <Canvas ref={setCanvas} camera={camera()}>
         <PerspectiveCamera label="main_camera" ref={setCamera} position={[0, 0, 5]} aspect={16 / 9} />
         <PunctualLight
           type="spot"
@@ -25,7 +32,7 @@ const App = () => {
           intensity={100}
         />
         <Mesh
-          position={[p(), 1, 1]}
+          position={[p(), 0, 0]}
           geometry={
             <Geometry
               vertexBuffers={
@@ -87,7 +94,7 @@ const App = () => {
               indexBuffer={<IndexBuffer buffer={new Uint32Array([0, 1, 2, 0, 2, 3])} />}
             />
           }
-          material={<PBRMaterial albedo={[0, 0.5, 0]} />}
+          material={<PBRMaterial albedoTexture={t} />}
         />
       </Canvas>
 

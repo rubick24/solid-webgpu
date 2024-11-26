@@ -98,6 +98,7 @@ const light = new PunctualLight({
   color: Vec3.fromValues(1, 1, 1),
   intensity: 100
 })
+
 scene.add(mesh, light)
 
 const render = () => {

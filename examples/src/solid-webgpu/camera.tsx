@@ -1,5 +1,5 @@
 import { createToken } from '@solid-primitives/jsx-tokenizer'
-import { DEG2RAD, Mat4 } from 'math'
+import { DEG2RAD, Mat4, Vec3 } from 'math'
 import { createEffect, mergeProps, splitProps } from 'solid-js'
 import { Object3DProps, useObject3DToken } from './object3d'
 import { CameraToken, Token, tokenizer } from './tokenizer'
@@ -15,7 +15,12 @@ export const Camera = createToken(tokenizer, (props: CameraProps) => {
     projectionMatrix: new Mat4(),
     viewMatrix: new Mat4(),
     projectionViewMatrix: new Mat4(),
-    _lookAtMatrix: new Mat4()
+    _lookAtMatrix: new Mat4(),
+
+    lookAt: (target: Vec3) => {
+      Mat4.targetTo(token._lookAtMatrix, token.position, target, token.up)
+      Mat4.getRotation(token.quaternion, token._lookAtMatrix)
+    }
   })
 
   props.ref?.(token)

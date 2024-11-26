@@ -1,5 +1,5 @@
 import { Vec3, Vec3Like } from 'math'
-import { createEffect } from 'solid-js/types/server/reactive.js'
+import { createEffect } from 'solid-js'
 import { DefaultTexture, Material, Sampler, Texture, UniformBuffer } from '../material'
 import { setBitOfValue } from '../utils'
 import shaderCode from './default_pbr.wgsl?raw'

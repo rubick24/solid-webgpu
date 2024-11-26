@@ -16,6 +16,10 @@ import { TypedArray } from './utils'
 export type GeometryProps = CommonTokenProps<GeometryToken> & {
   vertexBuffers?: JSX.Element
   indexBuffer?: JSX.Element
+
+  topology?: GPUPrimitiveTopology
+  instanceCount?: number
+  drawRange?: { start: number; count: number }
 }
 
 export const isGeometry = (v: Token): v is GeometryToken => v.type.includes('Geometry')
@@ -29,6 +33,9 @@ export const Geometry = createToken(tokenizer, (props: GeometryProps) => {
 
   useJSXPropArrayToken('vertexBuffers', props, token, isVertexBuffer)
   useJSXPropToken('indexBuffer', props, token, isIndexBuffer)
+  createEffect(() => (token.topology = props.topology ?? 'triangle-list'))
+  createEffect(() => (token.instanceCount = props.instanceCount ?? 1))
+  createEffect(() => (token.drawRange = props.drawRange ?? { start: 0, count: Infinity }))
 
   return token
 })

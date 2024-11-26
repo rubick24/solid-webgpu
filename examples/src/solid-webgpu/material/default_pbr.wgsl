@@ -237,9 +237,6 @@ fn fs_main(input: VertexOutput) -> @location(0) vec4<f32> {
     for (var i = 0; i < light_num; i++) {
         let light = punctual_lights[i];
 
-        // Lo += calculatePointLight(light, input, pbr_values);
-        // Lo += calculateDirectionalLight(light, input, pbr_values);
-        // Lo += calculateSpotLight(light, input, pbr_values);
         if light.light_type == 1u {
             Lo += calculateDirectionalLight(light, input, pbr_values);
         } else if light.light_type == 2u {

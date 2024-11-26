@@ -30,6 +30,7 @@ export type Object3DToken = CommonTokenAttr &
     position: Vec3
     quaternion: Quat
     scale: Vec3
+    up: Vec3
   }
 
 export type CameraToken = Object3DToken & {
@@ -37,6 +38,8 @@ export type CameraToken = Object3DToken & {
   viewMatrix: Mat4
   projectionViewMatrix: Mat4
   _lookAtMatrix: Mat4
+
+  lookAt: (target: Vec3) => void
 }
 
 export type PunctualLightToken = Object3DToken & {
@@ -57,9 +60,9 @@ export type GeometryToken = CommonTokenAttr & {
   vertexBuffers: VertexBufferToken[]
   indexBuffer?: IndexBufferToken
 
-  topology?: GPUPrimitiveTopology
-  instanceCount?: number
-  drawRange?: { start: number; count: number }
+  topology: GPUPrimitiveTopology
+  instanceCount: number
+  drawRange: { start: number; count: number }
 }
 export type VertexBufferToken = CommonTokenAttr & {
   attribute?: {
