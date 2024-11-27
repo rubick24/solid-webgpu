@@ -1,30 +1,8 @@
 import { resolveTokens } from '@solid-primitives/jsx-tokenizer'
-import { Mat4, Quat, Vec3 } from 'math'
-import { batch, createEffect, createMemo, createUniqueId, mergeProps, ParentProps, untrack } from 'solid-js'
+import { batch, createEffect, createMemo, mergeProps, ParentProps, splitProps, untrack } from 'solid-js'
 import { createStore } from 'solid-js/store'
 import { SceneContext, SceneContextT } from './context'
 import { CameraToken, tokenizer } from './tokenizer'
-
-const defaultCameraToken: CameraToken = {
-  type: ['Object3D'],
-  id: createUniqueId(),
-  label: '',
-  resolveChildren: () => [],
-  matrix: Mat4.create(),
-  position: Vec3.create(),
-  quaternion: Quat.create(),
-  scale: Vec3.fromValues(1, 1, 1),
-  up: Vec3.fromValues(0, 1, 0),
-  projectionMatrix: new Mat4(),
-  viewMatrix: new Mat4(),
-  projectionViewMatrix: new Mat4(),
-  _lookAtMatrix: new Mat4(),
-
-  lookAt: (target: Vec3) => {
-    Mat4.targetTo(defaultCameraToken._lookAtMatrix, defaultCameraToken.position, target, defaultCameraToken.up)
-    Mat4.getRotation(defaultCameraToken.quaternion, defaultCameraToken._lookAtMatrix)
-  }
-}
 
 const _adapter = typeof navigator !== 'undefined' ? await navigator.gpu?.requestAdapter() : null
 const _device = await _adapter?.requestDevice()!
@@ -39,32 +17,32 @@ export type CanvasProps = ParentProps & {
   ref?: (v: HTMLCanvasElement) => void
 }
 export const Canvas = (_props: CanvasProps) => {
-  const props = mergeProps(
-    {
-      width: 960,
-      height: 540,
-      format: navigator.gpu.getPreferredCanvasFormat(),
-      autoClear: true,
-      samples: 4,
-      camera: defaultCameraToken
-    },
-    _props
-  ) as Required<CanvasProps>
+  const defaultProps = {
+    width: 960,
+    height: 540,
+    format: navigator.gpu.getPreferredCanvasFormat(),
+    autoClear: true,
+    samples: 4
+  }
+
+  const [cProps, _p] = splitProps(_props, ['ref', 'children'])
+  const props = mergeProps(defaultProps, _p)
 
   const [sceneContext, setSceneContext] = createStore<SceneContextT>({
     ...props,
-    camera: props.camera ?? defaultCameraToken,
+
     device: _device,
 
     parent: {},
     mesh: {}
-    // _msaaTexture: GPUTexture
-    // _msaaTextureView: GPUTextureView
-    // _depthTexture: GPUTexture
-    // _depthTextureView: GPUTextureView
-    // _commandEncoder: GPUCommandEncoder
-    // _passEncoder: GPURenderPassEncoder
   })
+
+  createEffect(() => setSceneContext('width', props.width))
+  createEffect(() => setSceneContext('height', props.height))
+  createEffect(() => setSceneContext('format', props.format))
+  createEffect(() => setSceneContext('autoClear', props.autoClear))
+  createEffect(() => setSceneContext('samples', props.samples))
+  createEffect(() => setSceneContext('camera', props.camera))
 
   /**
    * resize swapchain
@@ -111,7 +89,7 @@ export const Canvas = (_props: CanvasProps) => {
   return (
     <SceneContext.Provider value={[sceneContext, setSceneContext]}>
       {untrack(() => {
-        const tokens = resolveTokens(tokenizer, () => props.children)
+        const tokens = resolveTokens(tokenizer, () => cProps.children)
         const data = createMemo(() =>
           tokens().map(v => ({
             ...v.data,
@@ -126,9 +104,8 @@ export const Canvas = (_props: CanvasProps) => {
           setSceneContext('context', canvas.getContext('webgpu')!)
         })
 
-        props.ref?.(canvas)
+        cProps.ref?.(canvas)
 
-        console.log(333)
         // useRender({ props, canvas, sceneContext, scene: data })
 
         return canvas

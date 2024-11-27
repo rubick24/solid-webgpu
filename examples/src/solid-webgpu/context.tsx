@@ -1,9 +1,9 @@
 import { createContext, useContext } from 'solid-js'
 import { SetStoreFunction } from 'solid-js/store'
-import type { CameraToken, GeometryToken, MaterialToken, PunctualLightToken, Token, UniformToken } from './tokenizer'
+import type { CameraToken, PunctualLightToken, Token, UniformToken } from './tokenizer'
 
 export type SceneContextT = {
-  camera: CameraToken
+  camera?: CameraToken
 
   width: number
   height: number
@@ -32,9 +32,6 @@ export const SceneContext = createContext<[SceneContextT, SetStoreFunction<Scene
 export const useSceneContext = () => useContext(SceneContext)!
 
 export type MeshContextT = {
-  geometry: GeometryToken
-  material: MaterialToken
-
   uniforms?: UniformToken[]
   bindGroupLayout?: GPUBindGroupLayout
   bindGroupEntries?: GPUBindGroupEntry[]
