@@ -1,8 +1,6 @@
 import { createTokenizer, resolveTokens } from '@solid-primitives/jsx-tokenizer'
 import { Mat4, Quat, Vec3 } from 'math'
-import { createEffect, createUniqueId, JSX, onCleanup, ParentProps } from 'solid-js'
-import { createMutable } from 'solid-js/store'
-import { useSceneContext } from './scene_context'
+import { createEffect, createUniqueId, JSX, ParentProps } from 'solid-js'
 import { Optional, TypedArray } from './utils'
 
 // type MapToAccessor<T extends { [k: string]: unknown }> = {
@@ -119,18 +117,12 @@ export const useCommonToken = <T extends CommonTokenAttr = CommonTokenAttr>(
   props: { label?: string },
   init?: object
 ) => {
-  const token = createMutable<T>({
+  const token = {
     type: type,
     id: createUniqueId(),
     label: '',
     ...init
-  } as T)
-
-  const scene = useSceneContext()
-  scene.nodes[token.id] = token as unknown as Token
-  onCleanup(() => {
-    delete scene.nodes[token.id]
-  })
+  } as T
 
   createEffect(() => (token.label = props.label ?? ''))
 

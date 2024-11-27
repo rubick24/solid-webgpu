@@ -3,11 +3,11 @@ import { Mat3, Mat4, Vec3 } from 'math'
 import { Accessor, createEffect, onCleanup } from 'solid-js'
 import { isCamera } from './camera'
 import { CanvasProps } from './canvas'
+import { SceneContextT } from './context'
 import { isTexture, isUniformBuffer } from './material'
 import { isMesh } from './mesh'
 import { isObject3D } from './object3d'
 import { isPunctualLight } from './punctual_light'
-import { SceneContextT } from './scene_context'
 import {
   CameraToken,
   MeshToken,

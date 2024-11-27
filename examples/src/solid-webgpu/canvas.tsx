@@ -1,8 +1,8 @@
 import { resolveTokens } from '@solid-primitives/jsx-tokenizer'
 import { Mat4, Quat, Vec3 } from 'math'
-import { createMemo, createUniqueId, mergeProps, ParentProps, untrack } from 'solid-js'
-import { useRender } from './render'
-import { SceneContext, SceneContextT } from './scene_context'
+import { batch, createEffect, createMemo, createUniqueId, mergeProps, ParentProps, untrack } from 'solid-js'
+import { createStore } from 'solid-js/store'
+import { SceneContext, SceneContextT } from './context'
 import { CameraToken, tokenizer } from './tokenizer'
 
 const defaultCameraToken: CameraToken = {
@@ -26,6 +26,9 @@ const defaultCameraToken: CameraToken = {
   }
 }
 
+const _adapter = typeof navigator !== 'undefined' ? await navigator.gpu?.requestAdapter() : null
+const _device = await _adapter?.requestDevice()!
+
 export type CanvasProps = ParentProps & {
   width?: number
   height?: number
@@ -48,29 +51,88 @@ export const Canvas = (_props: CanvasProps) => {
     _props
   ) as Required<CanvasProps>
 
-  const sceneContext: SceneContextT = { nodes: {} }
+  const [sceneContext, setSceneContext] = createStore<SceneContextT>({
+    ...props,
+    camera: props.camera ?? defaultCameraToken,
+    device: _device,
+
+    parent: {},
+    mesh: {}
+    // _msaaTexture: GPUTexture
+    // _msaaTextureView: GPUTextureView
+    // _depthTexture: GPUTexture
+    // _depthTextureView: GPUTextureView
+    // _commandEncoder: GPUCommandEncoder
+    // _passEncoder: GPURenderPassEncoder
+  })
+
+  /**
+   * resize swapchain
+   */
+  createEffect(() => {
+    const { canvas, context, device } = sceneContext
+    if (!canvas || !context) {
+      return
+    }
+    context.configure({
+      device,
+      format: props.format,
+      alphaMode: 'premultiplied'
+    })
+    const size = [canvas.width, canvas.height]
+    const usage = GPUTextureUsage.COPY_DST | GPUTextureUsage.RENDER_ATTACHMENT
+    const sampleCount = props.samples
+
+    let _msaaTexture = untrack(() => sceneContext._msaaTexture)
+    if (_msaaTexture) _msaaTexture.destroy()
+    _msaaTexture = device.createTexture({
+      format: props.format,
+      size,
+      usage,
+      sampleCount
+    })
+    let _depthTexture = untrack(() => sceneContext._depthTexture)
+    if (_depthTexture) _depthTexture.destroy()
+    _depthTexture = device.createTexture({
+      format: 'depth24plus-stencil8',
+      size,
+      usage,
+      sampleCount
+    })
+
+    batch(() => {
+      setSceneContext('_msaaTexture', _msaaTexture)
+      setSceneContext('_msaaTextureView', _msaaTexture.createView())
+      setSceneContext('_depthTexture', _depthTexture)
+      setSceneContext('_depthTextureView', _depthTexture.createView())
+    })
+  })
 
   return (
-    <>
-      <SceneContext.Provider value={sceneContext}>
-        {untrack(() => {
-          const tokens = resolveTokens(tokenizer, () => props.children)
-          const data = createMemo(() =>
-            tokens().map(v => ({
-              ...v.data,
-              children: 'resolveChildren' in v.data ? v.data.resolveChildren?.(v.data) : undefined
-            }))
-          )
+    <SceneContext.Provider value={[sceneContext, setSceneContext]}>
+      {untrack(() => {
+        const tokens = resolveTokens(tokenizer, () => props.children)
+        const data = createMemo(() =>
+          tokens().map(v => ({
+            ...v.data,
+            children: 'resolveChildren' in v.data ? v.data.resolveChildren?.(v.data) : undefined
+          }))
+        )
 
-          const canvas = (<canvas width={props.width} height={props.height} />) as HTMLCanvasElement
+        const canvas = (<canvas width={props.width} height={props.height} />) as HTMLCanvasElement
 
-          props.ref?.(canvas)
+        batch(() => {
+          setSceneContext('canvas', canvas)
+          setSceneContext('context', canvas.getContext('webgpu')!)
+        })
 
-          useRender({ props, canvas, sceneContext, scene: data })
+        props.ref?.(canvas)
 
-          return canvas
-        })}
-      </SceneContext.Provider>
-    </>
+        console.log(333)
+        // useRender({ props, canvas, sceneContext, scene: data })
+
+        return canvas
+      })}
+    </SceneContext.Provider>
   )
 }

@@ -22,6 +22,7 @@ export const PunctualLight = createToken(tokenizer, (props: PunctualLightProps) 
   }) as PunctualLightToken
 
   props.ref?.(token)
+  console.log(111, token.id)
 
   createEffect(() => token.color.copy(props.color ?? [0, 0, 0]))
   createEffect(() => (token.intensity = props.intensity ?? 1))
