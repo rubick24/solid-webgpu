@@ -1,25 +1,31 @@
-import { createSignal } from 'solid-js'
+import { Quat } from 'math'
+import { createEffect, createSignal } from 'solid-js'
 import { render } from 'solid-js/web'
+import { CameraRef, PerspectiveCamera } from './camera'
 import { Canvas } from './canvas'
+import { Geometry, IndexBuffer, VertexBuffer } from './geometry'
+import { PBRMaterial } from './material/pbr-material'
+import { Mesh } from './mesh'
 import { Object3D } from './object3d'
-import { CameraContext } from './types'
-import { createOrbitControl } from './use_orbit_control'
+import { PunctualLight } from './punctual_light'
 import { imageBitmapFromImageUrl } from './utils'
 
 const t = await imageBitmapFromImageUrl('/a.png')
 
 const App = () => {
   const [p, setP] = createSignal(0)
-  const [camera, setCamera] = createSignal<CameraContext>()
-  const [canvas, setCanvas] = createSignal<HTMLCanvasElement>()
+  const [camera, setCamera] = createSignal<CameraRef>()
+  // const [canvas, setCanvas] = createSignal<HTMLCanvasElement>()
 
-  createOrbitControl(canvas, camera)
+  createEffect(() => {
+    console.log('effect', camera())
+  })
 
+  // createOrbitControl(canvas, camera)
   return (
     <>
-      <Canvas ref={setCanvas} camera={camera()}>
-        <Object3D position={[p(), 0, 0]} />
-        {/* <PerspectiveCamera label="main_camera" ref={setCamera} position={[0, 0, 5]} aspect={16 / 9} />
+      <Canvas>
+        <PerspectiveCamera label="main_camera" ref={setCamera} position={[0, 0, 5]} aspect={16 / 9} />
         <PunctualLight
           type="spot"
           position={[0, 1.5, 0.5]}
@@ -27,8 +33,8 @@ const App = () => {
           color={[1, 1, 1]}
           intensity={100}
         />
+        <Object3D position={[p(), 0, 0]} label={`xxx-${p()}`} />
         <Mesh
-          position={[p(), 0, 0]}
           geometry={
             <Geometry
               vertexBuffers={
@@ -91,7 +97,7 @@ const App = () => {
             />
           }
           material={<PBRMaterial albedoTexture={t} />}
-        /> */}
+        />
       </Canvas>
 
       <button onClick={() => setP(v => v + 1)}>set position</button>

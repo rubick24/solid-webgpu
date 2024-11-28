@@ -1,20 +1,18 @@
-import { createToken } from '@solid-primitives/jsx-tokenizer'
 import { DEG2RAD, Mat4 } from 'math'
 import { createEffect, mergeProps, splitProps } from 'solid-js'
-import { useSceneContext } from './context'
-import { createObject3DContext, Object3DProps } from './object3d'
-import { tokenizer, useToken } from './tokenizer'
-import { CameraContext, Token } from './types'
+import { createStore } from 'solid-js/store'
+import { CameraContextProvider } from './context'
+import { createObject3DContext, Object3DProps, Object3DRef } from './object3d'
+import { CameraContext, StoreContext } from './types'
 
-export const isCamera = (v: Token) => v.type.includes('Camera')
+type CameraRefExtra = {
+  camera: StoreContext<CameraContext>
+}
+export type CameraRef = Object3DRef<CameraRefExtra>
+export type CameraProps = Object3DProps<CameraRefExtra>
 
-export type CameraProps = Object3DProps
-
-export const Camera = createToken(tokenizer, (props: CameraProps) => {
-  const token = useToken(['Camera', 'Object3D'], props)
-  createObject3DContext(token, props)
-
-  const [_, setSceneContext] = useSceneContext()
+export const Camera = (props: CameraProps) => {
+  const { ref, Provider } = createObject3DContext(['Camera'], props)
 
   const context: CameraContext = {
     projectionMatrix: new Mat4(),
@@ -23,15 +21,21 @@ export const Camera = createToken(tokenizer, (props: CameraProps) => {
     _lookAtMatrix: new Mat4()
   }
 
-  setSceneContext('camera', token.id, context)
+  const [store, setStore] = createStore(context)
+
+  props.ref?.({ ...ref, camera: [store, setStore] satisfies StoreContext<CameraContext> })
 
   //   lookAt: (target: Vec3) => {
   //     Mat4.targetTo(token._lookAtMatrix, token.position, target, token.up)
   //     Mat4.getRotation(token.quaternion, token._lookAtMatrix)
   //   }
 
-  return token
-})
+  return (
+    <Provider>
+      <CameraContextProvider value={[store, setStore]}>{props.children}</CameraContextProvider>
+    </Provider>
+  )
+}
 
 export type PerspectiveCameraProps = CameraProps & {
   fov?: number
@@ -52,21 +56,19 @@ export const PerspectiveCamera = (props: PerspectiveCameraProps) => {
     _local
   ) as Required<PerspectiveCameraProps>
 
-  let camera!: Token
-
-  const [_, setSceneContext] = useSceneContext()
+  let cameraRef!: CameraRef
 
   createEffect(() => {
     const m = Mat4.create()
     Mat4.perspectiveZO(m, local.fov, local.aspect, local.near, local.far)
-    setSceneContext('camera', camera.id, 'projectionMatrix', m)
+    cameraRef.camera[1]('projectionMatrix', m)
   })
 
   return (
     <Camera
       {...others}
       ref={v => {
-        camera = v
+        cameraRef = v
         local.ref?.(v)
       }}
     />
@@ -96,17 +98,19 @@ export const OrthographicCamera = (props: OrthographicCameraProps) => {
     _local
   ) as Required<OrthographicCameraProps>
 
-  let camera!: CameraToken
+  let cameraRef!: CameraRef
 
   createEffect(() => {
-    Mat4.orthoZO(camera.projectionMatrix, local.left, local.right, local.bottom, local.top, local.near, local.far)
+    const m = Mat4.create()
+    Mat4.orthoZO(m, local.left, local.right, local.bottom, local.top, local.near, local.far)
+    cameraRef.camera[1]('projectionMatrix', m)
   })
 
   return (
     <Camera
       {...others}
       ref={v => {
-        camera = v
+        cameraRef = v
         local.ref?.(v)
       }}
     />

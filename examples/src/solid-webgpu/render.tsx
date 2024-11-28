@@ -17,7 +17,8 @@ import {
   TextureToken,
   Token
 } from './tokenizer'
-import { createWithCache, TypedArray } from './utils'
+import { TypedArray } from './types'
+import { createWithCache } from './utils'
 
 export type RenderContext = {
   canvas: HTMLCanvasElement

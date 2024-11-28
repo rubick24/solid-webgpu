@@ -2,7 +2,8 @@ import { resolveTokens } from '@solid-primitives/jsx-tokenizer'
 import { batch, createEffect, createMemo, mergeProps, ParentProps, splitProps, untrack } from 'solid-js'
 import { createStore } from 'solid-js/store'
 import { SceneContext, SceneContextT } from './context'
-import { CameraToken, tokenizer } from './tokenizer'
+import { tokenizer } from './tokenizer'
+import { CameraContext } from './types'
 
 const _adapter = typeof navigator !== 'undefined' ? await navigator.gpu?.requestAdapter() : null
 const _device = await _adapter?.requestDevice()!
@@ -13,7 +14,7 @@ export type CanvasProps = ParentProps & {
   format?: GPUTextureFormat
   autoClear?: boolean
   samples?: number
-  camera?: CameraToken
+  camera?: CameraContext
   ref?: (v: HTMLCanvasElement) => void
 }
 export const Canvas = (_props: CanvasProps) => {
@@ -34,7 +35,8 @@ export const Canvas = (_props: CanvasProps) => {
     device: _device,
 
     parent: {},
-    mesh: {}
+    mesh: {},
+    object3d: {}
   })
 
   createEffect(() => setSceneContext('width', props.width))
@@ -43,6 +45,10 @@ export const Canvas = (_props: CanvasProps) => {
   createEffect(() => setSceneContext('autoClear', props.autoClear))
   createEffect(() => setSceneContext('samples', props.samples))
   createEffect(() => setSceneContext('camera', props.camera))
+
+  createEffect(() => {
+    console.log('111', sceneContext.object3d)
+  })
 
   /**
    * resize swapchain
