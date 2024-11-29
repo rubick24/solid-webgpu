@@ -1,7 +1,7 @@
 import { Mat4, Quat, QuatLike, Vec3, Vec3Like } from 'math'
 import { createEffect, createUniqueId, JSX, ParentProps, splitProps } from 'solid-js'
 import { createStore } from 'solid-js/store'
-import { NodeContextProvider, Object3DContextProvider } from './context'
+import { NodeContextProvider, Object3DContextProvider, useObject3DContext } from './context'
 import { NodeContext, Object3DContext, StoreContext } from './types'
 
 export type CommonNodeRef<T = {}> = T & { node: StoreContext<NodeContext> }
@@ -67,6 +67,19 @@ export const createObject3DContext = <T,>(type: string[], props: Object3DProps<T
 
   createEffect(() => {
     setStore('scale', Vec3.clone(o3dProps.scale ?? [1, 1, 1]))
+  })
+
+  // update matrix
+  const p = useObject3DContext()
+  createEffect(() => {
+    const { quaternion, position, scale } = store
+    const m = Mat4.create()
+    Mat4.fromRotationTranslationScale(m, quaternion, position, scale)
+    if (p && p[0]) {
+      const pm = p[0].matrix
+      Mat4.mul(m, pm, m)
+    }
+    setStore('matrix', m)
   })
 
   return {

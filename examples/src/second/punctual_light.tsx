@@ -1,7 +1,7 @@
 import { Vec3, Vec3Like } from 'math'
 import { createEffect } from 'solid-js'
 import { createStore } from 'solid-js/store'
-import { PunctualLightContextProvider } from './context'
+import { PunctualLightContextProvider, useSceneContext } from './context'
 import { createObject3DContext, Object3DProps, Object3DRef } from './object3d'
 import { PunctualLightContext, StoreContext } from './types'
 // import { PunctualLightToken, Token, tokenizer } from './tokenizer'
@@ -17,7 +17,7 @@ export type PunctualLightProps = Object3DProps<PunctualLightRefExtra> & {
 } & ({ type?: 'directional' | 'point' } | { type: 'spot'; innerConeAngle?: number; outerConeAngle?: number })
 
 export const PunctualLight = (props: PunctualLightProps) => {
-  const { ref, Provider } = createObject3DContext(['PunctualLight'], props)
+  const { ref: _ref, Provider } = createObject3DContext(['PunctualLight'], props)
 
   const [store, setStore] = createStore<PunctualLightContext>({
     color: Vec3.create(),
@@ -27,7 +27,8 @@ export const PunctualLight = (props: PunctualLightProps) => {
     innerConeAngle: 0,
     outerConeAngle: Math.PI / 4
   })
-  props.ref?.({ ...ref, punctualLight: [store, setStore] })
+  const ref = { ..._ref, punctualLight: [store, setStore] satisfies StoreContext<PunctualLightContext> }
+  props.ref?.(ref)
 
   createEffect(() => setStore('color', Vec3.clone(props.color ?? [0, 0, 0])))
   createEffect(() => setStore('intensity', props.intensity ?? 1))
@@ -45,6 +46,9 @@ export const PunctualLight = (props: PunctualLightProps) => {
       'outerConeAngle' in props && props.outerConeAngle !== undefined ? props.outerConeAngle : Math.PI / 4
     )
   )
+
+  const [_, setScene] = useSceneContext()
+  setScene('lightList', v => v.concat(ref))
 
   return (
     <Provider>

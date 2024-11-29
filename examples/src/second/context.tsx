@@ -1,5 +1,8 @@
 import { createContext, useContext } from 'solid-js'
 import { SetStoreFunction } from 'solid-js/store'
+import { CameraRef } from './camera'
+import { MeshRef } from './mesh'
+import { PunctualLightRef } from './punctual_light'
 import {
   CameraContext,
   GeometryContext,
@@ -11,7 +14,7 @@ import {
 } from './types'
 
 export type SceneContext = {
-  currentCamera?: CameraContext
+  currentCamera?: CameraRef
 
   width: number
   height: number
@@ -23,14 +26,14 @@ export type SceneContext = {
   canvas?: HTMLCanvasElement
   context?: GPUCanvasContext
 
-  _msaaTexture?: GPUTexture
-  _msaaTextureView?: GPUTextureView
-  _depthTexture?: GPUTexture
-  _depthTextureView?: GPUTextureView
-  _commandEncoder?: GPUCommandEncoder
-  _passEncoder?: GPURenderPassEncoder
+  msaaTexture?: GPUTexture
+  msaaTextureView?: GPUTextureView
+  depthTexture?: GPUTexture
+  depthTextureView?: GPUTextureView
 
-  lightList?: PunctualLightContext[]
+  renderMap: Record<string, MeshRef>
+  renderOrder: string[]
+  lightList: PunctualLightRef[]
 }
 
 // mesh: Record<string, MeshContext>

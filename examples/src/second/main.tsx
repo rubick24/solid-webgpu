@@ -24,7 +24,7 @@ const App = () => {
   // createOrbitControl(canvas, camera)
   return (
     <>
-      <Canvas>
+      <Canvas camera={camera()}>
         <PerspectiveCamera label="main_camera" ref={setCamera} position={[0, 0, 5]} aspect={16 / 9} />
         <PunctualLight
           type="spot"
@@ -50,7 +50,7 @@ const App = () => {
                       ],
                       arrayStride: 12
                     }}
-                    buffer={new Float32Array([1, 1, 0, -1, 1, 0, -1, -1, 0, 1, -1, 0])}
+                    value={new Float32Array([1, 1, 0, -1, 1, 0, -1, -1, 0, 1, -1, 0])}
                   />
                   <VertexBuffer
                     layout={{
@@ -63,7 +63,7 @@ const App = () => {
                       ],
                       arrayStride: 12
                     }}
-                    buffer={new Float32Array([0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1])}
+                    value={new Float32Array([0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1])}
                   />
                   <VertexBuffer
                     layout={{
@@ -76,7 +76,7 @@ const App = () => {
                       ],
                       arrayStride: 16
                     }}
-                    buffer={new Float32Array(4 * 4).fill(0)}
+                    value={new Float32Array(4 * 4).fill(0)}
                   />
                   <VertexBuffer
                     layout={{
@@ -89,11 +89,11 @@ const App = () => {
                       ],
                       arrayStride: 8
                     }}
-                    buffer={new Float32Array([1, 1, 0, 1, 0, 0, 1, 0])}
+                    value={new Float32Array([1, 1, 0, 1, 0, 0, 1, 0])}
                   />
                 </>
               }
-              indexBuffer={<IndexBuffer buffer={new Uint32Array([0, 1, 2, 0, 2, 3])} />}
+              indexBuffer={<IndexBuffer value={new Uint32Array([0, 1, 2, 0, 2, 3])} />}
             />
           }
           material={<PBRMaterial albedoTexture={t} />}

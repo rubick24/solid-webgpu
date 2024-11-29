@@ -1,8 +1,8 @@
 import { Mat4, Quat, Vec3 } from 'math'
 import { Accessor } from 'solid-js'
 import { SetStoreFunction } from 'solid-js/store'
-import { GeometryRef } from './geometry'
-import { SamplerRef, TextureRef, UniformBufferRef } from './material'
+import { GeometryRef, IndexBufferRef, VertexBufferRef } from './geometry'
+import { MaterialRef, SamplerRef, TextureRef, UniformBufferRef } from './material'
 
 export type Optional<T, K extends keyof T> = Partial<Pick<T, K>> & Omit<T, K>
 
@@ -83,17 +83,14 @@ export type PunctualLightContext = {
 
 export type MeshContext = {
   geometry?: GeometryRef
-  material?: MaterialContext
+  material?: MaterialRef
 
-  // uniforms?: UniformToken[]
-  // bindGroupLayout?: GPUBindGroupLayout
-  // bindGroupEntries?: GPUBindGroupEntry[]
-  // pipeline?: GPURenderPipeline
+  pipeline?: GPURenderPipeline
 }
 
 export type GeometryContext = {
-  vertexBuffers: VertexBufferContext[]
-  indexBuffer?: IndexBufferContext
+  vertexBuffers: VertexBufferRef[]
+  indexBuffer?: IndexBufferRef
 
   topology: GPUPrimitiveTopology
   instanceCount: number
@@ -106,11 +103,13 @@ export type VertexBufferContext = {
     type: string
   }
   layout: GPUVertexBufferLayout
-  buffer: TypedArray
+  value: TypedArray
+  buffer?: GPUBuffer
 }
 
 export type IndexBufferContext = {
-  buffer: TypedArray
+  value: TypedArray
+  buffer?: GPUBuffer
   // arrayStride: number
 }
 
@@ -124,7 +123,9 @@ export type MaterialContext = {
   depthWrite: boolean
   blending?: GPUBlendState
 
+  bindGroupLayout?: GPUBindGroupLayout
   bindGroupEntries?: GPUBindGroupEntry[]
+  bindGroup?: GPUBindGroup
 }
 
 export type SamplerContext = {

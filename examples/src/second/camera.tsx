@@ -30,6 +30,21 @@ export const Camera = (props: CameraProps) => {
   //     Mat4.getRotation(token.quaternion, token._lookAtMatrix)
   //   }
 
+  createEffect(() => {
+    const m = Mat4.create()
+    m.copy(ref.object3d[0].matrix).invert()
+    setStore('viewMatrix', m)
+  })
+
+  createEffect(() => {
+    const m = Mat4.create()
+    const p = store.projectionMatrix
+    const v = store.viewMatrix
+    m.copy(p).multiply(v)
+
+    setStore('projectionViewMatrix', m)
+  })
+
   return (
     <Provider>
       <CameraContextProvider value={[store, setStore]}>{props.children}</CameraContextProvider>
