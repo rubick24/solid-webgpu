@@ -1,40 +1,56 @@
-import { DEG2RAD, Mat4 } from 'math'
+import { DEG2RAD, Mat4, Quat, Vec3 } from 'math'
 import { createEffect, mergeProps, splitProps } from 'solid-js'
-import { createStore } from 'solid-js/store'
-import { CameraContextProvider } from './context'
-import { createObject3DContext, Object3DProps, Object3DRef } from './object3d'
+import { createStore, produce } from 'solid-js/store'
+import { CameraContextProvider, useSceneContext } from './context'
+import { createObject3DContext, NodeExtra, Object3DExtra, Object3DProps, Object3DRef } from './object3d'
 import { CameraContext, StoreContext } from './types'
 
-type CameraRefExtra = {
-  camera: StoreContext<CameraContext>
-}
+export type CameraExtra = Object3DExtra & { camera: CameraContext }
+type CameraRefExtra = { camera: StoreContext<CameraContext> }
+
 export type CameraRef = Object3DRef<CameraRefExtra>
 export type CameraProps = Object3DProps<CameraRefExtra>
+
+const tempM = Mat4.create()
+
+export const lookAt = (position: Vec3, up: Vec3, target: Vec3) => {
+  const quat = Quat.create()
+  Mat4.targetTo(tempM, position, target, up)
+  Mat4.getRotation(quat, tempM)
+
+  return quat
+}
 
 export const Camera = (props: CameraProps) => {
   const { ref, Provider } = createObject3DContext(['Camera'], props)
 
-  const context: CameraContext = {
-    projectionMatrix: new Mat4(),
-    viewMatrix: new Mat4(),
-    projectionViewMatrix: new Mat4(),
-    _lookAtMatrix: new Mat4()
-  }
+  const [scene, setScene] = useSceneContext()
 
-  const [store, setStore] = createStore(context)
+  const id = ref.node[0].id
+  setScene(
+    'nodes',
+    id,
+    produce(v => {
+      v.camera = {
+        projectionMatrix: new Mat4(),
+        viewMatrix: new Mat4(),
+        projectionViewMatrix: new Mat4()
+      } satisfies CameraContext
+    })
+  )
 
-  props.ref?.({ ...ref, camera: [store, setStore] satisfies StoreContext<CameraContext> })
-
-  //   lookAt: (target: Vec3) => {
-  //     Mat4.targetTo(token._lookAtMatrix, token.position, target, token.up)
-  //     Mat4.getRotation(token.quaternion, token._lookAtMatrix)
-  //   }
+  const [store, setStore] = createStore((scene.nodes[id] as NodeExtra & { camera: CameraContext }).camera)
 
   createEffect(() => {
+    const e = scene.nodes[id] as CameraExtra
+    const mat = e.object3d.matrix
     const m = Mat4.create()
-    m.copy(ref.object3d[0].matrix).invert()
+    m.copy(mat).invert()
     setStore('viewMatrix', m)
   })
+  const cRef = { ...ref, camera: [store, setStore] satisfies StoreContext<CameraContext> }
+
+  props.ref?.(cRef)
 
   createEffect(() => {
     const m = Mat4.create()

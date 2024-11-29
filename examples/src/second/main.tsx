@@ -15,16 +15,16 @@ const t = await imageBitmapFromImageUrl('/a.png')
 const App = () => {
   const [p, setP] = createSignal(0)
   const [camera, setCamera] = createSignal<CameraRef>()
-  // const [canvas, setCanvas] = createSignal<HTMLCanvasElement>()
+  const [canvas, setCanvas] = createSignal<HTMLCanvasElement>()
 
+  // createOrbitControl(canvas, camera)
   createEffect(() => {
     console.log('effect', camera())
   })
 
-  // createOrbitControl(canvas, camera)
   return (
     <>
-      <Canvas camera={camera()}>
+      <Canvas camera={camera()} ref={setCanvas}>
         <PerspectiveCamera label="main_camera" ref={setCamera} position={[0, 0, 5]} aspect={16 / 9} />
         <PunctualLight
           type="spot"

@@ -1,8 +1,6 @@
 import { Mat4, Quat, Vec3 } from 'math'
 import { Accessor } from 'solid-js'
 import { SetStoreFunction } from 'solid-js/store'
-import { GeometryRef, IndexBufferRef, VertexBufferRef } from './geometry'
-import { MaterialRef, SamplerRef, TextureRef, UniformBufferRef } from './material'
 
 export type Optional<T, K extends keyof T> = Partial<Pick<T, K>> & Omit<T, K>
 
@@ -67,8 +65,6 @@ export type CameraContext = {
   projectionMatrix: Mat4
   viewMatrix: Mat4
   projectionViewMatrix: Mat4
-  _lookAtMatrix: Mat4
-
   // lookAt: (target: Vec3) => void
 }
 
@@ -82,15 +78,15 @@ export type PunctualLightContext = {
 }
 
 export type MeshContext = {
-  geometry?: GeometryRef
-  material?: MaterialRef
+  geometry?: string
+  material?: string
 
   pipeline?: GPURenderPipeline
 }
 
 export type GeometryContext = {
-  vertexBuffers: VertexBufferRef[]
-  indexBuffer?: IndexBufferRef
+  vertexBuffers: string[]
+  indexBuffer?: string
 
   topology: GPUPrimitiveTopology
   instanceCount: number
@@ -113,9 +109,9 @@ export type IndexBufferContext = {
   // arrayStride: number
 }
 
-export type UniformRef = TextureRef | SamplerRef | UniformBufferRef
+// export type UniformRef = TextureRef | SamplerRef | UniformBufferRef
 export type MaterialContext = {
-  uniforms: UniformRef[]
+  uniforms: string[]
   shaderCode: string
   cullMode: GPUCullMode
   transparent: boolean

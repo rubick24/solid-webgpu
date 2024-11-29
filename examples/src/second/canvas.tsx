@@ -2,8 +2,11 @@ import createRAF from '@solid-primitives/raf'
 import { Vec3 } from 'math'
 import { batch, createEffect, mergeProps, onCleanup, ParentProps, splitProps } from 'solid-js'
 import { createStore } from 'solid-js/store'
-import { CameraRef } from './camera'
+import { CameraExtra, CameraRef } from './camera'
 import { SceneContext, SceneContextProvider } from './context'
+import { GeometryExtra, IndexBufferExtra, VertexBufferExtra } from './geometry'
+import { MaterialExtra } from './material'
+import { MeshExtra } from './mesh'
 
 const _adapter = typeof navigator !== 'undefined' ? await navigator.gpu?.requestAdapter() : null
 const _device = await _adapter?.requestDevice()!
@@ -32,10 +35,11 @@ export const Canvas = (props: CanvasProps) => {
   const [cProps, _props] = splitProps(props, ['children', 'ref'])
   const propsWithDefault = mergeProps(defaultProps, _props)
 
-  const [sceneContext, setSceneContext] = createStore<SceneContext>({
+  const [scene, setScene] = createStore<SceneContext>({
     ...propsWithDefault,
     device: _device,
-    renderMap: {},
+    nodes: {},
+    renderList: [],
     renderOrder: [],
     lightList: []
   })
@@ -43,23 +47,23 @@ export const Canvas = (props: CanvasProps) => {
   cProps.ref?.(canvas)
 
   batch(() => {
-    setSceneContext('canvas', canvas)
-    setSceneContext('context', canvas.getContext('webgpu')!)
+    setScene('canvas', canvas)
+    setScene('context', canvas.getContext('webgpu')!)
   })
 
-  createEffect(() => setSceneContext('width', propsWithDefault.width))
-  createEffect(() => setSceneContext('height', propsWithDefault.height))
-  createEffect(() => setSceneContext('format', propsWithDefault.format))
-  createEffect(() => setSceneContext('autoClear', propsWithDefault.autoClear))
-  createEffect(() => setSceneContext('samples', propsWithDefault.samples))
+  createEffect(() => setScene('width', propsWithDefault.width))
+  createEffect(() => setScene('height', propsWithDefault.height))
+  createEffect(() => setScene('format', propsWithDefault.format))
+  createEffect(() => setScene('autoClear', propsWithDefault.autoClear))
+  createEffect(() => setScene('samples', propsWithDefault.samples))
 
-  createEffect(() => setSceneContext('currentCamera', propsWithDefault.camera))
+  createEffect(() => setScene('currentCamera', propsWithDefault.camera?.node[0].id))
 
   /**
    * resize swapchain
    */
   createEffect(() => {
-    const { canvas, context, device, format } = sceneContext
+    const { canvas, context, device, format } = scene
     if (!canvas || !context) {
       return
     }
@@ -86,10 +90,10 @@ export const Canvas = (props: CanvasProps) => {
     })
 
     batch(() => {
-      setSceneContext('msaaTexture', msaaTexture)
-      setSceneContext('msaaTextureView', msaaTexture.createView())
-      setSceneContext('depthTexture', depthTexture)
-      setSceneContext('depthTextureView', depthTexture.createView())
+      setScene('msaaTexture', msaaTexture)
+      setScene('msaaTextureView', msaaTexture.createView())
+      setScene('depthTexture', depthTexture)
+      setScene('depthTextureView', depthTexture.createView())
     })
 
     onCleanup(() => {
@@ -99,18 +103,20 @@ export const Canvas = (props: CanvasProps) => {
   })
 
   createEffect(() => {
-    if (!sceneContext.currentCamera) {
+    if (!scene.currentCamera) {
       return
     }
-    const camera = sceneContext.currentCamera.camera[0]
+
+    const camera = (scene.nodes[scene.currentCamera] as CameraExtra).camera
 
     camera.projectionViewMatrix.copy(camera.projectionMatrix).multiply(camera.viewMatrix)
 
-    const renderOrder = Object.values(sceneContext.renderMap)
-      .map(v => {
+    const renderOrder = scene.renderList
+      .map(id => {
+        const v = scene.nodes[id] as MeshExtra
         return {
-          m: v.object3d[0].matrix,
-          id: v.node[0].id
+          m: v.object3d.matrix,
+          id: v.node.id
         }
       })
       .sort((a, b) => {
@@ -129,11 +135,11 @@ export const Canvas = (props: CanvasProps) => {
       })
       .map(v => v.id)
 
-    setSceneContext('renderOrder', renderOrder)
+    setScene('renderOrder', renderOrder)
   })
 
   const renderFn = () => {
-    const { msaaTextureView, depthTextureView, context, device, renderMap, renderOrder } = sceneContext
+    const { msaaTextureView, depthTextureView, context, device, renderOrder } = scene
 
     if (!context || !msaaTextureView || !depthTextureView) {
       return
@@ -167,47 +173,38 @@ export const Canvas = (props: CanvasProps) => {
     passEncoder.setViewport(0, 0, canvas.width, canvas.height, 0, 1)
 
     for (const id of renderOrder) {
-      const meshRef = renderMap[id]
-      const mesh = meshRef.mesh[0]
+      const mesh = (scene.nodes[id] as MeshExtra).mesh
       const pipeline = mesh.pipeline
       if (!pipeline) {
         return
       }
       passEncoder.setPipeline(pipeline)
 
-      const geo = mesh.geometry?.geometry[0]
-      const ib = geo?.indexBuffer?.indexBuffer[0]
-      if (!geo) {
+      if (!mesh.geometry) {
         return
       }
+
+      const geo = (scene.nodes[mesh.geometry] as GeometryExtra).geometry
+      const ib = geo.indexBuffer ? (scene.nodes[geo.indexBuffer] as IndexBufferExtra).indexBuffer : null
       if (ib && ib.buffer) {
         passEncoder.setIndexBuffer(ib.buffer, `uint${ib.value.BYTES_PER_ELEMENT * 8}` as GPUIndexFormat)
       }
       geo.vertexBuffers.forEach((v, i) => {
-        const buffer = v.vertexBuffer[0].buffer
+        const buffer = (scene.nodes[v] as VertexBufferExtra).vertexBuffer.buffer
         if (!buffer) {
           return
         }
         passEncoder.setVertexBuffer(i, buffer)
       })
 
-      // const bindGroupLayout = mesh.material?.material[0].bindGroupLayout
-      // const bindGroupEntries = mesh.material?.material[0].bindGroupEntries
-      // if (bindGroupLayout && bindGroupEntries) {
-      //   const bindGroup = device.createBindGroup({
-      //     layout: bindGroupLayout,
-      //     entries: bindGroupEntries
-      //   })
-      //   passEncoder.setBindGroup(0, bindGroup)
-      // }
-
-      const bindGroup = mesh.material?.material[0].bindGroup
+      const m = mesh.material ? (scene.nodes[mesh.material] as MaterialExtra).material : null
+      const bindGroup = m?.bindGroup
       if (bindGroup) {
         passEncoder.setBindGroup(0, bindGroup)
       }
 
       const indexBuffer = ib
-      const positionAttr = geo.vertexBuffers[0].vertexBuffer[0]
+      const positionAttr = (scene.nodes[geo.vertexBuffers[0]] as VertexBufferExtra).vertexBuffer
 
       // Alternate drawing for indexed and non-indexed children
       if (indexBuffer) {
@@ -229,7 +226,7 @@ export const Canvas = (props: CanvasProps) => {
   start()
 
   return (
-    <SceneContextProvider value={[sceneContext, setSceneContext]}>
+    <SceneContextProvider value={[scene, setScene]}>
       {canvas}
       {cProps.children}
     </SceneContextProvider>

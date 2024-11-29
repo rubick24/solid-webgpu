@@ -1,13 +1,14 @@
 import { createEffect, JSX } from 'solid-js'
-import { createStore } from 'solid-js/store'
+import { createStore, produce } from 'solid-js/store'
 import { MeshContextProvider, useSceneContext } from './context'
-import { createObject3DContext, Object3DProps, Object3DRef } from './object3d'
+import { GeometryExtra, VertexBufferExtra } from './geometry'
+import { MaterialExtra } from './material'
+import { createObject3DContext, Object3DExtra, Object3DProps, Object3DRef } from './object3d'
 import { MeshContext, StoreContext } from './types'
 // import { PunctualLightToken, Token, tokenizer } from './tokenizer'
 
-type MeshRefExtra = {
-  mesh: StoreContext<MeshContext>
-}
+export type MeshExtra = Object3DExtra & { mesh: MeshContext }
+type MeshRefExtra = { mesh: StoreContext<MeshContext> }
 export type MeshRef = Object3DRef<MeshRefExtra>
 export type MeshProps = Object3DProps<MeshRefExtra> & {
   geometry?: JSX.Element
@@ -15,29 +16,43 @@ export type MeshProps = Object3DProps<MeshRefExtra> & {
 }
 
 export const Mesh = (props: MeshProps) => {
-  const { ref: _ref, Provider } = createObject3DContext(['Mesh'], props)
-
-  const [store, setStore] = createStore<MeshContext>({})
-  const ref = { ..._ref, mesh: [store, setStore] satisfies StoreContext<MeshContext> }
-  props.ref?.(ref)
+  const { ref, Provider } = createObject3DContext(['Mesh'], props)
 
   const [scene, setScene] = useSceneContext()
 
+  const id = ref.node[0].id
+  setScene(
+    'nodes',
+    id,
+    produce(v => {
+      v.mesh = {}
+    })
+  )
+
+  const [store, setStore] = createStore<MeshContext>((scene.nodes[id] as MeshExtra).mesh)
+  const cRef = { ...ref, mesh: [store, setStore] satisfies StoreContext<MeshContext> }
+  props.ref?.(cRef)
+
   createEffect(() => {
-    const material = store.material?.material[0]
-    const geometry = store.geometry?.geometry[0]
-    const { device, format, samples } = scene
-    if (!material || !geometry) {
+    if (!store.material || !store.geometry) {
       console.warn('no material or geometry found')
+
       return
     }
+    const material = (scene.nodes[store.material] as MaterialExtra).material
+    const geometry = (scene.nodes[store.geometry] as GeometryExtra).geometry
+    const { device, format, samples } = scene
+
     let code = material.shaderCode
 
     /**
      * set builtin vertexInput if defined in vertexBuffer
      */
-    const vertexInputStr = geometry!.vertexBuffers
-      .map(v => v.vertexBuffer[0])
+    const vertexInputStr = geometry.vertexBuffers
+      .map(v => {
+        const x = scene.nodes[v] as VertexBufferExtra
+        return x.vertexBuffer
+      })
       .filter(v => v.attribute?.name && builtinAttributeNames.includes(v.attribute?.name))
       .map((v, i) => `  @location(${i}) ${v.attribute!.name}: ${v.attribute!.type}`)
       .join(',\n')
@@ -61,7 +76,7 @@ export const Mesh = (props: MeshProps) => {
       vertex: {
         module: shaderModule,
         entryPoint: 'vs_main',
-        buffers: geometry.vertexBuffers.map(v => v.vertexBuffer[0].layout)
+        buffers: geometry.vertexBuffers.map(v => (scene.nodes[v] as VertexBufferExtra).vertexBuffer.layout)
       },
       fragment: {
         module: shaderModule,
@@ -88,7 +103,7 @@ export const Mesh = (props: MeshProps) => {
     setStore('pipeline', pipeline)
   })
 
-  setScene('renderMap', ref.node[0].id, ref)
+  setScene('renderList', v => v.concat(id))
 
   return (
     <Provider>

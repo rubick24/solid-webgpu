@@ -1,10 +1,13 @@
 import { batch, createEffect, JSX, onCleanup, untrack } from 'solid-js'
-import { createStore } from 'solid-js/store'
+import { createStore, produce } from 'solid-js/store'
 import { GeometryContextProvider, useGeometryContext, useMeshContext, useSceneContext } from './context'
-import { CommonNodeProps, CommonNodeRef, createNodeContext } from './object3d'
+import { CommonNodeProps, CommonNodeRef, createNodeContext, NodeExtra } from './object3d'
 import { GeometryContext, IndexBufferContext, StoreContext, TypedArray, VertexBufferContext } from './types'
 import { createBuffer } from './utils'
 
+export type GeometryExtra = NodeExtra & {
+  geometry: GeometryContext
+}
 type GeometryRefExtra = {
   geometry: StoreContext<GeometryContext>
 }
@@ -15,20 +18,31 @@ export type GeometryProps = CommonNodeProps<GeometryRefExtra> & {
 }
 
 export const Geometry = (props: GeometryProps) => {
-  const { ref: _ref, Provider } = createNodeContext(['Geometry'], props)
-  const [store, setStore] = createStore<GeometryContext>({
-    vertexBuffers: [],
-    topology: 'triangle-list',
-    instanceCount: 1,
-    drawRange: { start: 0, count: Infinity }
-  })
+  const { ref, Provider } = createNodeContext(['Geometry'], props)
+  const [scene, setScene] = useSceneContext()
 
-  const ref = { ..._ref, geometry: [store, setStore] satisfies StoreContext<GeometryContext> }
-  props.ref?.(ref)
+  const id = ref.node[0].id
+  setScene(
+    'nodes',
+    id,
+    produce(v => {
+      v.geometry = {
+        vertexBuffers: [],
+        topology: 'triangle-list',
+        instanceCount: 1,
+        drawRange: { start: 0, count: Infinity }
+      } satisfies GeometryContext
+    })
+  )
+
+  const [store, setStore] = createStore<GeometryContext>((scene.nodes[id] as GeometryExtra).geometry)
+
+  const cRef = { ...ref, geometry: [store, setStore] satisfies StoreContext<GeometryContext> }
+  props.ref?.(cRef)
 
   const [_, setMesh] = useMeshContext()
 
-  setMesh('geometry', ref)
+  setMesh('geometry', id)
 
   return (
     <Provider>
@@ -40,6 +54,7 @@ export const Geometry = (props: GeometryProps) => {
   )
 }
 
+export type VertexBufferExtra = NodeExtra & { vertexBuffer: VertexBufferContext }
 type VertexBufferRefExtra = {
   vertexBuffer: StoreContext<VertexBufferContext>
 }
@@ -53,16 +68,26 @@ export type VertexBufferProps = CommonNodeProps<VertexBufferRefExtra> & {
   value: TypedArray
 }
 export const VertexBuffer = (props: VertexBufferProps) => {
-  const { ref: _ref } = createNodeContext(['VertexBuffer'], props)
-  const [store, setStore] = createStore<VertexBufferContext>({
-    layout: untrack(() => props.layout),
-    value: untrack(() => props.value)
-  })
+  const { ref } = createNodeContext(['VertexBuffer'], props)
+
+  const [scene, setScene] = useSceneContext()
+  const id = ref.node[0].id
+  setScene(
+    'nodes',
+    id,
+    produce(v => {
+      v.vertexBuffer = {
+        layout: untrack(() => props.layout),
+        value: untrack(() => props.value)
+      } satisfies VertexBufferContext
+    })
+  )
+
+  const [store, setStore] = createStore<VertexBufferContext>((scene.nodes[id] as VertexBufferExtra).vertexBuffer)
 
   createEffect(() => setStore('attribute', props.attribute))
   createEffect(() => setStore('layout', props.layout))
 
-  const [scene] = useSceneContext()
   createEffect(() => {
     const { device } = scene
     const data = props.value
@@ -75,16 +100,18 @@ export const VertexBuffer = (props: VertexBufferProps) => {
     onCleanup(() => buffer.destroy())
   })
 
-  const ref = { ..._ref, vertexBuffer: [store, setStore] satisfies StoreContext<VertexBufferContext> }
-  props.ref?.(ref)
+  const cRef = { ...ref, vertexBuffer: [store, setStore] satisfies StoreContext<VertexBufferContext> }
+  props.ref?.(cRef)
 
   const [_, setG] = useGeometryContext()
-  setG('vertexBuffers', v => v.concat(ref))
-  // setM('uniforms', v => v.concat(ref))
+  setG('vertexBuffers', v => v.concat(id))
 
   return null
 }
 
+export type IndexBufferExtra = NodeExtra & {
+  indexBuffer: IndexBufferContext
+}
 type IndexBufferRefExtra = {
   indexBuffer: StoreContext<IndexBufferContext>
 }
@@ -93,12 +120,18 @@ export type IndexBufferProps = CommonNodeProps<IndexBufferRefExtra> & {
   value: TypedArray
 }
 export const IndexBuffer = (props: IndexBufferProps) => {
-  const { ref: _ref } = createNodeContext(['IndexBuffer'], props)
-  const [store, setStore] = createStore<IndexBufferContext>({
-    value: untrack(() => props.value)
-  })
+  const { ref } = createNodeContext(['IndexBuffer'], props)
+  const [scene, setScene] = useSceneContext()
+  const id = ref.node[0].id
+  setScene(
+    'nodes',
+    id,
+    produce(v => {
+      v.indexBuffer = { value: untrack(() => props.value) } satisfies IndexBufferContext
+    })
+  )
+  const [store, setStore] = createStore<IndexBufferContext>((scene.nodes[id] as IndexBufferExtra).indexBuffer)
 
-  const [scene] = useSceneContext()
   createEffect(() => {
     const { device } = scene
     const data = props.value
@@ -112,10 +145,10 @@ export const IndexBuffer = (props: IndexBufferProps) => {
     onCleanup(() => buffer.destroy())
   })
 
-  const ref = { ..._ref, indexBuffer: [store, setStore] satisfies StoreContext<IndexBufferContext> }
-  props.ref?.(ref)
+  const cRef = { ...ref, indexBuffer: [store, setStore] satisfies StoreContext<IndexBufferContext> }
+  props.ref?.(cRef)
   const [_, setG] = useGeometryContext()
-  setG('indexBuffer', ref)
+  setG('indexBuffer', id)
 
   return null
 }
