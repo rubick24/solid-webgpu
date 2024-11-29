@@ -67,7 +67,6 @@ export const VertexBuffer = (props: VertexBufferProps) => {
     const { device } = scene
     const data = props.value
     const buffer = createBuffer({ device, data, usage: GPUBufferUsage.VERTEX })
-    device.queue.writeBuffer(buffer, data.byteOffset, data)
     batch(() => {
       setStore('value', data)
       setStore('buffer', buffer)
@@ -104,7 +103,6 @@ export const IndexBuffer = (props: IndexBufferProps) => {
     const { device } = scene
     const data = props.value
     const buffer = createBuffer({ device, data, usage: GPUBufferUsage.INDEX })
-    device.queue.writeBuffer(buffer, data.byteOffset, data)
 
     batch(() => {
       setStore('value', data)

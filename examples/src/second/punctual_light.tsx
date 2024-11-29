@@ -37,7 +37,7 @@ export const PunctualLight = (props: PunctualLightProps) => {
   createEffect(() =>
     setStore(
       'innerConeAngle',
-      'innerConeAngle' in props && props.innerConeAngle !== undefined ? props.innerConeAngle : 1
+      'innerConeAngle' in props && props.innerConeAngle !== undefined ? props.innerConeAngle : 0
     )
   )
   createEffect(() =>

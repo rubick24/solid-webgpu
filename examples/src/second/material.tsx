@@ -348,7 +348,6 @@ export const UniformBuffer = (props: UniformBufferProps) => {
       usage: GPUBufferUsage.UNIFORM,
       label: `uniform buffer ${ref.node[0].id} ${ref.node[0].label}`
     })
-    device.queue.writeBuffer(buffer, 'byteOffset' in data ? data.byteOffset : 0, data)
 
     setStore('buffer', buffer)
 
