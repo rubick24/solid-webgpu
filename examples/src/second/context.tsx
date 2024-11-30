@@ -11,7 +11,7 @@ import {
 } from './types'
 
 export type SceneContext = {
-  nodes: Record<string, { node: NodeContext; [k: string]: unknown }>
+  nodes: Record<string, NodeContext & Record<string, unknown>>
 
   width: number
   height: number

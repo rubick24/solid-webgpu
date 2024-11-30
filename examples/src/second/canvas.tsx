@@ -2,11 +2,16 @@ import createRAF from '@solid-primitives/raf'
 import { Vec3 } from 'math'
 import { batch, createEffect, mergeProps, onCleanup, ParentProps, splitProps } from 'solid-js'
 import { createStore } from 'solid-js/store'
-import { CameraExtra, CameraRef } from './camera'
+import { CameraRef } from './camera'
 import { SceneContext, SceneContextProvider } from './context'
-import { GeometryExtra, IndexBufferExtra, VertexBufferExtra } from './geometry'
-import { MaterialExtra } from './material'
-import { MeshExtra } from './mesh'
+import {
+  CameraContext,
+  GeometryContext,
+  IndexBufferContext,
+  MaterialContext,
+  MeshContext,
+  VertexBufferContext
+} from './types'
 
 const _adapter = typeof navigator !== 'undefined' ? await navigator.gpu?.requestAdapter() : null
 const _device = await _adapter?.requestDevice()!
@@ -57,7 +62,7 @@ export const Canvas = (props: CanvasProps) => {
   createEffect(() => setScene('autoClear', propsWithDefault.autoClear))
   createEffect(() => setScene('samples', propsWithDefault.samples))
 
-  createEffect(() => setScene('currentCamera', propsWithDefault.camera?.node[0].id))
+  createEffect(() => setScene('currentCamera', propsWithDefault.camera?.[0].id))
 
   /**
    * resize swapchain
@@ -107,16 +112,15 @@ export const Canvas = (props: CanvasProps) => {
       return
     }
 
-    const camera = (scene.nodes[scene.currentCamera] as CameraExtra).camera
-
-    camera.projectionViewMatrix.copy(camera.projectionMatrix).multiply(camera.viewMatrix)
+    const camera = scene.nodes[scene.currentCamera] as CameraContext
+    const projectionViewMatrix = camera.projectionViewMatrix[0]()
 
     const renderOrder = scene.renderList
       .map(id => {
-        const v = scene.nodes[id] as MeshExtra
+        const v = scene.nodes[id] as MeshContext
         return {
-          m: v.object3d.matrix,
-          id: v.node.id
+          m: v.matrix[0](),
+          id: v.id
         }
       })
       .sort((a, b) => {
@@ -126,10 +130,10 @@ export const Canvas = (props: CanvasProps) => {
         const bm = b.m
 
         Vec3.set(tempVec3, am[12], am[13], am[14])
-        Vec3.transformMat4(tempVec3, tempVec3, camera.projectionViewMatrix)
+        Vec3.transformMat4(tempVec3, tempVec3, projectionViewMatrix)
         const tempZ = tempVec3.z
         Vec3.set(tempVec3, bm[12], bm[13], bm[14])
-        Vec3.transformMat4(tempVec3, tempVec3, camera.projectionViewMatrix)
+        Vec3.transformMat4(tempVec3, tempVec3, projectionViewMatrix)
         res = res || tempZ - tempVec3.z
         return res
       })
@@ -171,9 +175,8 @@ export const Canvas = (props: CanvasProps) => {
       }
     })
     passEncoder.setViewport(0, 0, canvas.width, canvas.height, 0, 1)
-
     for (const id of renderOrder) {
-      const mesh = (scene.nodes[id] as MeshExtra).mesh
+      const mesh = scene.nodes[id] as MeshContext
       const pipeline = mesh.pipeline
       if (!pipeline) {
         return
@@ -184,31 +187,31 @@ export const Canvas = (props: CanvasProps) => {
         return
       }
 
-      const geo = (scene.nodes[mesh.geometry] as GeometryExtra).geometry
-      const ib = geo.indexBuffer ? (scene.nodes[geo.indexBuffer] as IndexBufferExtra).indexBuffer : null
+      const geo = scene.nodes[mesh.geometry] as GeometryContext
+      const ib = geo.indexBuffer ? (scene.nodes[geo.indexBuffer] as IndexBufferContext) : null
       if (ib && ib.buffer) {
-        passEncoder.setIndexBuffer(ib.buffer, `uint${ib.value.BYTES_PER_ELEMENT * 8}` as GPUIndexFormat)
+        passEncoder.setIndexBuffer(ib.buffer, `uint${ib.value[0]().BYTES_PER_ELEMENT * 8}` as GPUIndexFormat)
       }
       geo.vertexBuffers.forEach((v, i) => {
-        const buffer = (scene.nodes[v] as VertexBufferExtra).vertexBuffer.buffer
+        const buffer = (scene.nodes[v] as VertexBufferContext).buffer
         if (!buffer) {
           return
         }
         passEncoder.setVertexBuffer(i, buffer)
       })
 
-      const m = mesh.material ? (scene.nodes[mesh.material] as MaterialExtra).material : null
+      const m = mesh.material ? (scene.nodes[mesh.material] as MaterialContext) : null
       const bindGroup = m?.bindGroup
       if (bindGroup) {
         passEncoder.setBindGroup(0, bindGroup)
       }
 
       const indexBuffer = ib
-      const positionAttr = (scene.nodes[geo.vertexBuffers[0]] as VertexBufferExtra).vertexBuffer
+      const positionAttr = scene.nodes[geo.vertexBuffers[0]] as VertexBufferContext
 
       // Alternate drawing for indexed and non-indexed children
       if (indexBuffer) {
-        const count = Math.min(geo.drawRange.count, ib.value.length)
+        const count = Math.min(geo.drawRange.count, ib.value[0]().length)
         passEncoder.drawIndexed(count, geo.instanceCount, geo.drawRange.start ?? 0)
       } else if (positionAttr) {
         const count = Math.min(geo.drawRange.count, positionAttr.value.length / positionAttr.layout.arrayStride)

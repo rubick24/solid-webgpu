@@ -1,64 +1,50 @@
 import { DEG2RAD, Mat4, Quat, Vec3 } from 'math'
-import { createEffect, mergeProps, splitProps } from 'solid-js'
-import { createStore, produce } from 'solid-js/store'
+import { createEffect, createSignal, mergeProps, splitProps } from 'solid-js'
+import { createStore } from 'solid-js/store'
 import { CameraContextProvider, useSceneContext } from './context'
-import { createObject3DContext, NodeExtra, Object3DExtra, Object3DProps, Object3DRef } from './object3d'
-import { CameraContext, StoreContext } from './types'
+import { createObject3DContext, Object3DProps, Object3DRef } from './object3d'
+import { CameraContext, CameraExtra } from './types'
 
-export type CameraExtra = Object3DExtra & { camera: CameraContext }
-type CameraRefExtra = { camera: StoreContext<CameraContext> }
-
-export type CameraRef = Object3DRef<CameraRefExtra>
-export type CameraProps = Object3DProps<CameraRefExtra>
+export type CameraRef = Object3DRef<CameraContext>
+export type CameraProps = Object3DProps<CameraContext>
 
 const tempM = Mat4.create()
 
-export const lookAt = (position: Vec3, up: Vec3, target: Vec3) => {
-  const quat = Quat.create()
+export const lookAt = (outQuat: Quat, position: Vec3, up: Vec3, target: Vec3) => {
   Mat4.targetTo(tempM, position, target, up)
-  Mat4.getRotation(quat, tempM)
-
-  return quat
+  Mat4.getRotation(outQuat, tempM)
+  return outQuat
 }
 
 export const Camera = (props: CameraProps) => {
-  const { ref, Provider } = createObject3DContext(['Camera'], props)
+  const { ref, Provider } = createObject3DContext<CameraContext>(['Camera'], props, {
+    projectionMatrix: createSignal(new Mat4(), { equals: false }),
+    viewMatrix: createSignal(new Mat4(), { equals: false }),
+    projectionViewMatrix: createSignal(new Mat4(), { equals: false })
+  } satisfies CameraExtra)
 
-  const [scene, setScene] = useSceneContext()
+  const [scene] = useSceneContext()
 
-  const id = ref.node[0].id
-  setScene(
-    'nodes',
-    id,
-    produce(v => {
-      v.camera = {
-        projectionMatrix: new Mat4(),
-        viewMatrix: new Mat4(),
-        projectionViewMatrix: new Mat4()
-      } satisfies CameraContext
+  const id = ref[0].id
+  const [store, setStore] = createStore(scene.nodes[id] as CameraContext)
+
+  createEffect(() => {
+    store.viewMatrix[1](m => {
+      const mat = store.matrix[0]()
+      m.copy(mat).invert()
+      return m
     })
-  )
-
-  const [store, setStore] = createStore((scene.nodes[id] as NodeExtra & { camera: CameraContext }).camera)
-
-  createEffect(() => {
-    const e = scene.nodes[id] as CameraExtra
-    const mat = e.object3d.matrix
-    const m = Mat4.create()
-    m.copy(mat).invert()
-    setStore('viewMatrix', m)
   })
-  const cRef = { ...ref, camera: [store, setStore] satisfies StoreContext<CameraContext> }
 
-  props.ref?.(cRef)
+  props.ref?.([store, setStore])
 
   createEffect(() => {
-    const m = Mat4.create()
-    const p = store.projectionMatrix
-    const v = store.viewMatrix
-    m.copy(p).multiply(v)
-
-    setStore('projectionViewMatrix', m)
+    store.projectionViewMatrix[1](m => {
+      const p = store.projectionMatrix[0]()
+      const v = store.viewMatrix[0]()
+      m.copy(p).multiply(v)
+      return m
+    })
   })
 
   return (
@@ -90,9 +76,10 @@ export const PerspectiveCamera = (props: PerspectiveCameraProps) => {
   let cameraRef!: CameraRef
 
   createEffect(() => {
-    const m = Mat4.create()
-    Mat4.perspectiveZO(m, local.fov, local.aspect, local.near, local.far)
-    cameraRef.camera[1]('projectionMatrix', m)
+    cameraRef[0].projectionMatrix[1](m => {
+      Mat4.perspectiveZO(m, local.fov, local.aspect, local.near, local.far)
+      return m
+    })
   })
 
   return (
@@ -132,9 +119,10 @@ export const OrthographicCamera = (props: OrthographicCameraProps) => {
   let cameraRef!: CameraRef
 
   createEffect(() => {
-    const m = Mat4.create()
-    Mat4.orthoZO(m, local.left, local.right, local.bottom, local.top, local.near, local.far)
-    cameraRef.camera[1]('projectionMatrix', m)
+    cameraRef[0].projectionMatrix[1](m => {
+      Mat4.orthoZO(m, local.left, local.right, local.bottom, local.top, local.near, local.far)
+      return m
+    })
   })
 
   return (

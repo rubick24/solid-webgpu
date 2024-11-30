@@ -1,7 +1,7 @@
 import { Vec3 } from 'math'
-import { createEffect, onCleanup } from 'solid-js'
+import { createEffect, onCleanup, untrack } from 'solid-js'
 
-import { lookAt } from './camera'
+import { CameraRef, lookAt } from './camera'
 import { MaybeAccessor } from './types'
 import { access, clamp } from './utils'
 
@@ -30,7 +30,7 @@ export type OrbitControlOptions = {
 
 export const createOrbitControl = (
   el: MaybeAccessor<HTMLCanvasElement | undefined>,
-  camera: MaybeAccessor<string | undefined>,
+  camera: MaybeAccessor<CameraRef | undefined>,
   options?: MaybeAccessor<Partial<OrbitControlOptions>>
 ) => {
   const center = Vec3.create()
@@ -132,7 +132,7 @@ export const createOrbitControl = (
     }
 
     _el.addEventListener('contextmenu', _onContextMenu)
-    _el.addEventListener('wheel', _onWheel, { passive: true })
+    _el.addEventListener('wheel', _onWheel)
     _el.addEventListener('pointerdown', _onPointerDown)
     _el.addEventListener('pointermove', _onPointerMove)
     _el.addEventListener('pointerup', _onPointerUp)
@@ -157,49 +157,59 @@ export const createOrbitControl = (
   })
 
   createEffect(() => {
-    const _camera = access(camera)
+    const _camera = access(camera)?.[0]
     if (!_camera) {
       return
     }
-    lookAt(_camera, center)
-    // _camera.lookAt(center)
 
-    const [o3d, updateO3d] = _camera.object3d
-    ops.zoom = (scale: number) => {
-      o3d.position.sub(center)
-      const radius = Vec3.length(o3d.position)
-      o3d.position.scale(clamp(opts.minRadius, opts.maxRadius, radius * scale) / radius)
-      o3d.position.add(center)
-
-      // trigger update
-      updateO3d('position', Vec3.clone(o3d.position))
-    }
-
-    ops.orbit = (deltaX: number, deltaY: number) => {
-      const offset = o3d.position.sub(center)
-      const radius = Vec3.length(offset)
-      const deltaPhi = deltaY * (opts.speed / _el!.clientHeight)
-      const deltaTheta = deltaX * (opts.speed / _el!.clientHeight)
-      const phi = clamp(opts.minPhi, opts.maxPhi, Math.acos(offset.y / radius) - deltaPhi) || Number.EPSILON
-      const theta = clamp(opts.minTheta, opts.maxTheta, Math.atan2(offset.z, offset.x) + deltaTheta) || Number.EPSILON
-      Vec3.set(o3d.position, Math.sin(phi) * Math.cos(theta), Math.cos(phi), Math.sin(phi) * Math.sin(theta))
-      o3d.position.scale(radius).add(center)
-
+    untrack(() => {
+      _camera.quaternion[1](v => {
+        lookAt(v, _camera.position[0](), _camera.up[0](), center)
+        return v
+      })
       // _camera.lookAt(center)
-      // console.log(od)
-      updateO3d('position', Vec3.clone(o3d.position))
-      lookAt(_camera, center)
-    }
 
-    ops.pan = (deltaX: number, deltaY: number) => {
-      o3d.position.sub(center)
-      Vec3.set(_v, -deltaX, deltaY, 0)
-      Vec3.transformQuat(_v, _v, o3d.quaternion)
-      _v.scale(opts.speed / _el!.clientHeight)
-      center.add(_v)
-      o3d.position.add(center)
+      const o3d = _camera
+      ops.zoom = (scale: number) => {
+        o3d.position[1](v => {
+          v.sub(center)
+          const radius = Vec3.length(v)
+          v.scale(clamp(opts.minRadius, opts.maxRadius, radius * scale) / radius)
+          v.add(center)
+          return v
+        })
+      }
 
-      updateO3d('position', Vec3.clone(o3d.position))
-    }
+      ops.orbit = (deltaX: number, deltaY: number) => {
+        const offset = Vec3.sub(_v, o3d.position[0](), center) as Vec3
+        const radius = Vec3.length(offset)
+        const deltaPhi = deltaY * (opts.speed / _el!.clientHeight)
+        const deltaTheta = deltaX * (opts.speed / _el!.clientHeight)
+        const phi = clamp(opts.minPhi, opts.maxPhi, Math.acos(offset.y / radius) - deltaPhi) || Number.EPSILON
+        const theta = clamp(opts.minTheta, opts.maxTheta, Math.atan2(offset.z, offset.x) + deltaTheta) || Number.EPSILON
+
+        o3d.position[1](v => {
+          Vec3.set(v, Math.sin(phi) * Math.cos(theta), Math.cos(phi), Math.sin(phi) * Math.sin(theta))
+          v.scale(radius).add(center)
+          return v
+        })
+        _camera.quaternion[1](v => {
+          lookAt(v, _camera.position[0](), _camera.up[0](), center)
+          return v
+        })
+      }
+
+      ops.pan = (deltaX: number, deltaY: number) => {
+        o3d.position[1](v => {
+          v.sub(center)
+          Vec3.set(_v, -deltaX, deltaY, 0)
+          Vec3.transformQuat(_v, _v, o3d.quaternion[0]())
+          _v.scale(opts.speed / _el!.clientHeight)
+          center.add(_v)
+          v.add(center)
+          return v
+        })
+      }
+    })
   })
 }

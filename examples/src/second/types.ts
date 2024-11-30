@@ -1,5 +1,5 @@
 import { Mat4, Quat, Vec3 } from 'math'
-import { Accessor } from 'solid-js'
+import { Accessor, Signal } from 'solid-js'
 import { SetStoreFunction } from 'solid-js/store'
 
 export type Optional<T, K extends keyof T> = Partial<Pick<T, K>> & Omit<T, K>
@@ -53,38 +53,42 @@ export type NodeContext = {
   children?: string[]
 }
 
-export type Object3DContext = {
-  matrix: Mat4
-  position: Vec3
-  quaternion: Quat
-  scale: Vec3
-  up: Vec3
+export type Object3DExtra = {
+  matrix: Signal<Mat4>
+  position: Signal<Vec3>
+  quaternion: Signal<Quat>
+  scale: Signal<Vec3>
+  up: Signal<Vec3>
 }
+export type Object3DContext = NodeContext & Object3DExtra
 
-export type CameraContext = {
-  projectionMatrix: Mat4
-  viewMatrix: Mat4
-  projectionViewMatrix: Mat4
+export type CameraExtra = {
+  projectionMatrix: Signal<Mat4>
+  viewMatrix: Signal<Mat4>
+  projectionViewMatrix: Signal<Mat4>
   // lookAt: (target: Vec3) => void
 }
+export type CameraContext = Object3DContext & CameraExtra
 
-export type PunctualLightContext = {
-  color: Vec3
+export type PunctualLightExtra = {
+  color: Signal<Vec3>
   intensity: number
   range?: number
   lightType: 'directional' | 'point' | 'spot'
   innerConeAngle: number
   outerConeAngle: number
 }
+export type PunctualLightContext = Object3DContext & PunctualLightExtra
 
-export type MeshContext = {
+export type MeshExtra = {
   geometry?: string
   material?: string
 
   pipeline?: GPURenderPipeline
 }
+export type MeshContext = Object3DContext & MeshExtra
 
-export type GeometryContext = {
+export type GeometryExtra = {
   vertexBuffers: string[]
   indexBuffer?: string
 
@@ -92,25 +96,27 @@ export type GeometryContext = {
   instanceCount: number
   drawRange: { start: number; count: number }
 }
+export type GeometryContext = NodeContext & GeometryExtra
 
-export type VertexBufferContext = {
+export type VertexBufferExtra = {
   attribute?: {
     name: string
     type: string
   }
   layout: GPUVertexBufferLayout
-  value: TypedArray
+  value: Signal<TypedArray>
   buffer?: GPUBuffer
 }
+export type VertexBufferContext = NodeContext & VertexBufferExtra
 
-export type IndexBufferContext = {
-  value: TypedArray
+export type IndexBufferExtra = {
+  value: Signal<TypedArray>
   buffer?: GPUBuffer
   // arrayStride: number
 }
+export type IndexBufferContext = NodeContext & IndexBufferExtra
 
-// export type UniformRef = TextureRef | SamplerRef | UniformBufferRef
-export type MaterialContext = {
+export type MaterialExtra = {
   uniforms: string[]
   shaderCode: string
   cullMode: GPUCullMode
@@ -123,20 +129,24 @@ export type MaterialContext = {
   bindGroupEntries?: GPUBindGroupEntry[]
   bindGroup?: GPUBindGroup
 }
+export type MaterialContext = NodeContext & MaterialExtra
 
-export type SamplerContext = {
+export type SamplerExtra = {
   descriptor: GPUSamplerDescriptor
   sampler?: GPUSampler
 }
-export type TextureContext = {
+export type SamplerContext = NodeContext & SamplerExtra
+export type TextureExtra = {
   descriptor: Optional<GPUTextureDescriptor, 'usage' | 'format'>
   image?: ImageBitmap | ImageData | HTMLCanvasElement | OffscreenCanvas
   texture?: GPUTexture
 }
-export type UniformBufferContext = {
-  value: TypedArray | ArrayBuffer
+export type TextureContext = NodeContext & TextureExtra
+export type UniformBufferExtra = {
+  value: Signal<TypedArray | ArrayBuffer>
   builtIn?: string
   buffer?: GPUBuffer
 }
+export type UniformBufferContext = NodeContext & UniformBufferExtra
 // TODO: external texture ?
 export type UniformContext = SamplerContext | TextureContext | UniformBufferContext
