@@ -433,7 +433,7 @@ export class Vec4 extends Float32Array {
    * @param a - the source vector
    * @returns `out`
    */
-  static copy(out: Vec4Like, a: Readonly<Vec4Like>): Vec4Like {
+  static copy<T extends Vec4Like>(out: T, a: Readonly<Vec4Like>): T {
     out[0] = a[0]
     out[1] = a[1]
     out[2] = a[2]
@@ -452,7 +452,7 @@ export class Vec4 extends Float32Array {
    * @param w - W component
    * @returns `out`
    */
-  static set(out: Vec4Like, x: number, y: number, z: number, w: number): Vec4Like {
+  static set<T extends Vec4Like>(out: T, x: number, y: number, z: number, w: number): T {
     out[0] = x
     out[1] = y
     out[2] = z
@@ -469,7 +469,7 @@ export class Vec4 extends Float32Array {
    * @param b - The second operand
    * @returns `out`
    */
-  static add(out: Vec4Like, a: Readonly<Vec4Like>, b: Readonly<Vec4Like>): Vec4Like {
+  static add<T extends Vec4Like>(out: T, a: Readonly<Vec4Like>, b: Readonly<Vec4Like>): T {
     out[0] = a[0] + b[0]
     out[1] = a[1] + b[1]
     out[2] = a[2] + b[2]
@@ -486,7 +486,7 @@ export class Vec4 extends Float32Array {
    * @param b - the second operand
    * @returns `out`
    */
-  static subtract(out: Vec4Like, a: Readonly<Vec4Like>, b: Readonly<Vec4Like>): Vec4Like {
+  static subtract<T extends Vec4Like>(out: T, a: Readonly<Vec4Like>, b: Readonly<Vec4Like>): T {
     out[0] = a[0] - b[0]
     out[1] = a[1] - b[1]
     out[2] = a[2] - b[2]
@@ -503,7 +503,7 @@ export class Vec4 extends Float32Array {
    * @param b - the second operand
    * @returns `out`
    */
-  static multiply(out: Vec4Like, a: Readonly<Vec4Like>, b: Readonly<Vec4Like>): Vec4Like {
+  static multiply<T extends Vec4Like>(out: T, a: Readonly<Vec4Like>, b: Readonly<Vec4Like>): T {
     out[0] = a[0] * b[0]
     out[1] = a[1] * b[1]
     out[2] = a[2] * b[2]
@@ -520,7 +520,7 @@ export class Vec4 extends Float32Array {
    * @param b - the second operand
    * @returns `out`
    */
-  static divide(out: Vec4Like, a: Readonly<Vec4Like>, b: Readonly<Vec4Like>): Vec4Like {
+  static divide<T extends Vec4Like>(out: T, a: Readonly<Vec4Like>, b: Readonly<Vec4Like>): T {
     out[0] = a[0] / b[0]
     out[1] = a[1] / b[1]
     out[2] = a[2] / b[2]
@@ -536,7 +536,7 @@ export class Vec4 extends Float32Array {
    * @param a - vector to ceil
    * @returns `out`
    */
-  static ceil(out: Vec4Like, a: Readonly<Vec4Like>): Vec4Like {
+  static ceil<T extends Vec4Like>(out: T, a: Readonly<Vec4Like>): T {
     out[0] = Math.ceil(a[0])
     out[1] = Math.ceil(a[1])
     out[2] = Math.ceil(a[2])
@@ -552,7 +552,7 @@ export class Vec4 extends Float32Array {
    * @param a - vector to floor
    * @returns `out`
    */
-  static floor(out: Vec4Like, a: Readonly<Vec4Like>): Vec4Like {
+  static floor<T extends Vec4Like>(out: T, a: Readonly<Vec4Like>): T {
     out[0] = Math.floor(a[0])
     out[1] = Math.floor(a[1])
     out[2] = Math.floor(a[2])
@@ -569,7 +569,7 @@ export class Vec4 extends Float32Array {
    * @param b - the second operand
    * @returns `out`
    */
-  static min(out: Vec4Like, a: Readonly<Vec4Like>, b: Readonly<Vec4Like>): Vec4Like {
+  static min<T extends Vec4Like>(out: T, a: Readonly<Vec4Like>, b: Readonly<Vec4Like>): T {
     out[0] = Math.min(a[0], b[0])
     out[1] = Math.min(a[1], b[1])
     out[2] = Math.min(a[2], b[2])
@@ -586,7 +586,7 @@ export class Vec4 extends Float32Array {
    * @param b - the second operand
    * @returns `out`
    */
-  static max(out: Vec4Like, a: Readonly<Vec4Like>, b: Readonly<Vec4Like>): Vec4Like {
+  static max<T extends Vec4Like>(out: T, a: Readonly<Vec4Like>, b: Readonly<Vec4Like>): T {
     out[0] = Math.max(a[0], b[0])
     out[1] = Math.max(a[1], b[1])
     out[2] = Math.max(a[2], b[2])
@@ -602,7 +602,7 @@ export class Vec4 extends Float32Array {
    * @param a - vector to round
    * @returns `out`
    */
-  static round(out: Vec4Like, a: Readonly<Vec4Like>): Vec4Like {
+  static round<T extends Vec4Like>(out: T, a: Readonly<Vec4Like>): T {
     out[0] = Math.round(a[0])
     out[1] = Math.round(a[1])
     out[2] = Math.round(a[2])
@@ -619,7 +619,7 @@ export class Vec4 extends Float32Array {
    * @param scale - amount to scale the vector by
    * @returns `out`
    */
-  static scale(out: Vec4Like, a: Readonly<Vec4Like>, scale: number): Vec4Like {
+  static scale<T extends Vec4Like>(out: T, a: Readonly<Vec4Like>, scale: number): T {
     out[0] = a[0] * scale
     out[1] = a[1] * scale
     out[2] = a[2] * scale
@@ -637,7 +637,7 @@ export class Vec4 extends Float32Array {
    * @param scale - the amount to scale b by before adding
    * @returns `out`
    */
-  static scaleAndAdd(out: Vec4Like, a: Readonly<Vec4Like>, b: Readonly<Vec4Like>, scale: number): Vec4Like {
+  static scaleAndAdd<T extends Vec4Like>(out: T, a: Readonly<Vec4Like>, b: Readonly<Vec4Like>, scale: number): T {
     out[0] = a[0] + b[0] * scale
     out[1] = a[1] + b[1] * scale
     out[2] = a[2] + b[2] * scale
@@ -715,7 +715,7 @@ export class Vec4 extends Float32Array {
    * @param a - vector to negate
    * @returns `out`
    */
-  static negate(out: Vec4Like, a: Readonly<Vec4Like>): Vec4Like {
+  static negate<T extends Vec4Like>(out: T, a: Readonly<Vec4Like>): T {
     out[0] = -a[0]
     out[1] = -a[1]
     out[2] = -a[2]
@@ -731,7 +731,7 @@ export class Vec4 extends Float32Array {
    * @param a - vector to invert
    * @returns `out`
    */
-  static inverse(out: Vec4Like, a: Readonly<Vec4Like>): Vec4Like {
+  static inverse<T extends Vec4Like>(out: T, a: Readonly<Vec4Like>): T {
     out[0] = 1.0 / a[0]
     out[1] = 1.0 / a[1]
     out[2] = 1.0 / a[2]
@@ -747,7 +747,7 @@ export class Vec4 extends Float32Array {
    * @param a - Vector to compute the absolute values of
    * @returns `out`
    */
-  static abs(out: Vec4Like, a: Readonly<Vec4Like>): Vec4Like {
+  static abs<T extends Vec4Like>(out: T, a: Readonly<Vec4Like>): T {
     out[0] = Math.abs(a[0])
     out[1] = Math.abs(a[1])
     out[2] = Math.abs(a[2])
@@ -763,7 +763,7 @@ export class Vec4 extends Float32Array {
    * @param a - vector to normalize
    * @returns `out`
    */
-  static normalize(out: Vec4Like, a: Readonly<Vec4Like>): Vec4Like {
+  static normalize<T extends Vec4Like>(out: T, a: Readonly<Vec4Like>): T {
     const x = a[0]
     const y = a[1]
     const z = a[2]
@@ -801,7 +801,7 @@ export class Vec4 extends Float32Array {
    * @param w - the third vector
    * @returns result
    */
-  static cross(out: Vec4Like, u: Readonly<Vec4Like>, v: Readonly<Vec4Like>, w: Readonly<Vec4Like>): Vec4Like {
+  static cross<T extends Vec4Like>(out: T, u: Readonly<Vec4Like>, v: Readonly<Vec4Like>, w: Readonly<Vec4Like>): T {
     const a = v[0] * w[1] - v[1] * w[0]
     const b = v[0] * w[2] - v[2] * w[0]
     const c = v[0] * w[3] - v[3] * w[0]
@@ -831,7 +831,7 @@ export class Vec4 extends Float32Array {
    * @param t - interpolation amount, in the range [0-1], between the two inputs
    * @returns `out`
    */
-  static lerp(out: Vec4Like, a: Readonly<Vec4Like>, b: Readonly<Vec4Like>, t: number): Vec4Like {
+  static lerp<T extends Vec4Like>(out: T, a: Readonly<Vec4Like>, b: Readonly<Vec4Like>, t: number): T {
     const ax = a[0]
     const ay = a[1]
     const az = a[2]
@@ -852,7 +852,7 @@ export class Vec4 extends Float32Array {
    * @param m - matrix to transform with
    * @returns `out`
    */
-  static transformMat4(out: Vec4Like, a: Readonly<Vec4Like>, m: Readonly<Mat4Like>): Vec4Like {
+  static transformMat4<T extends Vec4Like>(out: T, a: Readonly<Vec4Like>, m: Readonly<Mat4Like>): T {
     const x = a[0]
     const y = a[1]
     const z = a[2]
@@ -873,7 +873,7 @@ export class Vec4 extends Float32Array {
    * @param q - quaternion to transform with
    * @returns `out`
    */
-  static transformQuat(out: Vec4Like, a: Readonly<Vec4Like>, q: Readonly<QuatLike>): Vec4Like {
+  static transformQuat<T extends Vec4Like>(out: T, a: Readonly<Vec4Like>, q: Readonly<QuatLike>): T {
     const x = a[0]
     const y = a[1]
     const z = a[2]
@@ -903,7 +903,7 @@ export class Vec4 extends Float32Array {
    * @param out - the receiving vector
    * @returns `out`
    */
-  static zero(out: Vec4Like): Vec4Like {
+  static zero<T extends Vec4Like>(out: T): T {
     out[0] = 0.0
     out[1] = 0.0
     out[2] = 0.0

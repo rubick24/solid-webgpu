@@ -21,6 +21,9 @@ const entries = readdirSync(examplesPath)
 
 /** @type {import('vite').UserConfig} */
 export default {
+  optimizeDeps: {
+    exclude: ['solid-webgpu']
+  },
   build: {
     target: 'esnext',
     rollupOptions: {

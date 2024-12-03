@@ -1,6 +1,6 @@
 import { GLM_EPSILON } from './common'
 
-import type { Mat4Like, QuatLike, Quat2Like, Vec3Like } from './types'
+import type { Mat4Like, Quat2Like, QuatLike, Vec3Like } from './types'
 
 /**
  * A 4x4 Matrix
@@ -314,7 +314,7 @@ export class Mat4 extends Float32Array {
    * @param a - Matrix to copy
    * @returns `out`
    */
-  static copy(out: Mat4Like, a: Readonly<Mat4Like>): Mat4Like {
+  static copy<T extends Mat4Like>(out: T, a: Readonly<Mat4Like>): T {
     out[0] = a[0]
     out[1] = a[1]
     out[2] = a[2]
@@ -353,7 +353,7 @@ export class Mat4 extends Float32Array {
    * @param values - Matrix components
    * @returns `out`
    */
-  static set(out: Mat4Like, ...values: number[]): Mat4Like {
+  static set<T extends Mat4Like>(out: T, ...values: number[]): T {
     out[0] = values[0]
     out[1] = values[1]
     out[2] = values[2]
@@ -380,7 +380,7 @@ export class Mat4 extends Float32Array {
    * @param out - The receiving Matrix
    * @returns `out`
    */
-  static identity(out: Mat4Like): Mat4Like {
+  static identity<T extends Mat4Like>(out: T): T {
     out[0] = 1
     out[1] = 0
     out[2] = 0
@@ -408,7 +408,7 @@ export class Mat4 extends Float32Array {
    * @param a - the source matrix
    * @returns `out`
    */
-  static transpose(out: Mat4Like, a: Readonly<Mat4Like>): Mat4Like {
+  static transpose<T extends Mat4Like>(out: T, a: Readonly<Mat4Like>): T {
     // If we are transposing ourselves we can skip a few steps but have to cache some values
     if (out === a) {
       const a01 = a[1],
@@ -460,7 +460,7 @@ export class Mat4 extends Float32Array {
    * @param a - the source matrix
    * @returns `out` or `null` if the matrix is not invertible
    */
-  static invert(out: Mat4Like, a: Mat4Like): Mat4Like | null {
+  static invert<T extends Mat4Like>(out: T, a: Mat4Like): T | null {
     const a00 = a[0],
       a01 = a[1],
       a02 = a[2],
@@ -527,7 +527,7 @@ export class Mat4 extends Float32Array {
    * @param a - the source matrix
    * @returns `out`
    */
-  static adjoint(out: Mat4Like, a: Mat4Like): Mat4Like {
+  static adjoint<T extends Mat4Like>(out: T, a: Mat4Like): T {
     const a00 = a[0],
       a01 = a[1],
       a02 = a[2],
@@ -626,7 +626,7 @@ export class Mat4 extends Float32Array {
    * @param b - The second operand
    * @returns `out`
    */
-  static multiply(out: Mat4Like, a: Readonly<Mat4Like>, b: Readonly<Mat4Like>): Mat4Like {
+  static multiply<T extends Mat4Like>(out: T, a: Readonly<Mat4Like>, b: Readonly<Mat4Like>): T {
     const a00 = a[0]
     const a01 = a[1]
     const a02 = a[2]
@@ -692,7 +692,7 @@ export class Mat4 extends Float32Array {
    * @param v - vector to translate by
    * @returns `out`
    */
-  static translate(out: Mat4Like, a: Readonly<Mat4Like>, v: Readonly<Vec3Like>): Mat4Like {
+  static translate<T extends Mat4Like>(out: T, a: Readonly<Mat4Like>, v: Readonly<Vec3Like>): T {
     const x = v[0]
     const y = v[1]
     const z = v[2]
@@ -747,7 +747,7 @@ export class Mat4 extends Float32Array {
    * @param v - the {@link Vec3} to scale the matrix by
    * @returns `out`
    **/
-  static scale(out: Mat4Like, a: Readonly<Mat4Like>, v: Readonly<Vec3Like>): Mat4Like {
+  static scale<T extends Mat4Like>(out: T, a: Readonly<Mat4Like>, v: Readonly<Vec3Like>): T {
     const x = v[0]
     const y = v[1]
     const z = v[2]
@@ -781,7 +781,7 @@ export class Mat4 extends Float32Array {
    * @param axis - the axis to rotate around
    * @returns `out` or `null` if axis has a length of 0
    */
-  static rotate(out: Mat4Like, a: Readonly<Mat4Like>, rad: number, axis: Readonly<Vec3Like>): Mat4Like | null {
+  static rotate<T extends Mat4Like>(out: T, a: Readonly<Mat4Like>, rad: number, axis: Readonly<Vec3Like>): T | null {
     let x = axis[0]
     let y = axis[1]
     let z = axis[2]
@@ -857,7 +857,7 @@ export class Mat4 extends Float32Array {
    * @param rad - the angle to rotate the matrix by
    * @returns `out`
    */
-  static rotateX(out: Mat4Like, a: Readonly<Mat4Like>, rad: number): Mat4Like {
+  static rotateX<T extends Mat4Like>(out: T, a: Readonly<Mat4Like>, rad: number): T {
     const s = Math.sin(rad)
     const c = Math.cos(rad)
     const a10 = a[4]
@@ -902,7 +902,7 @@ export class Mat4 extends Float32Array {
    * @param rad - the angle to rotate the matrix by
    * @returns `out`
    */
-  static rotateY(out: Mat4Like, a: Readonly<Mat4Like>, rad: number): Mat4Like {
+  static rotateY<T extends Mat4Like>(out: T, a: Readonly<Mat4Like>, rad: number): T {
     const s = Math.sin(rad)
     const c = Math.cos(rad)
     const a00 = a[0]
@@ -947,7 +947,7 @@ export class Mat4 extends Float32Array {
    * @param rad - the angle to rotate the matrix by
    * @returns `out`
    */
-  static rotateZ(out: Mat4Like, a: Readonly<Mat4Like>, rad: number): Mat4Like {
+  static rotateZ<T extends Mat4Like>(out: T, a: Readonly<Mat4Like>, rad: number): T {
     const s = Math.sin(rad)
     const c = Math.cos(rad)
     const a00 = a[0]
@@ -996,7 +996,7 @@ export class Mat4 extends Float32Array {
    * @param v - Translation vector
    * @returns `out`
    */
-  static fromTranslation(out: Mat4Like, v: Readonly<Vec3Like>): Mat4Like {
+  static fromTranslation<T extends Mat4Like>(out: T, v: Readonly<Vec3Like>): T {
     out[0] = 1
     out[1] = 0
     out[2] = 0
@@ -1029,7 +1029,7 @@ export class Mat4 extends Float32Array {
    * @param v - Scaling vector
    * @returns `out`
    */
-  static fromScaling(out: Mat4Like, v: Readonly<Vec3Like>): Mat4Like {
+  static fromScaling<T extends Mat4Like>(out: T, v: Readonly<Vec3Like>): T {
     out[0] = v[0]
     out[1] = 0
     out[2] = 0
@@ -1063,7 +1063,7 @@ export class Mat4 extends Float32Array {
    * @param axis - the axis to rotate around
    * @returns `out` or `null` if `axis` has a length of 0
    */
-  static fromRotation(out: Mat4Like, rad: number, axis: Readonly<Vec3Like>): Mat4Like | null {
+  static fromRotation<T extends Mat4Like>(out: T, rad: number, axis: Readonly<Vec3Like>): T | null {
     let x = axis[0]
     let y = axis[1]
     let z = axis[2]
@@ -1115,7 +1115,7 @@ export class Mat4 extends Float32Array {
    * @param rad - the angle to rotate the matrix by
    * @returns `out`
    */
-  static fromXRotation(out: Mat4Like, rad: number): Mat4Like {
+  static fromXRotation<T extends Mat4Like>(out: T, rad: number): T {
     const s = Math.sin(rad)
     const c = Math.cos(rad)
 
@@ -1152,7 +1152,7 @@ export class Mat4 extends Float32Array {
    * @param rad - the angle to rotate the matrix by
    * @returns `out`
    */
-  static fromYRotation(out: Mat4Like, rad: number): Mat4Like {
+  static fromYRotation<T extends Mat4Like>(out: T, rad: number): T {
     const s = Math.sin(rad)
     const c = Math.cos(rad)
 
@@ -1189,7 +1189,7 @@ export class Mat4 extends Float32Array {
    * @param rad - the angle to rotate the matrix by
    * @returns `out`
    */
-  static fromZRotation(out: Mat4Like, rad: number): Mat4Like {
+  static fromZRotation<T extends Mat4Like>(out: T, rad: number): T {
     const s = Math.sin(rad)
     const c = Math.cos(rad)
 
@@ -1230,7 +1230,7 @@ export class Mat4 extends Float32Array {
    * @param v - Translation vector
    * @returns `out`
    */
-  static fromRotationTranslation(out: Mat4Like, q: Readonly<QuatLike>, v: Readonly<Vec3Like>): Mat4Like {
+  static fromRotationTranslation<T extends Mat4Like>(out: T, q: Readonly<QuatLike>, v: Readonly<Vec3Like>): T {
     // Quaternion math
     const x = q[0]
     const y = q[1]
@@ -1278,7 +1278,7 @@ export class Mat4 extends Float32Array {
    * @param a - Dual Quaternion
    * @returns `out`
    */
-  static fromQuat2(out: Mat4Like, a: Quat2Like): Mat4Like {
+  static fromQuat2<T extends Mat4Like>(out: T, a: Quat2Like): T {
     const bx = -a[0]
     const by = -a[1]
     const bz = -a[2]
@@ -1312,7 +1312,7 @@ export class Mat4 extends Float32Array {
    * @param a - Mat4 to derive the normal matrix from
    * @returns `out` or `null` if the matrix is not invertible
    */
-  static normalFromMat4(out: Mat4Like, a: Readonly<Mat4Like>): Mat4Like | null {
+  static normalFromMat4<T extends Mat4Like>(out: T, a: Readonly<Mat4Like>): T | null {
     const a00 = a[0]
     const a01 = a[1]
     const a02 = a[2]
@@ -1386,7 +1386,7 @@ export class Mat4 extends Float32Array {
    * @param a - Mat4 to derive the normal matrix from
    * @returns `out`
    */
-  static normalFromMat4Fast(out: Mat4Like, a: Readonly<Mat4Like>): Mat4Like {
+  static normalFromMat4Fast<T extends Mat4Like>(out: T, a: Readonly<Mat4Like>): T {
     const ax = a[0]
     const ay = a[1]
     const az = a[2]
@@ -1434,7 +1434,7 @@ export class Mat4 extends Float32Array {
    * @param  {ReadonlyMat4} mat Matrix to be decomposed (input)
    * @return {vec3} out
    */
-  static getTranslation(out: Vec3Like, mat: Readonly<Mat4Like>): Vec3Like {
+  static getTranslation<T extends Vec3Like>(out: T, mat: Readonly<Mat4Like>): T {
     out[0] = mat[12]
     out[1] = mat[13]
     out[2] = mat[14]
@@ -1454,7 +1454,7 @@ export class Mat4 extends Float32Array {
    * @param  {ReadonlyMat4} mat Matrix to be decomposed (input)
    * @return {vec3} out
    */
-  static getScaling(out: Vec3Like, mat: Readonly<Mat4Like>): Vec3Like {
+  static getScaling<T extends Vec3Like>(out: T, mat: Readonly<Mat4Like>): T {
     const m11 = mat[0]
     const m12 = mat[1]
     const m13 = mat[2]
@@ -1483,7 +1483,7 @@ export class Mat4 extends Float32Array {
    * @param mat - Matrix to be decomposed (input)
    * @return `out`
    */
-  static getRotation(out: QuatLike, mat: Readonly<Mat4Like>): QuatLike {
+  static getRotation<T extends QuatLike>(out: T, mat: Readonly<Mat4Like>): T {
     Mat4.getScaling(Mat4.TMP_VEC3, mat)
 
     const is1 = 1 / Mat4.TMP_VEC3[0]
@@ -1543,7 +1543,7 @@ export class Mat4 extends Float32Array {
    * @param mat - Matrix to be decomposed (input)
    * @returns `out_r`
    */
-  static decompose(out_r: QuatLike, out_t: Vec3Like, out_s: Vec3Like, mat: Readonly<Mat4Like>): QuatLike {
+  static decompose<T extends QuatLike, U extends Vec3Like>(out_r: T, out_t: U, out_s: U, mat: Readonly<Mat4Like>): T {
     out_t[0] = mat[12]
     out_t[1] = mat[13]
     out_t[2] = mat[14]
@@ -1627,12 +1627,12 @@ export class Mat4 extends Float32Array {
    * @param s - Scaling vector
    * @returns `out`
    */
-  static fromRotationTranslationScale(
-    out: Mat4Like,
+  static fromRotationTranslationScale<T extends Mat4Like>(
+    out: T,
     q: Readonly<QuatLike>,
     v: Readonly<Vec3Like>,
     s: Readonly<Vec3Like>
-  ): Mat4Like {
+  ): T {
     // Quaternion math
     const x = q[0]
     const y = q[1]
@@ -1697,13 +1697,13 @@ export class Mat4 extends Float32Array {
    * @param o - The origin vector around which to scale and rotate
    * @returns `out`
    */
-  static fromRotationTranslationScaleOrigin(
-    out: Mat4Like,
+  static fromRotationTranslationScaleOrigin<T extends Mat4Like>(
+    out: T,
     q: Readonly<QuatLike>,
     v: Readonly<Vec3Like>,
     s: Readonly<Vec3Like>,
     o: Readonly<Vec3Like>
-  ): Mat4Like {
+  ): T {
     // Quaternion math
     const x = q[0]
     const y = q[1]
@@ -1769,7 +1769,7 @@ export class Mat4 extends Float32Array {
    * @param q - Quaternion to create matrix from
    * @returns `out`
    */
-  static fromQuat(out: Mat4Like, q: Readonly<QuatLike>): Mat4Like {
+  static fromQuat<T extends Mat4Like>(out: T, q: Readonly<QuatLike>): T {
     const x = q[0]
     const y = q[1]
     const z = q[2]
@@ -1827,15 +1827,15 @@ export class Mat4 extends Float32Array {
    * @param far -  Far bound of the frustum, can be null or Infinity
    * @returns `out`
    */
-  static frustumNO(
-    out: Mat4Like,
+  static frustumNO<T extends Mat4Like>(
+    out: T,
     left: number,
     right: number,
     bottom: number,
     top: number,
     near: number,
     far = Infinity
-  ): Mat4Like {
+  ): T {
     const rl = 1 / (right - left)
     const tb = 1 / (top - bottom)
     out[0] = near * 2 * rl
@@ -1880,15 +1880,15 @@ export class Mat4 extends Float32Array {
    * @param far - Far bound of the frustum, can be null or Infinity
    * @returns `out`
    */
-  static frustumZO(
-    out: Mat4Like,
+  static frustumZO<T extends Mat4Like>(
+    out: T,
     left: number,
     right: number,
     bottom: number,
     top: number,
     near: number,
     far = Infinity
-  ): Mat4Like {
+  ): T {
     const rl = 1 / (right - left)
     const tb = 1 / (top - bottom)
     out[0] = near * 2 * rl
@@ -1931,7 +1931,7 @@ export class Mat4 extends Float32Array {
    * @param far - Far bound of the frustum, can be null or Infinity
    * @returns `out`
    */
-  static perspectiveNO(out: Mat4Like, fovy: number, aspect: number, near: number, far = Infinity): Mat4Like {
+  static perspectiveNO<T extends Mat4Like>(out: T, fovy: number, aspect: number, near: number, far = Infinity): T {
     const f = 1.0 / Math.tan(fovy / 2)
     out[0] = f / aspect
     out[1] = 0
@@ -1972,13 +1972,7 @@ export class Mat4 extends Float32Array {
    * @param far - Far bound of the frustum, can be null or Infinity
    * @returns `out`
    */
-  static perspectiveZO<T extends Mat4 | Mat4Like>(
-    out: T,
-    fovy: number,
-    aspect: number,
-    near: number,
-    far = Infinity
-  ): T {
+  static perspectiveZO<T extends Mat4Like>(out: T, fovy: number, aspect: number, near: number, far = Infinity): T {
     const f = 1.0 / Math.tan(fovy / 2)
     out[0] = f / aspect
     out[1] = 0
@@ -2017,12 +2011,12 @@ export class Mat4 extends Float32Array {
    * @returns `out`
    * @deprecated
    */
-  static perspectiveFromFieldOfView(
-    out: Mat4Like,
+  static perspectiveFromFieldOfView<T extends Mat4Like>(
+    out: T,
     fov: { upDegrees: number; downDegrees: number; leftDegrees: number; rightDegrees: number },
     near: number,
     far: number
-  ): Mat4Like {
+  ): T {
     const upTan = Math.tan((fov.upDegrees * Math.PI) / 180.0)
     const downTan = Math.tan((fov.downDegrees * Math.PI) / 180.0)
     const leftTan = Math.tan((fov.leftDegrees * Math.PI) / 180.0)
@@ -2063,15 +2057,15 @@ export class Mat4 extends Float32Array {
    * @param far - Far bound of the frustum
    * @returns `out`
    */
-  static orthoNO(
-    out: Mat4Like,
+  static orthoNO<T extends Mat4Like>(
+    out: T,
     left: number,
     right: number,
     bottom: number,
     top: number,
     near: number,
     far: number
-  ): Mat4Like {
+  ): T {
     const lr = 1 / (left - right)
     const bt = 1 / (bottom - top)
     const nf = 1 / (near - far)
@@ -2108,7 +2102,7 @@ export class Mat4 extends Float32Array {
    * @param far - Far bound of the frustum
    * @returns `out`
    */
-  static orthoZO<T extends Mat4 | Mat4Like>(
+  static orthoZO<T extends Mat4Like>(
     out: T,
     left: number,
     right: number,
@@ -2150,7 +2144,12 @@ export class Mat4 extends Float32Array {
    * @param up - vec3 pointing up
    * @returns `out`
    */
-  static lookAt(out: Mat4Like, eye: Readonly<Vec3Like>, center: Readonly<Vec3Like>, up: Readonly<Vec3Like>): Mat4Like {
+  static lookAt<T extends Mat4Like>(
+    out: T,
+    eye: Readonly<Vec3Like>,
+    center: Readonly<Vec3Like>,
+    up: Readonly<Vec3Like>
+  ): T {
     const eyex = eye[0]
     const eyey = eye[1]
     const eyez = eye[2]
@@ -2239,12 +2238,12 @@ export class Mat4 extends Float32Array {
    * @param up - vec3 pointing up
    * @returns `out`
    */
-  static targetTo(
-    out: Mat4Like,
+  static targetTo<T extends Mat4Like>(
+    out: T,
     eye: Readonly<Vec3Like>,
     target: Readonly<Vec3Like>,
     up: Readonly<Vec3Like>
-  ): Mat4Like {
+  ): T {
     const eyex = eye[0]
     const eyey = eye[1]
     const eyez = eye[2]
@@ -2332,7 +2331,7 @@ export class Mat4 extends Float32Array {
    * @param b - the second operand
    * @returns `out`
    */
-  static add(out: Mat4Like, a: Readonly<Mat4Like>, b: Readonly<Mat4Like>): Mat4Like {
+  static add<T extends Mat4Like>(out: T, a: Readonly<Mat4Like>, b: Readonly<Mat4Like>): T {
     out[0] = a[0] + b[0]
     out[1] = a[1] + b[1]
     out[2] = a[2] + b[2]
@@ -2361,7 +2360,7 @@ export class Mat4 extends Float32Array {
    * @param b - the second operand
    * @returns `out`
    */
-  static subtract(out: Mat4Like, a: Readonly<Mat4Like>, b: Readonly<Mat4Like>): Mat4Like {
+  static subtract<T extends Mat4Like>(out: T, a: Readonly<Mat4Like>, b: Readonly<Mat4Like>): T {
     out[0] = a[0] - b[0]
     out[1] = a[1] - b[1]
     out[2] = a[2] - b[2]
@@ -2390,7 +2389,7 @@ export class Mat4 extends Float32Array {
    * @param b - amount to scale the matrix's elements by
    * @returns `out`
    */
-  static multiplyScalar(out: Mat4Like, a: Readonly<Mat4Like>, b: number): Mat4Like {
+  static multiplyScalar<T extends Mat4Like>(out: T, a: Readonly<Mat4Like>, b: number): T {
     out[0] = a[0] * b
     out[1] = a[1] * b
     out[2] = a[2] * b
@@ -2420,7 +2419,12 @@ export class Mat4 extends Float32Array {
    * @param scale - the amount to scale b's elements by before adding
    * @returns `out`
    */
-  static multiplyScalarAndAdd(out: Mat4Like, a: Readonly<Mat4Like>, b: Readonly<Mat4Like>, scale: number): Mat4Like {
+  static multiplyScalarAndAdd<T extends Mat4Like>(
+    out: T,
+    a: Readonly<Mat4Like>,
+    b: Readonly<Mat4Like>,
+    scale: number
+  ): T {
     out[0] = a[0] + b[0] * scale
     out[1] = a[1] + b[1] * scale
     out[2] = a[2] + b[2] * scale

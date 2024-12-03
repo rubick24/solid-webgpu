@@ -1,0 +1,28 @@
+{
+  "name": "solid-webgpu-gltf",
+  "private": true,
+  "version": "0.0.1",
+  "type": "module",
+  "exports": {
+    ".": {
+      "default": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    }
+  },
+  "scripts": {
+    "build": "rm -rf ./dist && rollup -c ./rollup.config.js && tsc",
+    "watch": "concurrently \"rollup -w -c ./rollup.config.js\" \"tsc -w\""
+  },
+  "dependencies": {},
+  "peerDependencies": {
+    "solid-js": "^1.9.3"
+  },
+  "devDependencies": {
+    "@solid-primitives/raf": "^2.2.0",
+    "@types/node": "^22.9.1",
+    "babel-preset-solid": "^1.9.3",
+    "json-schema-to-typescript": "^15.0.3",
+    "solid-js": "^1.9.3",
+    "solid-webgpu": "workspace:*"
+  }
+}

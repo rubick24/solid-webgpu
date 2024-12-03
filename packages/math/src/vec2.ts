@@ -1,5 +1,5 @@
 import { GLM_EPSILON } from './common'
-import { Vec2Like, Mat2Like, Mat2dLike, Mat3Like, Mat4Like } from './types'
+import { Mat2Like, Mat2dLike, Mat3Like, Mat4Like, Vec2Like } from './types'
 
 export class Vec2 extends Float32Array {
   constructor(...values: [Readonly<Vec2Like> | ArrayBufferLike, number?] | number[]) {
@@ -145,67 +145,67 @@ export class Vec2 extends Float32Array {
   static fromValues(x: number, y: number) {
     return new Vec2(x, y)
   }
-  static copy<T extends Vec2 | Vec2Like>(out: T, a: Readonly<Vec2Like>) {
+  static copy<T extends Vec2Like>(out: T, a: Readonly<Vec2Like>): T {
     out[0] = a[0]
     out[1] = a[1]
     return out
   }
-  static set(out: Vec2Like, x: number, y: number) {
+  static set<T extends Vec2Like>(out: T, x: number, y: number): T {
     out[0] = x
     out[1] = y
     return out
   }
-  static add(out: Vec2Like, a: Readonly<Vec2Like>, b: Readonly<Vec2Like>) {
+  static add<T extends Vec2Like>(out: T, a: Readonly<Vec2Like>, b: Readonly<Vec2Like>): T {
     out[0] = a[0] + b[0]
     out[1] = a[1] + b[1]
     return out
   }
-  static subtract(out: Vec2Like, a: Readonly<Vec2Like>, b: Readonly<Vec2Like>) {
+  static subtract<T extends Vec2Like>(out: T, a: Readonly<Vec2Like>, b: Readonly<Vec2Like>): T {
     out[0] = a[0] - b[0]
     out[1] = a[1] - b[1]
     return out
   }
-  static multiply(out: Vec2Like, a: Readonly<Vec2Like>, b: Readonly<Vec2Like>) {
+  static multiply<T extends Vec2Like>(out: T, a: Readonly<Vec2Like>, b: Readonly<Vec2Like>): T {
     out[0] = a[0] * b[0]
     out[1] = a[1] * b[1]
     return out
   }
-  static divide(out: Vec2Like, a: Readonly<Vec2Like>, b: Readonly<Vec2Like>) {
+  static divide<T extends Vec2Like>(out: T, a: Readonly<Vec2Like>, b: Readonly<Vec2Like>): T {
     out[0] = a[0] / b[0]
     out[1] = a[1] / b[1]
     return out
   }
-  static ceil(out: Vec2Like, a: Readonly<Vec2Like>) {
+  static ceil<T extends Vec2Like>(out: T, a: Readonly<Vec2Like>): T {
     out[0] = Math.ceil(a[0])
     out[1] = Math.ceil(a[1])
     return out
   }
-  static floor(out: Vec2Like, a: Readonly<Vec2Like>) {
+  static floor<T extends Vec2Like>(out: T, a: Readonly<Vec2Like>): T {
     out[0] = Math.floor(a[0])
     out[1] = Math.floor(a[1])
     return out
   }
-  static min(out: Vec2Like, a: Readonly<Vec2Like>, b: Readonly<Vec2Like>) {
+  static min<T extends Vec2Like>(out: T, a: Readonly<Vec2Like>, b: Readonly<Vec2Like>): T {
     out[0] = Math.min(a[0], b[0])
     out[1] = Math.min(a[1], b[1])
     return out
   }
-  static max(out: Vec2Like, a: Readonly<Vec2Like>, b: Readonly<Vec2Like>) {
+  static max<T extends Vec2Like>(out: T, a: Readonly<Vec2Like>, b: Readonly<Vec2Like>): T {
     out[0] = Math.max(a[0], b[0])
     out[1] = Math.max(a[1], b[1])
     return out
   }
-  static round(out: Vec2Like, a: Readonly<Vec2Like>) {
+  static round<T extends Vec2Like>(out: T, a: Readonly<Vec2Like>): T {
     out[0] = Math.round(a[0])
     out[1] = Math.round(a[1])
     return out
   }
-  static scale(out: Vec2Like, a: Readonly<Vec2Like>, b: number) {
+  static scale<T extends Vec2Like>(out: T, a: Readonly<Vec2Like>, b: number): T {
     out[0] = a[0] * b
     out[1] = a[1] * b
     return out
   }
-  static scaleAndAdd(out: Vec2Like, a: Readonly<Vec2Like>, b: Readonly<Vec2Like>, scale: number) {
+  static scaleAndAdd<T extends Vec2Like>(out: T, a: Readonly<Vec2Like>, b: Readonly<Vec2Like>, scale: number): T {
     out[0] = a[0] + b[0] * scale
     out[1] = a[1] + b[1] * scale
     return out
@@ -231,23 +231,23 @@ export class Vec2 extends Float32Array {
     const y = a[1]
     return x * x + y * y
   }
-  static negate(out: Vec2Like, a: Readonly<Vec2Like>) {
+  static negate<T extends Vec2Like>(out: T, a: Readonly<Vec2Like>): T {
     out[0] = -a[0]
     out[1] = -a[1]
     return out
   }
-  static inverse(out: Vec2Like, a: Readonly<Vec2Like>) {
+  static inverse<T extends Vec2Like>(out: T, a: Readonly<Vec2Like>): T {
     out[0] = 1.0 / a[0]
     out[1] = 1.0 / a[1]
     return out
   }
-  static abs(out: Vec2Like, a: Readonly<Vec2Like>) {
+  static abs<T extends Vec2Like>(out: T, a: Readonly<Vec2Like>): T {
     out[0] = Math.abs(a[0])
     out[1] = Math.abs(a[1])
     return out
   }
 
-  static normalize(out: Vec2Like, a: Readonly<Vec2Like>) {
+  static normalize<T extends Vec2Like>(out: T, a: Readonly<Vec2Like>): T {
     const x = a[0]
     const y = a[1]
     let len = x * x + y * y
@@ -262,48 +262,48 @@ export class Vec2 extends Float32Array {
   static dot(a: Readonly<Vec2Like>, b: Readonly<Vec2Like>) {
     return a[0] * b[0] + a[1] * b[1]
   }
-  static cross(out: Vec2Like, a: Readonly<Vec2Like>, b: Readonly<Vec2Like>) {
+  static cross<T extends Vec2Like>(out: T, a: Readonly<Vec2Like>, b: Readonly<Vec2Like>): T {
     const z = a[0] * b[1] - a[1] * b[0]
     out[0] = out[1] = 0
     out[2] = z
     return out
   }
-  static lerp(out: Vec2Like, a: Readonly<Vec2Like>, b: Readonly<Vec2Like>, t: number) {
+  static lerp<T extends Vec2Like>(out: T, a: Readonly<Vec2Like>, b: Readonly<Vec2Like>, t: number): T {
     const ax = a[0]
     const ay = a[1]
     out[0] = ax + t * (b[0] - ax)
     out[1] = ay + t * (b[1] - ay)
     return out
   }
-  static transformMat2(out: Vec2Like, a: Readonly<Vec2Like>, m: Readonly<Mat2Like>) {
+  static transformMat2<T extends Vec2Like>(out: T, a: Readonly<Vec2Like>, m: Readonly<Mat2Like>): T {
     const x = a[0]
     const y = a[1]
     out[0] = m[0] * x + m[2] * y
     out[1] = m[1] * x + m[3] * y
     return out
   }
-  static transformMat2d(out: Vec2Like, a: Readonly<Vec2Like>, m: Readonly<Mat2dLike>) {
+  static transformMat2d<T extends Vec2Like>(out: T, a: Readonly<Vec2Like>, m: Readonly<Mat2dLike>): T {
     const x = a[0]
     const y = a[1]
     out[0] = m[0] * x + m[2] * y + m[4]
     out[1] = m[1] * x + m[3] * y + m[5]
     return out
   }
-  static transformMat3(out: Vec2Like, a: Readonly<Vec2Like>, m: Readonly<Mat3Like>) {
+  static transformMat3<T extends Vec2Like>(out: T, a: Readonly<Vec2Like>, m: Readonly<Mat3Like>): T {
     const x = a[0]
     const y = a[1]
     out[0] = m[0] * x + m[3] * y + m[6]
     out[1] = m[1] * x + m[4] * y + m[7]
     return out
   }
-  static transformMat4(out: Vec2Like, a: Readonly<Vec2Like>, m: Readonly<Mat4Like>) {
+  static transformMat4<T extends Vec2Like>(out: T, a: Readonly<Vec2Like>, m: Readonly<Mat4Like>): T {
     const x = a[0]
     const y = a[1]
     out[0] = m[0] * x + m[4] * y + m[12]
     out[1] = m[1] * x + m[5] * y + m[13]
     return out
   }
-  static rotate(out: Vec2Like, a: Readonly<Vec2Like>, b: Readonly<Vec2Like>, rad: number) {
+  static rotate<T extends Vec2Like>(out: T, a: Readonly<Vec2Like>, b: Readonly<Vec2Like>, rad: number): T {
     // Translate point to the origin
     const p0 = a[0] - b[0]
     const p1 = a[1] - b[1]
@@ -328,7 +328,7 @@ export class Vec2 extends Float32Array {
     // Math.min(Math.max(cosine, -1), 1) clamps the cosine between -1 and 1
     return Math.acos(Math.min(Math.max(cosine, -1), 1))
   }
-  static zero(out: Vec2Like) {
+  static zero<T extends Vec2Like>(out: T): T {
     out[0] = 0.0
     out[1] = 0.0
     return out

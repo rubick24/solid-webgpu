@@ -185,7 +185,7 @@ export class Mat2 extends Float32Array {
    * @param a - Matrix to copy
    * @returns `out`
    */
-  static copy(out: Mat2Like, a: Readonly<Mat2Like>): Mat2Like {
+  static copy<T extends Mat2Like>(out: T, a: Readonly<Mat2Like>): T {
     out[0] = a[0]
     out[1] = a[1]
     out[2] = a[2]
@@ -212,7 +212,7 @@ export class Mat2 extends Float32Array {
    * @param values - Matrix components
    * @returns `out`
    */
-  static set(out: Mat2Like, ...values: number[]): Mat2Like {
+  static set<T extends Mat2Like>(out: T, ...values: number[]): T {
     out[0] = values[0]
     out[1] = values[1]
     out[2] = values[2]
@@ -227,7 +227,7 @@ export class Mat2 extends Float32Array {
    * @param out - The receiving matrix
    * @returns `out`
    */
-  static identity(out: Mat2Like): Mat2Like {
+  static identity<T extends Mat2Like>(out: T): T {
     out[0] = 1
     out[1] = 0
     out[2] = 0
@@ -243,7 +243,7 @@ export class Mat2 extends Float32Array {
    * @param a - the source matrix
    * @returns `out`
    */
-  static transpose(out: Mat2Like, a: Readonly<Mat2Like>): Mat2Like {
+  static transpose<T extends Mat2Like>(out: T, a: Readonly<Mat2Like>): T {
     // If we are transposing ourselves we can skip a few steps but have to cache
     // some values
     if (out === a) {
@@ -268,7 +268,7 @@ export class Mat2 extends Float32Array {
    * @param a - the source matrix
    * @returns `out` or `null` if the matrix is not invertible
    */
-  static invert(out: Mat2Like, a: Mat2Like): Mat2Like | null {
+  static invert<T extends Mat2Like>(out: T, a: Mat2Like): T | null {
     const a0 = a[0]
     const a1 = a[1]
     const a2 = a[2]
@@ -298,7 +298,7 @@ export class Mat2 extends Float32Array {
    * @param a - the source matrix
    * @returns `out`
    */
-  static adjoint(out: Mat2Like, a: Mat2Like): Mat2Like {
+  static adjoint<T extends Mat2Like>(out: T, a: Mat2Like): T {
     // Caching this value is necessary if out == a
     const a0 = a[0]
     out[0] = a[3]
@@ -328,7 +328,7 @@ export class Mat2 extends Float32Array {
    * @param b - the second operand
    * @returns `out`
    */
-  static add(out: Mat2Like, a: Readonly<Mat2Like>, b: Readonly<Mat2Like>): Mat2Like {
+  static add<T extends Mat2Like>(out: T, a: Readonly<Mat2Like>, b: Readonly<Mat2Like>): T {
     out[0] = a[0] + b[0]
     out[1] = a[1] + b[1]
     out[2] = a[2] + b[2]
@@ -345,7 +345,7 @@ export class Mat2 extends Float32Array {
    * @param b - the second operand
    * @returns `out`
    */
-  static subtract(out: Mat2Like, a: Readonly<Mat2Like>, b: Readonly<Mat2Like>): Mat2Like {
+  static subtract<T extends Mat2Like>(out: T, a: Readonly<Mat2Like>, b: Readonly<Mat2Like>): T {
     out[0] = a[0] - b[0]
     out[1] = a[1] - b[1]
     out[2] = a[2] - b[2]
@@ -362,7 +362,7 @@ export class Mat2 extends Float32Array {
    * @param b - The second operand
    * @returns `out`
    */
-  static multiply(out: Mat2Like, a: Readonly<Mat2Like>, b: Readonly<Mat2Like>): Mat2Like {
+  static multiply<T extends Mat2Like>(out: T, a: Readonly<Mat2Like>, b: Readonly<Mat2Like>): T {
     const a0 = a[0]
     const a1 = a[1]
     const a2 = a[2]
@@ -387,7 +387,7 @@ export class Mat2 extends Float32Array {
    * @param rad - the angle to rotate the matrix by
    * @returns `out`
    */
-  static rotate(out: Mat2Like, a: Readonly<Mat2Like>, rad: number): Mat2Like {
+  static rotate<T extends Mat2Like>(out: T, a: Readonly<Mat2Like>, rad: number): T {
     const a0 = a[0]
     const a1 = a[1]
     const a2 = a[2]
@@ -410,7 +410,7 @@ export class Mat2 extends Float32Array {
    * @param v - the {@link Vec2} to scale the matrix by
    * @returns `out`
    **/
-  static scale(out: Mat2Like, a: Readonly<Mat2Like>, v: Readonly<Vec2Like>): Mat2Like {
+  static scale<T extends Mat2Like>(out: T, a: Readonly<Mat2Like>, v: Readonly<Vec2Like>): T {
     const a0 = a[0]
     const a1 = a[1]
     const a2 = a[2]
@@ -437,7 +437,7 @@ export class Mat2 extends Float32Array {
    * @param rad - the angle to rotate the matrix by
    * @returns `out`
    */
-  static fromRotation(out: Mat2Like, rad: number): Mat2Like {
+  static fromRotation<T extends Mat2Like>(out: T, rad: number): T {
     const s = Math.sin(rad)
     const c = Math.cos(rad)
     out[0] = c
@@ -460,7 +460,7 @@ export class Mat2 extends Float32Array {
    * @param v - Scaling vector
    * @returns `out`
    */
-  static fromScaling(out: Mat2Like, v: Readonly<Vec2Like>): Mat2Like {
+  static fromScaling<T extends Mat2Like>(out: T, v: Readonly<Vec2Like>): T {
     out[0] = v[0]
     out[1] = 0
     out[2] = 0
@@ -488,7 +488,7 @@ export class Mat2 extends Float32Array {
    * @param b - amount to scale the matrix's elements by
    * @returns `out`
    */
-  static multiplyScalar(out: Mat2Like, a: Readonly<Mat2Like>, b: number): Mat2Like {
+  static multiplyScalar<T extends Mat2Like>(out: T, a: Readonly<Mat2Like>, b: number): T {
     out[0] = a[0] * b
     out[1] = a[1] * b
     out[2] = a[2] * b
@@ -506,7 +506,12 @@ export class Mat2 extends Float32Array {
    * @param scale - the amount to scale b's elements by before adding
    * @returns `out`
    */
-  static multiplyScalarAndAdd(out: Mat2Like, a: Readonly<Mat2Like>, b: Readonly<Mat2Like>, scale: number): Mat2Like {
+  static multiplyScalarAndAdd<T extends Mat2Like>(
+    out: T,
+    a: Readonly<Mat2Like>,
+    b: Readonly<Mat2Like>,
+    scale: number
+  ): T {
     out[0] = a[0] + b[0] * scale
     out[1] = a[1] + b[1] * scale
     out[2] = a[2] + b[2] * scale

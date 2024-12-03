@@ -1,6 +1,6 @@
 import { GLM_EPSILON } from './common'
 
-import type { Mat2dLike, Mat3Like, Mat4Like, Vec2Like, QuatLike } from './types'
+import type { Mat2dLike, Mat3Like, Mat4Like, QuatLike, Vec2Like } from './types'
 
 /**
  * A 3x3 Matrix
@@ -199,7 +199,7 @@ export class Mat3 extends Float32Array {
    * @param a - Matrix to copy
    * @returns `out`
    */
-  static copy(out: Mat3Like, a: Readonly<Mat3Like>): Mat3Like {
+  static copy<T extends Mat3Like>(out: T, a: Readonly<Mat3Like>): T {
     out[0] = a[0]
     out[1] = a[1]
     out[2] = a[2]
@@ -231,7 +231,7 @@ export class Mat3 extends Float32Array {
    * @param values - Matrix components
    * @returns `out`
    */
-  static set(out: Mat3Like, ...values: number[]): Mat3Like {
+  static set<T extends Mat3Like>(out: T, ...values: number[]): T {
     out[0] = values[0]
     out[1] = values[1]
     out[2] = values[2]
@@ -251,7 +251,7 @@ export class Mat3 extends Float32Array {
    * @param out - The receiving matrix
    * @returns `out`
    */
-  static identity(out: Mat3Like): Mat3Like {
+  static identity<T extends Mat3Like>(out: T): T {
     out[0] = 1
     out[1] = 0
     out[2] = 0
@@ -272,7 +272,7 @@ export class Mat3 extends Float32Array {
    * @param a - the source matrix
    * @returns `out`
    */
-  static transpose(out: Mat3Like, a: Readonly<Mat3Like>): Mat3Like {
+  static transpose<T extends Mat3Like>(out: T, a: Readonly<Mat3Like>): T {
     // If we are transposing ourselves we can skip a few steps but have to cache some values
     if (out === a) {
       const a01 = a[1],
@@ -307,7 +307,7 @@ export class Mat3 extends Float32Array {
    * @param a - the source matrix
    * @returns `out` or `null` if the matrix is not invertible
    */
-  static invert(out: Mat3Like, a: Mat3Like): Mat3Like | null {
+  static invert<T extends Mat3Like>(out: T, a: Mat3Like): T | null {
     const a00 = a[0],
       a01 = a[1],
       a02 = a[2]
@@ -350,7 +350,7 @@ export class Mat3 extends Float32Array {
    * @param a - the source matrix
    * @returns `out`
    */
-  static adjoint(out: Mat3Like, a: Mat3Like): Mat3Like {
+  static adjoint<T extends Mat3Like>(out: T, a: Mat3Like): T {
     const a00 = a[0]
     const a01 = a[1]
     const a02 = a[2]
@@ -403,7 +403,7 @@ export class Mat3 extends Float32Array {
    * @param b - the second operand
    * @returns `out`
    */
-  static add(out: Mat3Like, a: Readonly<Mat3Like>, b: Readonly<Mat3Like>): Mat3Like {
+  static add<T extends Mat3Like>(out: T, a: Readonly<Mat3Like>, b: Readonly<Mat3Like>): T {
     out[0] = a[0] + b[0]
     out[1] = a[1] + b[1]
     out[2] = a[2] + b[2]
@@ -425,7 +425,7 @@ export class Mat3 extends Float32Array {
    * @param b - the second operand
    * @returns `out`
    */
-  static subtract(out: Mat3Like, a: Readonly<Mat3Like>, b: Readonly<Mat3Like>): Mat3Like {
+  static subtract<T extends Mat3Like>(out: T, a: Readonly<Mat3Like>, b: Readonly<Mat3Like>): T {
     out[0] = a[0] - b[0]
     out[1] = a[1] - b[1]
     out[2] = a[2] - b[2]
@@ -447,7 +447,7 @@ export class Mat3 extends Float32Array {
    * @param b - The second operand
    * @returns `out`
    */
-  static multiply(out: Mat3Like, a: Readonly<Mat3Like>, b: Readonly<Mat3Like>): Mat3Like {
+  static multiply<T extends Mat3Like>(out: T, a: Readonly<Mat3Like>, b: Readonly<Mat3Like>): T {
     const a00 = a[0]
     const a01 = a[1]
     const a02 = a[2]
@@ -490,7 +490,7 @@ export class Mat3 extends Float32Array {
    * @param v - vector to translate by
    * @returns `out`
    */
-  static translate(out: Mat3Like, a: Readonly<Mat3Like>, v: Readonly<Vec2Like>): Mat3Like {
+  static translate<T extends Mat3Like>(out: T, a: Readonly<Mat3Like>, v: Readonly<Vec2Like>): T {
     const a00 = a[0]
     const a01 = a[1]
     const a02 = a[2]
@@ -526,7 +526,7 @@ export class Mat3 extends Float32Array {
    * @param rad - the angle to rotate the matrix by
    * @returns `out`
    */
-  static rotate(out: Mat3Like, a: Readonly<Mat3Like>, rad: number): Mat3Like {
+  static rotate<T extends Mat3Like>(out: T, a: Readonly<Mat3Like>, rad: number): T {
     const a00 = a[0]
     const a01 = a[1]
     const a02 = a[2]
@@ -562,7 +562,7 @@ export class Mat3 extends Float32Array {
    * @param v - the {@link Vec2} to scale the matrix by
    * @returns `out`
    **/
-  static scale(out: Mat3Like, a: Readonly<Mat3Like>, v: Readonly<Vec2Like>): Mat3Like {
+  static scale<T extends Mat3Like>(out: T, a: Readonly<Mat3Like>, v: Readonly<Vec2Like>): T {
     const x = v[0]
     const y = v[1]
 
@@ -593,7 +593,7 @@ export class Mat3 extends Float32Array {
    * @param v - Translation vector
    * @returns `out`
    */
-  static fromTranslation(out: Mat3Like, v: Readonly<Vec2Like>): Mat3Like {
+  static fromTranslation<T extends Mat3Like>(out: T, v: Readonly<Vec2Like>): T {
     out[0] = 1
     out[1] = 0
     out[2] = 0
@@ -618,7 +618,7 @@ export class Mat3 extends Float32Array {
    * @param rad - the angle to rotate the matrix by
    * @returns `out`
    */
-  static fromRotation(out: Mat3Like, rad: number): Mat3Like {
+  static fromRotation<T extends Mat3Like>(out: T, rad: number): T {
     const s = Math.sin(rad)
     const c = Math.cos(rad)
 
@@ -649,7 +649,7 @@ export class Mat3 extends Float32Array {
    * @param v - Scaling vector
    * @returns `out`
    */
-  static fromScaling(out: Mat3Like, v: Readonly<Vec2Like>): Mat3Like {
+  static fromScaling<T extends Mat3Like>(out: T, v: Readonly<Vec2Like>): T {
     out[0] = v[0]
     out[1] = 0
     out[2] = 0
@@ -673,7 +673,7 @@ export class Mat3 extends Float32Array {
    * @param a - the source 2x3 matrix
    * @returns `out`
    */
-  static fromMat2d(out: Mat3Like, a: Readonly<Mat2dLike>): Mat3Like {
+  static fromMat2d<T extends Mat3Like>(out: T, a: Readonly<Mat2dLike>): T {
     out[0] = a[0]
     out[1] = a[1]
     out[2] = 0
@@ -696,7 +696,7 @@ export class Mat3 extends Float32Array {
    * @param q - {@link Quat} to create matrix from
    * @returns `out`
    */
-  static fromQuat(out: Mat3Like, q: Readonly<QuatLike>): Mat3Like {
+  static fromQuat<T extends Mat3Like>(out: T, q: Readonly<QuatLike>): T {
     const x = q[0]
     const y = q[1]
     const z = q[2]
@@ -739,7 +739,7 @@ export class Mat3 extends Float32Array {
    * @param a - the source 4x4 matrix
    * @returns `out`
    */
-  static fromMat4(out: Mat3Like, a: Readonly<Mat4Like>): Mat3Like {
+  static fromMat4<T extends Mat3Like>(out: T, a: Readonly<Mat4Like>): T {
     out[0] = a[0]
     out[1] = a[1]
     out[2] = a[2]
@@ -760,7 +760,7 @@ export class Mat3 extends Float32Array {
    * @param {ReadonlyMat4} a Mat4 to derive the normal matrix from
    * @returns `out` or `null` if the matrix is not invertible
    */
-  static normalFromMat4(out: Mat3Like, a: Readonly<Mat4Like>): Mat3Like | null {
+  static normalFromMat4<T extends Mat3Like>(out: T, a: Readonly<Mat4Like>): T | null {
     const a00 = a[0]
     const a01 = a[1]
     const a02 = a[2]
@@ -825,7 +825,7 @@ export class Mat3 extends Float32Array {
    * @param a - Mat4 to derive the normal matrix from
    * @returns `out`
    */
-  static normalFromMat4Fast(out: Mat3Like, a: Readonly<Mat4Like>): Mat3Like {
+  static normalFromMat4Fast<T extends Mat3Like>(out: T, a: Readonly<Mat4Like>): T {
     const ax = a[0]
     const ay = a[1]
     const az = a[2]
@@ -862,7 +862,7 @@ export class Mat3 extends Float32Array {
    * @param height Height of gl context
    * @returns `out`
    */
-  static projection(out: Mat3Like, width: number, height: number): Mat3Like {
+  static projection<T extends Mat3Like>(out: T, width: number, height: number): T {
     out[0] = 2 / width
     out[1] = 0
     out[2] = 0
@@ -905,7 +905,7 @@ export class Mat3 extends Float32Array {
    * @param b - amount to scale the matrix's elements by
    * @returns `out`
    */
-  static multiplyScalar(out: Mat3Like, a: Readonly<Mat3Like>, b: number): Mat3Like {
+  static multiplyScalar<T extends Mat3Like>(out: T, a: Readonly<Mat3Like>, b: number): T {
     out[0] = a[0] * b
     out[1] = a[1] * b
     out[2] = a[2] * b
@@ -928,7 +928,12 @@ export class Mat3 extends Float32Array {
    * @param scale - the amount to scale b's elements by before adding
    * @returns `out`
    */
-  static multiplyScalarAndAdd(out: Mat3Like, a: Readonly<Mat3Like>, b: Readonly<Mat3Like>, scale: number): Mat3Like {
+  static multiplyScalarAndAdd<T extends Mat3Like>(
+    out: T,
+    a: Readonly<Mat3Like>,
+    b: Readonly<Mat3Like>,
+    scale: number
+  ): T {
     out[0] = a[0] + b[0] * scale
     out[1] = a[1] + b[1] * scale
     out[2] = a[2] + b[2] * scale
