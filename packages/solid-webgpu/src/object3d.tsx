@@ -96,7 +96,6 @@ export const createObject3DContext = <T,>(
   const id = _s.id
   const [scene] = useSceneContext()
   const [store, setStore] = createStore(scene.nodes[id] as Object3DContext)
-  const [parentMatrix, setParentMatrix] = createSignal<Accessor<Mat4>>()
 
   createEffect(() => {
     store.setPosition(v => {
@@ -119,6 +118,8 @@ export const createObject3DContext = <T,>(
     })
   })
 
+  // update matrix
+  const [parentMatrix, setParentMatrix] = createSignal<Accessor<Mat4>>()
   createEffect(() => {
     const { quaternion, position, scale } = store
     store.setMatrix(m => {
