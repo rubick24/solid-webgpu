@@ -164,9 +164,9 @@ export const createObject3DContext = <T,>(
 }
 
 export const Object3D = (props: Object3DProps) => {
-  const { store, Provider: Provider } = createObject3DContext(['Object3D'], props, {})
+  const { store, Provider } = createObject3DContext(['Object3D'], props, {})
 
   props.ref?.(store)
-
+  
   return <Provider>{props.children}</Provider>
 }
