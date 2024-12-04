@@ -21,6 +21,7 @@ const entries = readdirSync(examplesPath)
 
 /** @type {import('vite').UserConfig} */
 export default {
+  base: '',
   optimizeDeps: {
     exclude: ['solid-webgpu']
   },
@@ -43,11 +44,6 @@ export default {
       },
       preventAssignment: true
     }),
-    solidPlugin({
-      // solid: {
-      //   moduleName: 'solid-webgpu',
-      //   generate: 'universal'
-      // }
-    })
+    solidPlugin()
   ]
 }

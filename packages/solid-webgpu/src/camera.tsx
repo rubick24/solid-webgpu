@@ -17,31 +17,41 @@ export const lookAt = (outQuat: Quat, position: Vec3, up: Vec3, target: Vec3) =>
 }
 
 export const Camera = (props: CameraProps) => {
-  const { ref, Provider } = createObject3DContext<CameraContext>(['Camera'], props, {
-    projectionMatrix: createSignal(new Mat4(), { equals: false }),
-    viewMatrix: createSignal(new Mat4(), { equals: false }),
-    projectionViewMatrix: createSignal(new Mat4(), { equals: false })
+  const p = createSignal(new Mat4(), { equals: false })
+  const v = createSignal(new Mat4(), { equals: false })
+  const pv = createSignal(new Mat4(), { equals: false })
+  const {
+    store: _s,
+    setStore: _setS,
+    Provider
+  } = createObject3DContext<CameraContext>(['Camera'], props, {
+    projectionMatrix: p[0],
+    setProjectionMatrix: p[1],
+    viewMatrix: v[0],
+    setViewMatrix: v[1],
+    projectionViewMatrix: pv[0],
+    setProjectionViewMatrix: pv[1]
   } satisfies CameraExtra)
 
   const [scene] = useSceneContext()
 
-  const id = ref[0].id
+  const id = _s.id
   const [store, setStore] = createStore(scene.nodes[id] as CameraContext)
 
   createEffect(() => {
-    store.viewMatrix[1](m => {
-      const mat = store.matrix[0]()
+    store.setViewMatrix(m => {
+      const mat = store.matrix()
       m.copy(mat).invert()
       return m
     })
   })
 
-  props.ref?.([store, setStore])
+  props.ref?.(store)
 
   createEffect(() => {
-    store.projectionViewMatrix[1](m => {
-      const p = store.projectionMatrix[0]()
-      const v = store.viewMatrix[0]()
+    store.setProjectionViewMatrix(m => {
+      const p = store.projectionMatrix()
+      const v = store.viewMatrix()
       m.copy(p).multiply(v)
       return m
     })
@@ -76,7 +86,7 @@ export const PerspectiveCamera = (props: PerspectiveCameraProps) => {
   let cameraRef!: CameraRef
 
   createEffect(() => {
-    cameraRef[0].projectionMatrix[1](m => {
+    cameraRef.setProjectionMatrix(m => {
       Mat4.perspectiveZO(m, local.fov, local.aspect, local.near, local.far)
       return m
     })
@@ -119,7 +129,7 @@ export const OrthographicCamera = (props: OrthographicCameraProps) => {
   let cameraRef!: CameraRef
 
   createEffect(() => {
-    cameraRef[0].projectionMatrix[1](m => {
+    cameraRef.setProjectionMatrix(m => {
       Mat4.orthoZO(m, local.left, local.right, local.bottom, local.top, local.near, local.far)
       return m
     })

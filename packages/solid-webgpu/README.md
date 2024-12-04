@@ -1,3 +1,14 @@
+# Solid WebGPU
+
+Aims to be thin layer between solid-js and WebGPU with minimal abstraction and performance overhead.
+
+Mainly using solid-js store and context API.
+
+Packed with a forked version of `gl-matrix` v4 beta at `packages/math`, it may be externalized once it's in stable.
+
+## Get Started
+
+```tsx
 import { createSignal } from 'solid-js'
 import { render } from 'solid-js/web'
 import {
@@ -17,7 +28,7 @@ import {
   type CameraRef
 } from 'solid-webgpu'
 
-const t = await imageBitmapFromImageUrl('../../static/a.png')
+const t = await imageBitmapFromImageUrl('/a.png')
 
 const Avatar = (props: { position?: Vec3Like; quaternion?: QuatLike }) => {
   return (
@@ -78,3 +89,30 @@ const App = () => {
 }
 
 render(() => <App />, document.getElementById('app')!)
+```
+
+## Built-in Components
+
+```tsx
+<Canvas />
+<Object3D />
+<Mesh />
+<Geometry />
+  <VertexBuffer /> <IndexBuffer />
+<Material />
+  <Texture /> <Sampler /> <UniformBuffer />
+<Camera />
+<PunctualLight />
+
+<PerspectiveCamera />
+<OrthographicCamera />
+<DefaultTexture />
+<PBRMaterial />
+<UnlitMaterial />
+```
+
+## Methods
+
+```
+createOrbitControl
+```

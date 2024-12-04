@@ -1,5 +1,5 @@
 import type { Mat4, Quat, Vec3 } from 'math'
-import type { Accessor, JSX, Signal } from 'solid-js'
+import type { Accessor, JSX, Setter } from 'solid-js'
 import type { SetStoreFunction } from 'solid-js/store'
 
 export type Optional<T, K extends keyof T> = Partial<Pick<T, K>> & Omit<T, K>
@@ -36,7 +36,7 @@ export type MaybeAccessorValue<T extends MaybeAccessor<unknown>> = T extends () 
 
 export type StoreContext<T> = [T, SetStoreFunction<T>]
 
-export type NodeRef<T = {}> = StoreContext<T & NodeContext>
+export type NodeRef<T = {}> = T & NodeContext
 export type NodeProps<T = {}> = {
   label?: string
   ref?: (v: NodeRef<T>) => void
@@ -51,24 +51,32 @@ export type NodeContext = {
 }
 
 export type Object3DExtra = {
-  matrix: Signal<Mat4>
-  position: Signal<Vec3>
-  quaternion: Signal<Quat>
-  scale: Signal<Vec3>
-  up: Signal<Vec3>
+  matrix: Accessor<Mat4>
+  setMatrix: Setter<Mat4>
+  position: Accessor<Vec3>
+  setPosition: Setter<Vec3>
+  quaternion: Accessor<Quat>
+  setQuaternion: Setter<Quat>
+  scale: Accessor<Vec3>
+  setScale: Setter<Vec3>
+  up: Accessor<Vec3>
+  setUp: Setter<Vec3>
 }
 export type Object3DContext = NodeContext & Object3DExtra
 
 export type CameraExtra = {
-  projectionMatrix: Signal<Mat4>
-  viewMatrix: Signal<Mat4>
-  projectionViewMatrix: Signal<Mat4>
-  // lookAt: (target: Vec3) => void
+  projectionMatrix: Accessor<Mat4>
+  setProjectionMatrix: Setter<Mat4>
+  viewMatrix: Accessor<Mat4>
+  setViewMatrix: Setter<Mat4>
+  projectionViewMatrix: Accessor<Mat4>
+  setProjectionViewMatrix: Setter<Mat4>
 }
 export type CameraContext = Object3DContext & CameraExtra
 
 export type PunctualLightExtra = {
-  color: Signal<Vec3>
+  color: Accessor<Vec3>
+  setColor: Setter<Vec3>
   intensity: number
   range?: number
   lightType: 'directional' | 'point' | 'spot'
@@ -101,13 +109,15 @@ export type VertexBufferExtra = {
     type: string
   }
   layout: GPUVertexBufferLayout
-  value: Signal<TypedArray>
+  value: Accessor<TypedArray>
+  setValue: Setter<TypedArray>
   buffer?: GPUBuffer
 }
 export type VertexBufferContext = NodeContext & VertexBufferExtra
 
 export type IndexBufferExtra = {
-  value: Signal<TypedArray>
+  value: Accessor<TypedArray>
+  setValue: Setter<TypedArray>
   buffer?: GPUBuffer
   // arrayStride: number
 }
@@ -140,7 +150,8 @@ export type TextureExtra = {
 }
 export type TextureContext = NodeContext & TextureExtra
 export type UniformBufferExtra = {
-  value: Signal<TypedArray | ArrayBuffer>
+  value: Accessor<TypedArray | ArrayBuffer>
+  setValue: Setter<TypedArray | ArrayBuffer>
   builtIn?: string
   buffer?: GPUBuffer
 }

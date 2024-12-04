@@ -2,7 +2,7 @@ import { Mat4, Quat, QuatLike, Vec3, Vec3Like } from 'math'
 import { createEffect, createSignal, createUniqueId, ParentProps, splitProps } from 'solid-js'
 import { createStore } from 'solid-js/store'
 import { NodeContextProvider, Object3DContextProvider, useObject3DContext, useSceneContext } from './context'
-import { NodeContext, NodeProps, NodeRef, Object3DContext, StoreContext } from './types'
+import { NodeContext, NodeProps, NodeRef, Object3DContext, Object3DExtra } from './types'
 
 export type Object3DRef<T = {}> = NodeRef<T>
 export type Object3DProps<T = {}> = NodeProps<T> &
@@ -31,7 +31,8 @@ export const createNodeContext = <T,>(
   createEffect(() => setStore('label', cProps.label ?? ''))
 
   return {
-    ref: [store, setStore] satisfies StoreContext<NodeContext>,
+    store,
+    setStore,
     Provider: (p: ParentProps) => {
       return <NodeContextProvider value={[store, setStore]}>{p.children}</NodeContextProvider>
     }
@@ -43,50 +44,67 @@ export const createObject3DContext = <T,>(
   props: Omit<Object3DProps, 'ref'>,
   init: Omit<T, keyof Object3DContext>
 ) => {
-  const { ref, Provider } = createNodeContext(['Object3D'].concat(type), props, {
+  const m = createSignal(Mat4.create(), { equals: false })
+  const p = createSignal(Vec3.create(), { equals: false })
+  const q = createSignal(Quat.create(), { equals: false })
+  const s = createSignal(Vec3.fromValues(1, 1, 1), { equals: false })
+  const u = createSignal(Vec3.fromValues(0, 1, 0), { equals: false })
+  const o3dExt: Object3DExtra = {
+    matrix: m[0],
+    setMatrix: m[1],
+    position: p[0],
+    setPosition: p[1],
+    quaternion: q[0],
+    setQuaternion: q[1],
+    scale: s[0],
+    setScale: s[1],
+    up: u[0],
+    setUp: u[1]
+  }
+  const {
+    store: _s,
+    setStore: _setS,
+    Provider
+  } = createNodeContext(['Object3D'].concat(type), props, {
     ...init,
-    matrix: createSignal(Mat4.create(), { equals: false }),
-    position: createSignal(Vec3.create(), { equals: false }),
-    quaternion: createSignal(Quat.create(), { equals: false }),
-    scale: createSignal(Vec3.fromValues(1, 1, 1), { equals: false }),
-    up: createSignal(Vec3.fromValues(0, 1, 0), { equals: false })
+    ...o3dExt
   })
 
   const [o3dProps] = splitProps(props, ['position', 'quaternion', 'scale'])
 
-  const id = ref[0].id
+  const id = _s.id
   const [scene] = useSceneContext()
   const [store, setStore] = createStore(scene.nodes[id] as Object3DContext)
 
   createEffect(() => {
-    store.position[1](v => {
+    store.setPosition(v => {
       v.copy(o3dProps.position ?? [0, 0, 0])
       return v
     })
   })
 
   createEffect(() => {
-    store.quaternion[1](v => {
+    store.setQuaternion(v => {
       v.copy(o3dProps.quaternion ?? [0, 0, 0, 1])
       return v
     })
   })
 
   createEffect(() => {
-    store.scale[1](v => {
+    store.setScale(v => {
       v.copy(o3dProps.scale ?? [1, 1, 1])
       return v
     })
   })
 
   // update matrix
-  const parent = useObject3DContext()
+  const parentCtx = useObject3DContext()
   createEffect(() => {
     const { quaternion, position, scale } = store
-    store.matrix[1](m => {
-      Mat4.fromRotationTranslationScale(m, quaternion[0](), position[0](), scale[0]())
-      if (parent && parent[0]) {
-        const pm = parent[0].matrix[0]()
+    store.setMatrix(m => {
+      Mat4.fromRotationTranslationScale(m, quaternion(), position(), scale())
+      if (parentCtx && parentCtx[0]) {
+        const pm = parentCtx[0].matrix()
         Mat4.mul(m, pm, m)
       }
       return m
@@ -94,7 +112,8 @@ export const createObject3DContext = <T,>(
   })
 
   return {
-    ref: [store, setStore] satisfies StoreContext<Object3DContext>,
+    store,
+    setStore,
     Provider: (p: ParentProps) => {
       return (
         <Provider>
@@ -106,8 +125,8 @@ export const createObject3DContext = <T,>(
 }
 
 export const Object3D = (props: Object3DProps) => {
-  const { ref, Provider } = createObject3DContext(['Object3D'], props, {})
+  const { store, Provider } = createObject3DContext(['Object3D'], props, {})
 
-  props.ref?.(ref)
+  props.ref?.(store)
   return <Provider>{props.children}</Provider>
 }

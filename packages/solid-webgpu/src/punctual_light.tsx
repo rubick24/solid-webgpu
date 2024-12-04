@@ -13,8 +13,14 @@ export type PunctualLightProps = Object3DProps<PunctualLightContext> & {
 } & ({ type?: 'directional' | 'point' } | { type: 'spot'; innerConeAngle?: number; outerConeAngle?: number })
 
 export const PunctualLight = (props: PunctualLightProps) => {
-  const { ref, Provider } = createObject3DContext(['PunctualLight'], props, {
-    color: createSignal(Vec3.create(), { equals: false }),
+  const c = createSignal(Vec3.create(), { equals: false })
+  const {
+    store: _s,
+    setStore: _setS,
+    Provider
+  } = createObject3DContext(['PunctualLight'], props, {
+    color: c[0],
+    setColor: c[1],
     intensity: 1,
     range: Infinity,
     lightType: 'directional',
@@ -24,13 +30,13 @@ export const PunctualLight = (props: PunctualLightProps) => {
 
   const [scene, setScene] = useSceneContext()
 
-  const id = ref[0].id
+  const id = _s.id
 
   const [store, setStore] = createStore(scene.nodes[id] as PunctualLightContext)
-  props.ref?.([store, setStore])
+  props.ref?.(store)
 
   createEffect(() =>
-    store.color[1](v => {
+    store.setColor(v => {
       v.copy(props.color ?? [0, 0, 0])
       return v
     })

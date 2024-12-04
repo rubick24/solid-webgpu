@@ -13,14 +13,14 @@ export type MeshProps = Object3DProps<MeshContext> & {
 }
 
 export const Mesh = (props: MeshProps) => {
-  const { ref, Provider } = createObject3DContext(['Mesh'], props, {})
+  const { store: _s, setStore: _setS, Provider } = createObject3DContext(['Mesh'], props, {})
 
   const [scene, setScene] = useSceneContext()
 
-  const id = ref[0].id
+  const id = _s.id
 
   const [store, setStore] = createStore(scene.nodes[id] as MeshContext)
-  props.ref?.([store, setStore])
+  props.ref?.(store)
 
   createEffect(() => {
     if (!store.material || !store.geometry) {
@@ -60,7 +60,7 @@ export const Mesh = (props: MeshProps) => {
       layout: device.createPipelineLayout({
         bindGroupLayouts: [bindGroupLayout]
       }),
-      label: `mesh-${ref[0].id}-pipeline`,
+      label: `mesh-${_s.id}-pipeline`,
       vertex: {
         module: shaderModule,
         entryPoint: 'vs_main',

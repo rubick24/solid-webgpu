@@ -22,7 +22,11 @@ export type GeometryProps = NodeProps<GeometryContext> & {
 }
 
 export const Geometry = (props: GeometryProps) => {
-  const { ref, Provider } = createNodeContext(['Geometry'], props, {
+  const {
+    store: _s,
+    setStore: _setS,
+    Provider
+  } = createNodeContext(['Geometry'], props, {
     vertexBuffers: [],
     topology: 'triangle-list',
     instanceCount: 1,
@@ -30,11 +34,11 @@ export const Geometry = (props: GeometryProps) => {
   } as GeometryExtra)
   const [scene, setScene] = useSceneContext()
 
-  const id = ref[0].id
+  const id = _s.id
 
   const [store, setStore] = createStore(scene.nodes[id] as GeometryContext)
 
-  props.ref?.([store, setStore])
+  props.ref?.(store)
 
   const [_, setMesh] = useMeshContext()
 
@@ -60,16 +64,18 @@ export type VertexBufferProps = NodeProps<VertexBufferContext> & {
   value: TypedArray
 }
 export const VertexBuffer = (props: VertexBufferProps) => {
-  const { ref } = createNodeContext(['VertexBuffer'], props, {
+  const val = createSignal(
+    untrack(() => props.value),
+    { equals: false }
+  )
+  const { store: _s, setStore: _setS } = createNodeContext(['VertexBuffer'], props, {
     layout: untrack(() => props.layout),
-    value: createSignal(
-      untrack(() => props.value),
-      { equals: false }
-    )
+    value: val[0],
+    setValue: val[1]
   } satisfies VertexBufferExtra)
 
   const [scene] = useSceneContext()
-  const id = ref[0].id
+  const id = _s.id
 
   const [store, setStore] = createStore(scene.nodes[id] as VertexBufferContext)
 
@@ -81,14 +87,14 @@ export const VertexBuffer = (props: VertexBufferProps) => {
     const data = props.value
     const buffer = createBuffer({ device, data, usage: GPUBufferUsage.VERTEX })
     batch(() => {
-      store.value[1](data)
+      store.setValue(data)
       setStore('buffer', buffer)
     })
 
     onCleanup(() => buffer.destroy())
   })
 
-  props.ref?.([store, setStore])
+  props.ref?.(store)
 
   const [_, setG] = useGeometryContext()
   setG('vertexBuffers', v => v.concat(id))
@@ -101,14 +107,16 @@ export type IndexBufferProps = NodeProps<IndexBufferContext> & {
   value: TypedArray
 }
 export const IndexBuffer = (props: IndexBufferProps) => {
-  const { ref } = createNodeContext(['IndexBuffer'], props, {
-    value: createSignal(
-      untrack(() => props.value),
-      { equals: false }
-    )
+  const val = createSignal(
+    untrack(() => props.value),
+    { equals: false }
+  )
+  const { store: _s, setStore: _setS } = createNodeContext(['IndexBuffer'], props, {
+    value: val[0],
+    setValue: val[1]
   } satisfies IndexBufferExtra)
   const [scene] = useSceneContext()
-  const id = ref[0].id
+  const id = _s.id
 
   const [store, setStore] = createStore(scene.nodes[id] as IndexBufferContext)
 
@@ -118,14 +126,14 @@ export const IndexBuffer = (props: IndexBufferProps) => {
     const buffer = createBuffer({ device, data, usage: GPUBufferUsage.INDEX })
 
     batch(() => {
-      store.value[1](data)
+      store.setValue(data)
       setStore('buffer', buffer)
     })
 
     onCleanup(() => buffer.destroy())
   })
 
-  props.ref?.([store, setStore])
+  props.ref?.(store)
   const [_, setG] = useGeometryContext()
   setG('indexBuffer', id)
 

@@ -62,7 +62,7 @@ export const Canvas = (props: CanvasProps) => {
   createEffect(() => setScene('autoClear', propsWithDefault.autoClear))
   createEffect(() => setScene('samples', propsWithDefault.samples))
 
-  createEffect(() => setScene('currentCamera', propsWithDefault.camera?.[0].id))
+  createEffect(() => setScene('currentCamera', propsWithDefault.camera?.id))
 
   /**
    * resize swapchain
@@ -113,13 +113,13 @@ export const Canvas = (props: CanvasProps) => {
     }
 
     const camera = scene.nodes[scene.currentCamera] as CameraContext
-    const projectionViewMatrix = camera.projectionViewMatrix[0]()
+    const projectionViewMatrix = camera.projectionViewMatrix()
 
     const renderOrder = scene.renderList
       .map(id => {
         const v = scene.nodes[id] as MeshContext
         return {
-          m: v.matrix[0](),
+          m: v.matrix(),
           id: v.id
         }
       })
@@ -190,7 +190,7 @@ export const Canvas = (props: CanvasProps) => {
       const geo = scene.nodes[mesh.geometry] as GeometryContext
       const ib = geo.indexBuffer ? (scene.nodes[geo.indexBuffer] as IndexBufferContext) : null
       if (ib && ib.buffer) {
-        passEncoder.setIndexBuffer(ib.buffer, `uint${ib.value[0]().BYTES_PER_ELEMENT * 8}` as GPUIndexFormat)
+        passEncoder.setIndexBuffer(ib.buffer, `uint${ib.value().BYTES_PER_ELEMENT * 8}` as GPUIndexFormat)
       }
       geo.vertexBuffers.forEach((v, i) => {
         const buffer = (scene.nodes[v] as VertexBufferContext).buffer
@@ -211,7 +211,7 @@ export const Canvas = (props: CanvasProps) => {
 
       // Alternate drawing for indexed and non-indexed children
       if (indexBuffer) {
-        const count = Math.min(geo.drawRange.count, ib.value[0]().length)
+        const count = Math.min(geo.drawRange.count, ib.value().length)
         passEncoder.drawIndexed(count, geo.instanceCount, geo.drawRange.start ?? 0)
       } else if (positionAttr) {
         const count = Math.min(geo.drawRange.count, positionAttr.value.length / positionAttr.layout.arrayStride)

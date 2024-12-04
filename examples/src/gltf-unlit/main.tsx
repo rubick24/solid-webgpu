@@ -3,7 +3,7 @@ import { render } from 'solid-js/web'
 import { Canvas, createOrbitControl, PerspectiveCamera, type CameraRef } from 'solid-webgpu'
 import { loadGLTF } from 'solid-webgpu-gltf'
 
-const { json, scenes } = await loadGLTF('/suzanne_unlit.glb')
+const { json, scenes } = await loadGLTF('../../static/suzanne_unlit.glb')
 const GLTFModel = scenes[0]
 
 console.log(json)

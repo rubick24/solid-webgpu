@@ -45,7 +45,11 @@ const builtInBufferLength = {
 } as const
 
 export const Material = (props: MaterialProps) => {
-  const { ref, Provider } = createNodeContext(['Material'], props, {
+  const {
+    store: _s,
+    setStore: _setS,
+    Provider
+  } = createNodeContext(['Material'], props, {
     uniforms: [],
     shaderCode: '',
     cullMode: 'back',
@@ -54,11 +58,11 @@ export const Material = (props: MaterialProps) => {
     depthWrite: true
   } satisfies MaterialExtra)
   const [scene] = useSceneContext()
-  const id = ref[0].id
+  const id = _s.id
 
   const [store, setStore] = createStore(scene.nodes[id] as MaterialContext)
 
-  props.ref?.([store, setStore])
+  props.ref?.(store)
 
   const [_, setMesh] = useMeshContext()
 
@@ -159,18 +163,18 @@ export type TextureProps = NodeProps<TextureContext> & {
   image?: ImageBitmap | ImageData | HTMLCanvasElement | OffscreenCanvas
 }
 export const Texture = (props: TextureProps) => {
-  const { ref } = createNodeContext(['Texture'], props, {
+  const { store: _s, setStore: _setS } = createNodeContext(['Texture'], props, {
     descriptor: untrack(() => props.descriptor)
   } satisfies TextureExtra)
   const [scene] = useSceneContext()
-  const id = ref[0].id
+  const id = _s.id
 
   const [store, setStore] = createStore(scene.nodes[id] as TextureContext)
 
   createEffect(() => setStore('descriptor', props.descriptor))
   createEffect(() => setStore('image', props.image))
 
-  props.ref?.([store, setStore])
+  props.ref?.(store)
 
   const [m, setM] = useMaterialContext()
   setM('uniforms', v => v.concat(id))
@@ -207,17 +211,17 @@ export type SamplerProps = NodeProps<SamplerContext> & {
   descriptor: GPUSamplerDescriptor
 }
 export const Sampler = (props: SamplerProps) => {
-  const { ref } = createNodeContext(['Sampler'], props, {
+  const { store: _s, setStore: _setS } = createNodeContext(['Sampler'], props, {
     descriptor: untrack(() => props.descriptor)
   } satisfies SamplerExtra)
   const [scene] = useSceneContext()
-  const id = ref[0].id
+  const id = _s.id
 
   const [store, setStore] = createStore(scene.nodes[id] as SamplerContext)
 
   createEffect(() => setStore('descriptor', props.descriptor))
 
-  props.ref?.([store, setStore])
+  props.ref?.(store)
 
   const [m, setM] = useMaterialContext()
   setM('uniforms', v => v.concat(id))
@@ -244,22 +248,26 @@ export type UniformBufferProps = NodeProps<UniformBufferContext> &
 export const UniformBuffer = (props: UniformBufferProps) => {
   const initial = untrack(() => {
     if ('value' in props) {
+      const val = createSignal(props.value, { equals: false })
       return {
-        value: createSignal(props.value, { equals: false })
+        value: val[0],
+        setValue: val[1]
       }
     } else {
+      const val = createSignal<TypedArray | ArrayBuffer>(new Float32Array(builtInBufferLength[props.buildInType]), {
+        equals: false
+      })
       return {
         builtIn: props.buildInType,
-        value: createSignal<TypedArray | ArrayBuffer>(new Float32Array(builtInBufferLength[props.buildInType]), {
-          equals: false
-        })
+        value: val[0],
+        setValue: val[1]
       }
     }
   }) satisfies UniformBufferExtra
 
-  const { ref } = createNodeContext(['UniformBuffer'], props, initial)
+  const { store: _s, setStore: _setS } = createNodeContext(['UniformBuffer'], props, initial)
   const [scene, setScene] = useSceneContext()
-  const id = ref[0].id
+  const id = _s.id
 
   setScene(
     'nodes',
@@ -275,7 +283,7 @@ export const UniformBuffer = (props: UniformBufferProps) => {
     if ('buildInType' in props) {
       setStore('builtIn', props.buildInType)
     } else {
-      store.value[1](props.value)
+      store.setValue(props.value)
     }
   })
 
@@ -286,7 +294,7 @@ export const UniformBuffer = (props: UniformBufferProps) => {
    */
   createEffect(() => {
     if (store.builtIn === 'base') {
-      store.value[1](v => {
+      store.setValue(v => {
         const bo =
           'length' in v && v.length === builtInBufferLength.base
             ? (v as Float32Array)
@@ -299,22 +307,22 @@ export const UniformBuffer = (props: UniformBufferProps) => {
 
         const camera = scene.nodes[cameraID] as CameraContext
 
-        const modelMatrix = Mat4.copy(bo.subarray(0, 16), o3d.matrix[0]())
-        const viewMatrix = Mat4.copy(bo.subarray(16, 32), camera.viewMatrix[0]())
+        const modelMatrix = Mat4.copy(bo.subarray(0, 16), o3d.matrix())
+        const viewMatrix = Mat4.copy(bo.subarray(16, 32), camera.viewMatrix())
         // projectionMatrix
-        Mat4.copy(bo.subarray(32, 48), camera.projectionMatrix[0]())
+        Mat4.copy(bo.subarray(32, 48), camera.projectionMatrix())
         const modelViewMatrix = Mat4.copy(bo.subarray(48, 64), viewMatrix)
         Mat4.mul(modelViewMatrix, modelViewMatrix, modelMatrix)
         // normalMatrix
         Mat3.normalFromMat4(bo.subarray(64, 73), modelViewMatrix)
         // cameraPosition
-        Vec3.copy(bo.subarray(76, 79), camera.matrix[0]().subarray(12, 15))
+        Vec3.copy(bo.subarray(76, 79), camera.matrix().subarray(12, 15))
 
         return bo
       })
       // setStore('value', bo)
     } else if (store.builtIn === 'punctual_lights') {
-      store.value[1](v => {
+      store.setValue(v => {
         const lightValues =
           'length' in v && v.length === builtInBufferLength.punctual_lights
             ? (v as Float32Array)
@@ -331,10 +339,10 @@ export const UniformBuffer = (props: UniformBufferProps) => {
             break
           }
           // position
-          Vec3.copy(lightValues.subarray(offset + 0, offset + 3), light.matrix[0]().subarray(12, 15))
+          Vec3.copy(lightValues.subarray(offset + 0, offset + 3), light.matrix().subarray(12, 15))
           // direction
-          Vec3.copy(lightValues.subarray(offset + 4, offset + 7), light.matrix[0]().subarray(8, 11))
-          Vec3.copy(lightValues.subarray(offset + 8, offset + 11), light.color[0]())
+          Vec3.copy(lightValues.subarray(offset + 4, offset + 7), light.matrix().subarray(8, 11))
+          Vec3.copy(lightValues.subarray(offset + 8, offset + 11), light.color())
 
           lightValues[offset + 11] = light.intensity
           lightValues[offset + 12] = light.range ?? Infinity
@@ -355,7 +363,7 @@ export const UniformBuffer = (props: UniformBufferProps) => {
     }
   })
 
-  props.ref?.([store, setStore])
+  props.ref?.(store)
 
   const [m, setM] = useMaterialContext()
   setM('uniforms', v => v.concat(id))
@@ -368,9 +376,9 @@ export const UniformBuffer = (props: UniformBufferProps) => {
     const data = store.value
     const buffer = createBuffer({
       device,
-      data: data[0](),
+      data: data(),
       usage: GPUBufferUsage.UNIFORM,
-      label: `uniform buffer ${ref[0].id} ${ref[0].label}`
+      label: `uniform buffer ${_s.id} ${_s.label}`
     })
 
     setStore('buffer', buffer)
