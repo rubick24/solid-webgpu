@@ -2,6 +2,9 @@
 
 Aims to be thin layer between solid-js and WebGPU with minimal abstraction and performance overhead.
 
+**[demos](https://solid-webgpu.vercel.app/)**<br/>
+view source code of these demos in `packages/examples` folder.
+
 Mainly using solid-js store and context API.
 
 Packed with a forked version of `gl-matrix` v4 beta at `packages/math`, it may be externalized once it's in stable.
