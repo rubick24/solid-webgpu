@@ -1,4 +1,4 @@
-import { createSignal } from 'solid-js'
+import { createSignal, Show } from 'solid-js'
 import { render } from 'solid-js/web'
 import {
   Canvas,
@@ -21,11 +21,10 @@ const t = await imageBitmapFromImageUrl('../../static/a.png')
 
 const Avatar = (props: { position?: Vec3Like; quaternion?: QuatLike }) => {
   return (
-    <Mesh
-      {...props}
-      geometry={<Plane />}
-      material={<PBRMaterial albedoTexture={t} occlusionRoughnessMetallicTexture={t} />}
-    />
+    <Mesh {...props}>
+      <Plane />
+      <PBRMaterial albedoTexture={t} occlusionRoughnessMetallicTexture={t} />
+    </Mesh>
   )
 }
 
@@ -60,16 +59,16 @@ const App = () => {
 
         <Avatar position={[0, p(), 0]} quaternion={r()} />
 
-        <Object3D position={[3, 0, 0]} quaternion={r()}>
-          <Avatar position={[1, 0, 0]} />
-        </Object3D>
+        <Show when={p() === 1}>
+          <Object3D position={[3, 0, 0]} quaternion={r()}>
+            <Avatar position={[1, 0, 0]} />
+          </Object3D>
+        </Show>
 
-        <Mesh
-          position={[-3, 0, 0]}
-          geometry={<Plane />}
-          material={<UnlitMaterial albedoTexture={t} />}
-          quaternion={r()}
-        />
+        <Mesh position={[-3, 0, 0]} quaternion={r()}>
+          <Plane />
+          <UnlitMaterial albedoTexture={t} />
+        </Mesh>
       </Canvas>
 
       <button onClick={() => setP(v => (v + 1) % 5)}>set position</button>

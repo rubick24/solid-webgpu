@@ -1,4 +1,4 @@
-import { createEffect, JSX } from 'solid-js'
+import { createEffect, onCleanup } from 'solid-js'
 import { createStore } from 'solid-js/store'
 import { MeshContextProvider, useSceneContext } from './context'
 
@@ -7,10 +7,7 @@ import { GeometryContext, MaterialContext, MeshContext, VertexBufferContext } fr
 // import { PunctualLightToken, Token, tokenizer } from './tokenizer'
 
 export type MeshRef = Object3DRef<MeshContext>
-export type MeshProps = Object3DProps<MeshContext> & {
-  geometry?: JSX.Element
-  material?: JSX.Element
-}
+export type MeshProps = Object3DProps<MeshContext>
 
 export const Mesh = (props: MeshProps) => {
   const { store: _s, setStore: _setS, Provider } = createObject3DContext(['Mesh'], props, {})
@@ -89,13 +86,13 @@ export const Mesh = (props: MeshProps) => {
 
   setScene('renderList', v => v.concat(id))
 
+  onCleanup(() => {
+    setScene('renderList', v => v.filter(x => id !== x))
+  })
+
   return (
     <Provider>
-      <MeshContextProvider value={[store, setStore]}>
-        {props.geometry}
-        {props.material}
-        {props.children}
-      </MeshContextProvider>
+      <MeshContextProvider value={[store, setStore]}>{props.children}</MeshContextProvider>
     </Provider>
   )
 }

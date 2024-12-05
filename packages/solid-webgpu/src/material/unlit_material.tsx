@@ -19,33 +19,28 @@ export const UnlitMaterial = (props: UnlitMaterialProps) => {
   })
 
   return (
-    <Material
-      shaderCode={shaderCode}
-      uniforms={
-        <>
-          <UniformBuffer buildInType="base" />
-          <UniformBuffer value={_buffer} />
-          {props.albedoTexture ? (
-            <Texture
-              descriptor={{
-                size: { width: props.albedoTexture.width, height: props.albedoTexture.height }
-              }}
-              image={props.albedoTexture}
-            />
-          ) : (
-            <DefaultTexture />
-          )}
-          <Sampler
-            descriptor={{
-              magFilter: 'linear',
-              minFilter: 'linear',
-              mipmapFilter: 'linear',
-              addressModeU: 'repeat',
-              addressModeV: 'repeat'
-            }}
-          />
-        </>
-      }
-    />
+    <Material shaderCode={shaderCode}>
+      <UniformBuffer buildInType="base" />
+      <UniformBuffer value={_buffer} />
+      {props.albedoTexture ? (
+        <Texture
+          descriptor={{
+            size: { width: props.albedoTexture.width, height: props.albedoTexture.height }
+          }}
+          image={props.albedoTexture}
+        />
+      ) : (
+        <DefaultTexture />
+      )}
+      <Sampler
+        descriptor={{
+          magFilter: 'linear',
+          minFilter: 'linear',
+          mipmapFilter: 'linear',
+          addressModeU: 'repeat',
+          addressModeV: 'repeat'
+        }}
+      />
+    </Material>
   )
 }

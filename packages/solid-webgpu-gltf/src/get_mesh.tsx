@@ -58,7 +58,12 @@ export const getMesh = async (index: number, context: LoaderContext) => {
 
       const Mat = primitive.material !== undefined ? await _material(primitive.material) : DefaultMaterial
 
-      return () => <Mesh material={<Mat />} geometry={<Geo />} label={json.name ?? `gltf mesh ${index}`} />
+      return () => (
+        <Mesh label={json.name ?? `gltf mesh ${index}`}>
+          <Mat />
+          <Geo />
+        </Mesh>
+      )
     })
   )
 }

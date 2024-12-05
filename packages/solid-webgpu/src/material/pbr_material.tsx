@@ -28,48 +28,43 @@ export const PBRMaterial = (props: PBRMaterialProps) => {
   })
 
   return (
-    <Material
-      shaderCode={shaderCode}
-      uniforms={
-        <>
-          <UniformBuffer buildInType="base" />
-          <UniformBuffer value={_pbrBuffer} />
-          {props.albedoTexture ? (
-            <Texture
-              descriptor={{
-                size: { width: props.albedoTexture.width, height: props.albedoTexture.height }
-              }}
-              image={props.albedoTexture}
-            />
-          ) : (
-            <DefaultTexture />
-          )}
-          {props.occlusionRoughnessMetallicTexture ? (
-            <Texture
-              descriptor={{
-                size: {
-                  width: props.occlusionRoughnessMetallicTexture.width,
-                  height: props.occlusionRoughnessMetallicTexture.height
-                }
-              }}
-              image={props.occlusionRoughnessMetallicTexture}
-            />
-          ) : (
-            <DefaultTexture />
-          )}
+    <Material shaderCode={shaderCode}>
+      <UniformBuffer buildInType="base" />
+      <UniformBuffer value={_pbrBuffer} />
+      {props.albedoTexture ? (
+        <Texture
+          descriptor={{
+            size: { width: props.albedoTexture.width, height: props.albedoTexture.height }
+          }}
+          image={props.albedoTexture}
+        />
+      ) : (
+        <DefaultTexture />
+      )}
+      {props.occlusionRoughnessMetallicTexture ? (
+        <Texture
+          descriptor={{
+            size: {
+              width: props.occlusionRoughnessMetallicTexture.width,
+              height: props.occlusionRoughnessMetallicTexture.height
+            }
+          }}
+          image={props.occlusionRoughnessMetallicTexture}
+        />
+      ) : (
+        <DefaultTexture />
+      )}
 
-          <Sampler
-            descriptor={{
-              magFilter: 'linear',
-              minFilter: 'linear',
-              mipmapFilter: 'linear',
-              addressModeU: 'repeat',
-              addressModeV: 'repeat'
-            }}
-          />
-          <UniformBuffer buildInType="punctual_lights" />
-        </>
-      }
-    />
+      <Sampler
+        descriptor={{
+          magFilter: 'linear',
+          minFilter: 'linear',
+          mipmapFilter: 'linear',
+          addressModeU: 'repeat',
+          addressModeV: 'repeat'
+        }}
+      />
+      <UniformBuffer buildInType="punctual_lights" />
+    </Material>
   )
 }

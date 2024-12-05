@@ -1,5 +1,5 @@
 import { Mat3, Mat4, Vec3 } from 'math'
-import { createEffect, createSignal, JSX, onCleanup, untrack } from 'solid-js'
+import { createEffect, createSignal, onCleanup, untrack } from 'solid-js'
 import { createStore, produce } from 'solid-js/store'
 
 import {
@@ -30,7 +30,6 @@ import { createBuffer, imageBitmapFromImageUrl, white1pxBase64 } from '../utils'
 
 export type MaterialRef = NodeRef<MaterialContext>
 export type MaterialProps = NodeProps<MaterialContext> & {
-  uniforms?: JSX.Element
   shaderCode: string
   cullMode?: GPUCullMode
   transparent?: boolean
@@ -152,7 +151,7 @@ export const Material = (props: MaterialProps) => {
 
   return (
     <Provider>
-      <MaterialContextProvider value={[store, setStore]}>{props.uniforms}</MaterialContextProvider>
+      <MaterialContextProvider value={[store, setStore]}>{props.children}</MaterialContextProvider>
     </Provider>
   )
 }
