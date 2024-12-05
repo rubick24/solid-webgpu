@@ -126,7 +126,7 @@ export const createObject3DContext = <T,>(
       Mat4.fromRotationTranslationScale(m, quaternion(), position(), scale())
 
       const pm = parentMatrix()
-      if(pm){
+      if (pm) {
         Mat4.mul(m, pm(), m)
       }
 
@@ -159,7 +159,7 @@ export const createObject3DContext = <T,>(
           )
         }
       } as unknown as JSXElement
-    } 
+    }
   }
 }
 
@@ -167,6 +167,6 @@ export const Object3D = (props: Object3DProps) => {
   const { store, Provider } = createObject3DContext(['Object3D'], props, {})
 
   props.ref?.(store)
-  
+
   return <Provider>{props.children}</Provider>
 }

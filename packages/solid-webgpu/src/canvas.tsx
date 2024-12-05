@@ -232,12 +232,14 @@ export const Canvas = (props: CanvasProps) => {
   return (
     <SceneContextProvider value={[scene, setScene]}>
       {canvas}
-      <For each={children(() => cProps.children).toArray()}>{child => {
-        if(isObject3DInterface(child)){
-          return child?.render()
-        }
-        return child
-      }}</For>
+      <For each={children(() => cProps.children).toArray()}>
+        {child => {
+          if (isObject3DInterface(child)) {
+            return child?.render()
+          }
+          return child
+        }}
+      </For>
     </SceneContextProvider>
   )
 }
