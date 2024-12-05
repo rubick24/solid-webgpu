@@ -1,8 +1,20 @@
 import { Mat4, Quat, QuatLike, Vec3, Vec3Like } from 'math'
-import { createEffect, createSignal, createUniqueId, ParentProps, splitProps } from 'solid-js'
+import {
+  Accessor,
+  children,
+  createEffect,
+  createSignal,
+  createUniqueId,
+  For,
+  JSXElement,
+  ParentProps,
+  splitProps
+} from 'solid-js'
 import { createStore } from 'solid-js/store'
-import { NodeContextProvider, Object3DContextProvider, useObject3DContext, useSceneContext } from './context'
+import { NodeContextProvider, Object3DContextProvider, useSceneContext } from './context'
 import { NodeContext, NodeProps, NodeRef, Object3DContext, Object3DExtra } from './types'
+
+const $OBJECT3D = Symbol()
 
 export type Object3DRef<T = {}> = NodeRef<T>
 export type Object3DProps<T = {}> = NodeProps<T> &
@@ -11,6 +23,15 @@ export type Object3DProps<T = {}> = NodeProps<T> &
     quaternion?: QuatLike
     scale?: Vec3Like
   }
+
+interface Object3DInterface {
+  render(): JSXElement
+  setParentMatrix(matrix: Accessor<Accessor<Mat4>>): void
+}
+
+export const isObject3DInterface = (value: unknown): value is Object3DInterface => {
+  return !!(value && typeof value === 'object' && $OBJECT3D in value)
+}
 
 export const createNodeContext = <T,>(
   type: string[],
@@ -98,15 +119,17 @@ export const createObject3DContext = <T,>(
   })
 
   // update matrix
-  const parentCtx = useObject3DContext()
+  const [parentMatrix, setParentMatrix] = createSignal<Accessor<Mat4>>()
   createEffect(() => {
     const { quaternion, position, scale } = store
     store.setMatrix(m => {
       Mat4.fromRotationTranslationScale(m, quaternion(), position(), scale())
-      if (parentCtx && parentCtx[0]) {
-        const pm = parentCtx[0].matrix()
-        Mat4.mul(m, pm, m)
+
+      const pm = parentMatrix()
+      if(pm){
+        Mat4.mul(m, pm(), m)
       }
+
       return m
     })
   })
@@ -115,12 +138,28 @@ export const createObject3DContext = <T,>(
     store,
     setStore,
     Provider: (p: ParentProps) => {
-      return (
-        <Provider>
-          <Object3DContextProvider value={[store, setStore]}>{p.children}</Object3DContextProvider>
-        </Provider>
-      )
-    }
+      return {
+        [$OBJECT3D]: true,
+        setParentMatrix,
+        render() {
+          return (
+            <Provider>
+              <Object3DContextProvider value={[store, setStore]}>
+                <For each={children(() => p.children).toArray()}>
+                  {child => {
+                    if (isObject3DInterface(child)) {
+                      child.setParentMatrix(() => store.matrix)
+                      return child.render()
+                    }
+                    return child
+                  }}
+                </For>
+              </Object3DContextProvider>
+            </Provider>
+          )
+        }
+      } as unknown as JSXElement
+    } 
   }
 }
 
@@ -128,5 +167,6 @@ export const Object3D = (props: Object3DProps) => {
   const { store, Provider } = createObject3DContext(['Object3D'], props, {})
 
   props.ref?.(store)
+  
   return <Provider>{props.children}</Provider>
 }

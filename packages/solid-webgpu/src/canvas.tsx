@@ -1,9 +1,10 @@
 import createRAF from '@solid-primitives/raf'
 import { Vec3 } from 'math'
-import { batch, createEffect, mergeProps, onCleanup, ParentProps, splitProps } from 'solid-js'
+import { batch, children, createEffect, For, mergeProps, onCleanup, ParentProps, splitProps } from 'solid-js'
 import { createStore } from 'solid-js/store'
 import { CameraRef } from './camera'
 import { SceneContext, SceneContextProvider } from './context'
+import { isObject3DInterface } from './object3d'
 import {
   CameraContext,
   GeometryContext,
@@ -231,7 +232,12 @@ export const Canvas = (props: CanvasProps) => {
   return (
     <SceneContextProvider value={[scene, setScene]}>
       {canvas}
-      {cProps.children}
+      <For each={children(() => cProps.children).toArray()}>{child => {
+        if(isObject3DInterface(child)){
+          return child?.render()
+        }
+        return child
+      }}</For>
     </SceneContextProvider>
   )
 }
