@@ -1,28 +1,33 @@
 import { Mat3, Mat4, Vec3 } from 'math'
-import { createEffect, createSignal, onCleanup, untrack } from 'solid-js'
-import { createStore, produce } from 'solid-js/store'
+import { children, createEffect, createSignal, JSX, onCleanup, untrack } from 'solid-js'
 
+import { createNodeContext, wgpuCompRender } from '../object3d'
 import {
-  MaterialContextProvider,
-  useMaterialContext,
-  useMeshContext,
-  useObject3DContext,
-  useSceneContext
-} from '../context'
-import { createNodeContext } from '../object3d'
-import {
+  $MATERIAL,
+  $SAMPLER,
+  $TEXTURE,
+  $UNIFORM_BUFFER,
   CameraContext,
+  isSamplerComponent,
+  isTextureComponent,
+  isUniformBufferComponent,
+  MaterialComponent,
   MaterialContext,
   MaterialExtra,
+  MeshContext,
   NodeProps,
   NodeRef,
   Optional,
   PunctualLightContext,
+  SamplerComponent,
   SamplerContext,
   SamplerExtra,
+  StoreContext,
+  TextureComponent,
   TextureContext,
   TextureExtra,
   TypedArray,
+  UniformBufferComponent,
   UniformBufferContext,
   UniformBufferExtra
 } from '../types'
@@ -44,28 +49,30 @@ const builtInBufferLength = {
 } as const
 
 export const Material = (props: MaterialProps) => {
-  const {
-    store: _s,
-    setStore: _setS,
-    Provider
-  } = createNodeContext(['Material'], props, {
+  const ch = children(() => props.children)
+  const ext: MaterialExtra = {
+    [$MATERIAL]: true,
     uniforms: [],
     shaderCode: '',
     cullMode: 'back',
     transparent: false,
     depthTest: true,
     depthWrite: true
-  } satisfies MaterialExtra)
-  const [scene] = useSceneContext()
-  const id = _s.id
-
-  const [store, setStore] = createStore(scene.nodes[id] as MaterialContext)
+  }
+  const { store, setStore, comp } = createNodeContext<MaterialContext>(props, ch, ext)
 
   props.ref?.(store)
 
-  const [_, setMesh] = useMeshContext()
+  const [meshCtx, setMeshCtx] = createSignal<StoreContext<MeshContext>>()
+  createEffect(() => {
+    setStore('mesh', meshCtx()?.[0].id)
+    meshCtx()?.[1]('material', store.id)
 
-  setMesh('material', id)
+    onCleanup(() => {
+      setStore('mesh', undefined)
+      meshCtx()?.[1]('material', undefined)
+    })
+  })
 
   createEffect(() => setStore('shaderCode', props.shaderCode))
   createEffect(() => setStore('cullMode', props.cullMode ?? 'back'))
@@ -73,19 +80,20 @@ export const Material = (props: MaterialProps) => {
   createEffect(() => setStore('depthTest', props.depthTest ?? true))
   createEffect(() => setStore('depthWrite', props.depthWrite ?? true))
 
-  const [sceneContext] = useSceneContext()
-
   createEffect(() => {
-    const { device } = sceneContext
+    const scene = store.scene()?.[0]
+    if (!scene) return
+    const { device } = scene
     const layoutEntries = store.uniforms.map((_u, i): GPUBindGroupLayoutEntry => {
       const u = scene.nodes[_u]
-      if (u.type.includes('Texture')) {
+
+      if ($TEXTURE in u) {
         return {
           binding: i,
           visibility: GPUShaderStage.FRAGMENT,
           texture: {}
         }
-      } else if (u.type.includes('Sampler')) {
+      } else if ($SAMPLER in u) {
         return {
           binding: i,
           visibility: GPUShaderStage.FRAGMENT,
@@ -105,10 +113,12 @@ export const Material = (props: MaterialProps) => {
     setStore('bindGroupLayout', layout)
   })
   createEffect(() => {
+    const scene = store.scene()?.[0]
+    if (!scene) return
     const bindGroupEntries = store.uniforms.map((_u, i): GPUBindGroupEntry | undefined => {
       const u = scene.nodes[_u]
-      if (u.type.includes('Texture')) {
-        const t = (u as TextureContext).texture
+      if ($TEXTURE in u) {
+        const t = (u as unknown as TextureContext).texture
         if (!t) {
           return
         }
@@ -116,8 +126,8 @@ export const Material = (props: MaterialProps) => {
           binding: i,
           resource: t && 'createView' in t ? t.createView() : t
         }
-      } else if (u.type.includes('Sampler')) {
-        const s = (u as SamplerContext).sampler
+      } else if ($SAMPLER in u) {
+        const s = (u as unknown as SamplerContext).sampler
         if (!s) {
           return
         }
@@ -137,9 +147,11 @@ export const Material = (props: MaterialProps) => {
   })
 
   createEffect(() => {
-    const { device } = sceneContext
+    const device = store.scene()?.[0].device
+    if (!device) {
+      return
+    }
     const { bindGroupLayout, bindGroupEntries } = store
-
     if (bindGroupLayout && bindGroupEntries?.length) {
       const bindGroup = device.createBindGroup({
         layout: bindGroupLayout,
@@ -149,11 +161,20 @@ export const Material = (props: MaterialProps) => {
     }
   })
 
-  return (
-    <Provider>
-      <MaterialContextProvider value={[store, setStore]}>{props.children}</MaterialContextProvider>
-    </Provider>
-  )
+  return {
+    ...comp,
+    [$MATERIAL]: true as const,
+    setMeshCtx,
+    render: () => {
+      comp.render()
+      ch.toArray().forEach(child => {
+        if (isTextureComponent(child) || isSamplerComponent(child) || isUniformBufferComponent(child)) {
+          child.setMaterialCtx([store, setStore])
+        }
+      })
+      return wgpuCompRender(ch)
+    }
+  } satisfies MaterialComponent as unknown as JSX.Element
 }
 
 export type TextureRef = NodeRef<TextureContext>
@@ -162,27 +183,34 @@ export type TextureProps = NodeProps<TextureContext> & {
   image?: ImageBitmap | ImageData | HTMLCanvasElement | OffscreenCanvas
 }
 export const Texture = (props: TextureProps) => {
-  const { store: _s, setStore: _setS } = createNodeContext(['Texture'], props, {
-    descriptor: untrack(() => props.descriptor)
-  } satisfies TextureExtra)
-  const [scene] = useSceneContext()
-  const id = _s.id
+  const ch = children(() => props.children)
 
-  const [store, setStore] = createStore(scene.nodes[id] as TextureContext)
+  const ext: TextureExtra = {
+    [$TEXTURE]: true,
+    descriptor: untrack(() => props.descriptor)
+  }
+  const { store, setStore, comp } = createNodeContext<TextureContext>(props, ch, ext)
 
   createEffect(() => setStore('descriptor', props.descriptor))
   createEffect(() => setStore('image', props.image))
 
   props.ref?.(store)
 
-  const [m, setM] = useMaterialContext()
-  setM('uniforms', v => v.concat(id))
-
-  const [sceneContext] = useSceneContext()
+  const [materialCtx, setMaterialCtx] = createSignal<StoreContext<MaterialContext>>()
+  createEffect(() => {
+    materialCtx()?.[1]('uniforms', v => v.concat(store.id))
+    onCleanup(() => {
+      materialCtx()?.[1]('uniforms', v => v.filter(x => x !== store.id))
+    })
+  })
 
   // sync texture
   createEffect(() => {
-    const { device, format } = sceneContext
+    const scene = store.scene()?.[0]
+    if (!scene) {
+      return
+    }
+    const { device, format } = scene
 
     const target = device.createTexture({
       ...store.descriptor,
@@ -202,7 +230,15 @@ export const Texture = (props: TextureProps) => {
     onCleanup(() => target.destroy())
   })
 
-  return null
+  return {
+    ...comp,
+    [$TEXTURE]: true,
+    setMaterialCtx,
+    render: () => {
+      comp.render()
+      return wgpuCompRender(ch)
+    }
+  } satisfies TextureComponent as unknown as JSX.Element
 }
 
 export type SamplerRef = NodeRef<SamplerContext>
@@ -210,30 +246,44 @@ export type SamplerProps = NodeProps<SamplerContext> & {
   descriptor: GPUSamplerDescriptor
 }
 export const Sampler = (props: SamplerProps) => {
-  const { store: _s, setStore: _setS } = createNodeContext(['Sampler'], props, {
+  const ch = children(() => props.children)
+  const ext: SamplerExtra = {
+    [$SAMPLER]: true,
     descriptor: untrack(() => props.descriptor)
-  } satisfies SamplerExtra)
-  const [scene] = useSceneContext()
-  const id = _s.id
-
-  const [store, setStore] = createStore(scene.nodes[id] as SamplerContext)
+  }
+  const { store, setStore, comp } = createNodeContext<SamplerContext>(props, ch, ext)
 
   createEffect(() => setStore('descriptor', props.descriptor))
 
   props.ref?.(store)
 
-  const [m, setM] = useMaterialContext()
-  setM('uniforms', v => v.concat(id))
-
-  const [sceneContext] = useSceneContext()
+  const [materialCtx, setMaterialCtx] = createSignal<StoreContext<MaterialContext>>()
+  createEffect(() => {
+    materialCtx()?.[1]('uniforms', v => v.concat(store.id))
+    onCleanup(() => {
+      materialCtx()?.[1]('uniforms', v => v.filter(x => x !== store.id))
+    })
+  })
 
   // sync sampler
   createEffect(() => {
-    const sampler = sceneContext.device.createSampler(store.descriptor)
+    const scene = store.scene()?.[0]
+    if (!scene) {
+      return
+    }
+    const sampler = scene.device.createSampler(store.descriptor)
     setStore('sampler', sampler)
   })
 
-  return null
+  return {
+    ...comp,
+    [$SAMPLER]: true,
+    setMaterialCtx,
+    render: () => {
+      comp.render()
+      return wgpuCompRender(ch)
+    }
+  } satisfies SamplerComponent as unknown as JSX.Element
 }
 
 export type UniformBufferRef = NodeRef<UniformBufferContext>
@@ -245,10 +295,13 @@ export type UniformBufferProps = NodeProps<UniformBufferContext> &
     | { buildInType: 'base' | 'punctual_lights' }
   )
 export const UniformBuffer = (props: UniformBufferProps) => {
+  const ch = children(() => props.children)
+
   const initial = untrack(() => {
     if ('value' in props) {
       const val = createSignal(props.value, { equals: false })
       return {
+        [$UNIFORM_BUFFER]: true,
         value: val[0],
         setValue: val[1]
       }
@@ -257,6 +310,7 @@ export const UniformBuffer = (props: UniformBufferProps) => {
         equals: false
       })
       return {
+        [$UNIFORM_BUFFER]: true,
         builtIn: props.buildInType,
         value: val[0],
         setValue: val[1]
@@ -264,19 +318,7 @@ export const UniformBuffer = (props: UniformBufferProps) => {
     }
   }) satisfies UniformBufferExtra
 
-  const { store: _s, setStore: _setS } = createNodeContext(['UniformBuffer'], props, initial)
-  const [scene, setScene] = useSceneContext()
-  const id = _s.id
-
-  setScene(
-    'nodes',
-    id,
-    produce(v => {
-      v.uniformBuffer = initial
-    })
-  )
-
-  const [store, setStore] = createStore(scene.nodes[id] as UniformBufferContext)
+  const { store, setStore, comp } = createNodeContext<UniformBufferContext>(props, ch, initial)
 
   createEffect(() => {
     if ('buildInType' in props) {
@@ -286,13 +328,16 @@ export const UniformBuffer = (props: UniformBufferProps) => {
     }
   })
 
-  const [o3d] = useObject3DContext()
-
   /**
    * update built-in uniform buffer
    */
   createEffect(() => {
-    if (store.builtIn === 'base') {
+    const scene = store.scene()?.[0]
+    if (!scene) {
+      return
+    }
+    const o3d = scene.nodes[materialCtx()?.[0].mesh ?? ''] as MeshContext
+    if (store.builtIn === 'base' && o3d) {
       store.setValue(v => {
         const bo =
           'length' in v && v.length === builtInBufferLength.base
@@ -319,7 +364,6 @@ export const UniformBuffer = (props: UniformBufferProps) => {
 
         return bo
       })
-      // setStore('value', bo)
     } else if (store.builtIn === 'punctual_lights') {
       store.setValue(v => {
         const lightValues =
@@ -364,20 +408,27 @@ export const UniformBuffer = (props: UniformBufferProps) => {
 
   props.ref?.(store)
 
-  const [m, setM] = useMaterialContext()
-  setM('uniforms', v => v.concat(id))
-
-  const [sceneContext] = useSceneContext()
+  const [materialCtx, setMaterialCtx] = createSignal<StoreContext<MaterialContext>>()
+  createEffect(() => {
+    materialCtx()?.[1]('uniforms', v => v.concat(store.id))
+    onCleanup(() => {
+      materialCtx()?.[1]('uniforms', v => v.filter(x => x !== store.id))
+    })
+  })
 
   // sync uniformBuffer
   createEffect(() => {
-    const { device } = sceneContext
+    const scene = store.scene()?.[0]
+    if (!scene) {
+      return
+    }
+    const { device } = scene
     const data = store.value
     const buffer = createBuffer({
       device,
       data: data(),
       usage: GPUBufferUsage.UNIFORM,
-      label: `uniform buffer ${_s.id} ${_s.label}`
+      label: `uniform buffer ${store.id} ${store.label}`
     })
 
     setStore('buffer', buffer)
@@ -385,7 +436,15 @@ export const UniformBuffer = (props: UniformBufferProps) => {
     onCleanup(() => buffer.destroy())
   })
 
-  return null
+  return {
+    ...comp,
+    [$UNIFORM_BUFFER]: true,
+    setMaterialCtx,
+    render: () => {
+      comp.render()
+      return wgpuCompRender(ch)
+    }
+  } satisfies UniformBufferComponent as unknown as JSX.Element
 }
 
 const defaultBitmap = await imageBitmapFromImageUrl(white1pxBase64)

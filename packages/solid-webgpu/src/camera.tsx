@@ -1,9 +1,7 @@
 import { DEG2RAD, Mat4, Quat, Vec3 } from 'math'
-import { createEffect, createSignal, mergeProps, splitProps } from 'solid-js'
-import { createStore } from 'solid-js/store'
-import { CameraContextProvider, useSceneContext } from './context'
-import { createObject3DContext, Object3DProps, Object3DRef } from './object3d'
-import { CameraContext, CameraExtra } from './types'
+import { children, createEffect, createSignal, JSX, mergeProps, splitProps } from 'solid-js'
+import { createObject3DContext, Object3DProps, Object3DRef, wgpuCompRender } from './object3d'
+import { $CAMERA, CameraContext, CameraExtra, Object3DComponent } from './types'
 
 export type CameraRef = Object3DRef<CameraContext>
 export type CameraProps = Object3DProps<CameraContext>
@@ -17,26 +15,23 @@ export const lookAt = (outQuat: Quat, position: Vec3, up: Vec3, target: Vec3) =>
 }
 
 export const Camera = (props: CameraProps) => {
+  const ch = children(() => props.children)
+
   const p = createSignal(new Mat4(), { equals: false })
   const v = createSignal(new Mat4(), { equals: false })
   const pv = createSignal(new Mat4(), { equals: false })
-  const {
-    store: _s,
-    setStore: _setS,
-    Provider
-  } = createObject3DContext<CameraContext>(['Camera'], props, {
+  const cameraExt = {
+    [$CAMERA]: true,
     projectionMatrix: p[0],
     setProjectionMatrix: p[1],
     viewMatrix: v[0],
     setViewMatrix: v[1],
     projectionViewMatrix: pv[0],
     setProjectionViewMatrix: pv[1]
-  } satisfies CameraExtra)
+  } satisfies CameraExtra
+  const { store, comp } = createObject3DContext<CameraContext>(props, ch, cameraExt)
 
-  const [scene] = useSceneContext()
-
-  const id = _s.id
-  const [store, setStore] = createStore(scene.nodes[id] as CameraContext)
+  props.ref?.(store)
 
   createEffect(() => {
     store.setViewMatrix(m => {
@@ -45,8 +40,6 @@ export const Camera = (props: CameraProps) => {
       return m
     })
   })
-
-  props.ref?.(store)
 
   createEffect(() => {
     store.setProjectionViewMatrix(m => {
@@ -57,11 +50,10 @@ export const Camera = (props: CameraProps) => {
     })
   })
 
-  return (
-    <Provider>
-      <CameraContextProvider value={[store, setStore]}>{props.children}</CameraContextProvider>
-    </Provider>
-  )
+  return {
+    ...comp,
+    render: () => wgpuCompRender(ch)
+  } satisfies Object3DComponent as unknown as JSX.Element
 }
 
 export type PerspectiveCameraProps = CameraProps & {

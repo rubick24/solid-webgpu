@@ -1,9 +1,7 @@
 import { Vec3, Vec3Like } from 'math'
-import { createEffect, createSignal } from 'solid-js'
-import { createStore } from 'solid-js/store'
-import { PunctualLightContextProvider, useSceneContext } from './context'
-import { createObject3DContext, Object3DProps, Object3DRef } from './object3d'
-import { PunctualLightContext, PunctualLightExtra } from './types'
+import { children, createEffect, createSignal, JSX, onCleanup } from 'solid-js'
+import { createObject3DContext, Object3DProps, Object3DRef, wgpuCompRender } from './object3d'
+import { $PUNCTUAL_LIGHT, Object3DComponent, PunctualLightContext, PunctualLightExtra } from './types'
 
 export type PunctualLightRef = Object3DRef<PunctualLightContext>
 export type PunctualLightProps = Object3DProps<PunctualLightContext> & {
@@ -13,12 +11,11 @@ export type PunctualLightProps = Object3DProps<PunctualLightContext> & {
 } & ({ type?: 'directional' | 'point' } | { type: 'spot'; innerConeAngle?: number; outerConeAngle?: number })
 
 export const PunctualLight = (props: PunctualLightProps) => {
+  const ch = children(() => props.children)
+
   const c = createSignal(Vec3.create(), { equals: false })
-  const {
-    store: _s,
-    setStore: _setS,
-    Provider
-  } = createObject3DContext(['PunctualLight'], props, {
+  const lightExt = {
+    [$PUNCTUAL_LIGHT]: true,
     color: c[0],
     setColor: c[1],
     intensity: 1,
@@ -26,13 +23,11 @@ export const PunctualLight = (props: PunctualLightProps) => {
     lightType: 'directional',
     innerConeAngle: 0,
     outerConeAngle: Math.PI / 4
-  } satisfies PunctualLightExtra)
+  } satisfies PunctualLightExtra
+  const { store, setStore, comp } = createObject3DContext<PunctualLightContext>(props, ch, lightExt)
 
-  const [scene, setScene] = useSceneContext()
+  const id = store.id
 
-  const id = _s.id
-
-  const [store, setStore] = createStore(scene.nodes[id] as PunctualLightContext)
   props.ref?.(store)
 
   createEffect(() =>
@@ -57,11 +52,19 @@ export const PunctualLight = (props: PunctualLightProps) => {
     )
   )
 
-  setScene('lightList', v => v.concat(id))
+  createEffect(() => {
+    const setScene = store.scene()?.[1]
+    setScene?.('lightList', v => v.concat(id))
+    onCleanup(() => {
+      setScene?.('lightList', v => v.filter(x => id !== x))
+    })
+  })
 
-  return (
-    <Provider>
-      <PunctualLightContextProvider value={[store, setStore]}>{props.children}</PunctualLightContextProvider>
-    </Provider>
-  )
+  return {
+    ...comp,
+    render: () => {
+      comp.render()
+      return wgpuCompRender(ch)
+    }
+  } satisfies Object3DComponent as unknown as JSX.Element
 }

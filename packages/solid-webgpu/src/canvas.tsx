@@ -3,14 +3,14 @@ import { Vec3 } from 'math'
 import { batch, children, createEffect, For, mergeProps, onCleanup, ParentProps, splitProps } from 'solid-js'
 import { createStore } from 'solid-js/store'
 import { CameraRef } from './camera'
-import { SceneContext, SceneContextProvider } from './context'
-import { isObject3DInterface } from './object3d'
 import {
   CameraContext,
   GeometryContext,
   IndexBufferContext,
+  isWgpuComponent,
   MaterialContext,
   MeshContext,
+  SceneContext,
   VertexBufferContext
 } from './types'
 
@@ -112,8 +112,10 @@ export const Canvas = (props: CanvasProps) => {
     if (!scene.currentCamera) {
       return
     }
-
     const camera = scene.nodes[scene.currentCamera] as CameraContext
+    if (!camera) {
+      return
+    }
     const projectionViewMatrix = camera.projectionViewMatrix()
 
     const renderOrder = scene.renderList
@@ -229,17 +231,20 @@ export const Canvas = (props: CanvasProps) => {
   const [running, start, stop] = createRAF(() => renderFn())
   start()
 
+  const ch = children(() => cProps.children)
+
   return (
-    <SceneContextProvider value={[scene, setScene]}>
+    <>
       {canvas}
-      <For each={children(() => cProps.children).toArray()}>
+      <For each={ch.toArray()}>
         {child => {
-          if (isObject3DInterface(child)) {
-            return child?.render()
+          if (isWgpuComponent(child)) {
+            child.setSceneCtx([scene, setScene])
+            return child.render()
           }
           return child
         }}
       </For>
-    </SceneContextProvider>
+    </>
   )
 }

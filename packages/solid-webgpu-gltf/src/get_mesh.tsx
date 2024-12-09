@@ -24,13 +24,11 @@ export const getMesh = async (index: number, context: LoaderContext) => {
       const attributeKeys = Object.keys(primitive.attributes)
 
       const Geo = () => (
-        <Geometry
-          indexBuffer={
-            primitive.indices !== undefined ? (
-              <IndexBuffer value={_accessor(primitive.indices!).bufferData} />
-            ) : undefined
-          }
-          vertexBuffers={attributeKeys.map((k, i) => {
+        <Geometry>
+          {primitive.indices !== undefined ? (
+            <IndexBuffer value={_accessor(primitive.indices!).bufferData} />
+          ) : undefined}
+          {attributeKeys.map((k, i) => {
             const accessor = _accessor(primitive.attributes[k])
             const buffer = accessor.bufferData
             return (
@@ -53,7 +51,7 @@ export const getMesh = async (index: number, context: LoaderContext) => {
               />
             )
           })}
-        />
+        </Geometry>
       )
 
       const Mat = primitive.material !== undefined ? await _material(primitive.material) : DefaultMaterial

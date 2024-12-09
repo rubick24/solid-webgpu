@@ -1,20 +1,32 @@
 import { Mat4, Quat, QuatLike, Vec3, Vec3Like } from 'math'
 import {
-  Accessor,
   children,
+  ChildrenReturn,
   createEffect,
   createSignal,
   createUniqueId,
   For,
-  JSXElement,
+  JSX,
+  onCleanup,
   ParentProps,
   splitProps
 } from 'solid-js'
-import { createStore } from 'solid-js/store'
-import { NodeContextProvider, Object3DContextProvider, useSceneContext } from './context'
-import { NodeContext, NodeProps, NodeRef, Object3DContext, Object3DExtra } from './types'
-
-const $OBJECT3D = Symbol()
+import { createStore, produce, SetStoreFunction } from 'solid-js/store'
+import {
+  $OBJECT3D,
+  $WGPU_COMPONENT,
+  isObject3DComponent,
+  isWgpuComponent,
+  NodeContext,
+  NodeProps,
+  NodeRef,
+  Object3DComponent,
+  Object3DContext,
+  Object3DExtra,
+  SceneContext,
+  StoreContext,
+  WgpuComponent
+} from './types'
 
 export type Object3DRef<T = {}> = NodeRef<T>
 export type Object3DProps<T = {}> = NodeProps<T> &
@@ -24,46 +36,73 @@ export type Object3DProps<T = {}> = NodeProps<T> &
     scale?: Vec3Like
   }
 
-interface Object3DInterface {
-  render(): JSXElement
-  setParentMatrix(matrix: Accessor<Accessor<Mat4>>): void
-}
-
-export const isObject3DInterface = (value: unknown): value is Object3DInterface => {
-  return !!(value && typeof value === 'object' && $OBJECT3D in value)
-}
-
-export const createNodeContext = <T,>(
-  type: string[],
+export const createNodeContext = <T extends NodeContext>(
   props: Omit<NodeProps, 'ref'>,
-  init: Omit<T, keyof NodeContext>
+  ch: ChildrenReturn,
+  init?: Omit<T, keyof NodeContext>
 ) => {
   const [cProps] = splitProps(props, ['label'])
-  const nodeContext = {
+
+  const [sceneCtx, setSceneCtx] = createSignal<StoreContext<SceneContext>>()
+
+  const nodeContext: NodeContext = {
+    [$WGPU_COMPONENT]: true as const,
     id: createUniqueId(),
     label: '',
-    type,
+    scene: sceneCtx,
     ...init
   }
 
-  const [scene, setScene] = useSceneContext()
-  setScene('nodes', nodeContext.id, nodeContext)
-  const [store, setStore] = createStore(scene.nodes[nodeContext.id])
+  const [store, setStore] = createStore<NodeContext>(nodeContext)
   createEffect(() => setStore('label', cProps.label ?? ''))
 
+  // register node to scene
+  createEffect(() => {
+    const setScene = sceneCtx()?.[1]
+    setScene?.('nodes', store.id, store)
+    onCleanup(() => {
+      setScene?.(
+        'nodes',
+        produce(v => {
+          delete v[store.id]
+        })
+      )
+    })
+  })
+
   return {
-    store,
-    setStore,
-    Provider: (p: ParentProps) => {
-      return <NodeContextProvider value={[store, setStore]}>{p.children}</NodeContextProvider>
-    }
+    store: store as T,
+    setStore: setStore as SetStoreFunction<T>,
+    comp: {
+      [$WGPU_COMPONENT]: true as const,
+      id: store.id,
+      setSceneCtx,
+      render: () => {
+        ch.toArray().forEach(child => {
+          if (isWgpuComponent(child)) {
+            child.setSceneCtx(sceneCtx())
+          }
+        })
+        return null
+      }
+    } satisfies WgpuComponent
   }
 }
+export const wgpuCompRender = (ch: ChildrenReturn) => (
+  <For each={ch.toArray()}>
+    {child => {
+      if (isWgpuComponent(child)) {
+        return child.render()
+      }
+      return child
+    }}
+  </For>
+)
 
-export const createObject3DContext = <T,>(
-  type: string[],
+export const createObject3DContext = <T extends Object3DContext>(
   props: Omit<Object3DProps, 'ref'>,
-  init: Omit<T, keyof Object3DContext>
+  ch: ChildrenReturn,
+  init?: Omit<T, keyof Object3DContext>
 ) => {
   const m = createSignal(Mat4.create(), { equals: false })
   const p = createSignal(Vec3.create(), { equals: false })
@@ -71,6 +110,7 @@ export const createObject3DContext = <T,>(
   const s = createSignal(Vec3.fromValues(1, 1, 1), { equals: false })
   const u = createSignal(Vec3.fromValues(0, 1, 0), { equals: false })
   const o3dExt: Object3DExtra = {
+    [$OBJECT3D]: true,
     matrix: m[0],
     setMatrix: m[1],
     position: p[0],
@@ -82,20 +122,12 @@ export const createObject3DContext = <T,>(
     up: u[0],
     setUp: u[1]
   }
-  const {
-    store: _s,
-    setStore: _setS,
-    Provider
-  } = createNodeContext(['Object3D'].concat(type), props, {
-    ...init,
-    ...o3dExt
-  })
+
+  const { store, setStore, comp } = createNodeContext<Object3DContext>(props, ch, { ...init, ...o3dExt })
 
   const [o3dProps] = splitProps(props, ['position', 'quaternion', 'scale'])
 
-  const id = _s.id
-  const [scene] = useSceneContext()
-  const [store, setStore] = createStore(scene.nodes[id] as Object3DContext)
+  const id = store.id
 
   createEffect(() => {
     store.setPosition(v => {
@@ -118,14 +150,15 @@ export const createObject3DContext = <T,>(
     })
   })
 
+  const [parentCtx, setParentCtx] = createSignal<StoreContext<Object3DContext>>()
+
   // update matrix
-  const [parentMatrix, setParentMatrix] = createSignal<Accessor<Mat4>>()
   createEffect(() => {
     const { quaternion, position, scale } = store
     store.setMatrix(m => {
       Mat4.fromRotationTranslationScale(m, quaternion(), position(), scale())
 
-      const pm = parentMatrix()
+      const pm = parentCtx()?.[0].matrix
       if (pm) {
         Mat4.mul(m, pm(), m)
       }
@@ -135,38 +168,36 @@ export const createObject3DContext = <T,>(
   })
 
   return {
-    store,
-    setStore,
-    Provider: (p: ParentProps) => {
-      return {
-        [$OBJECT3D]: true,
-        setParentMatrix,
-        render() {
-          return (
-            <Provider>
-              <Object3DContextProvider value={[store, setStore]}>
-                <For each={children(() => p.children).toArray()}>
-                  {child => {
-                    if (isObject3DInterface(child)) {
-                      child.setParentMatrix(() => store.matrix)
-                      return child.render()
-                    }
-                    return child
-                  }}
-                </For>
-              </Object3DContextProvider>
-            </Provider>
-          )
-        }
-      } as unknown as JSXElement
-    }
+    store: store as T,
+    setStore: setStore as SetStoreFunction<T>,
+    comp: {
+      ...comp,
+      [$OBJECT3D]: true as const,
+      setParentCtx,
+      render: () => {
+        comp.render()
+        ch.toArray().forEach(child => {
+          if (isObject3DComponent(child)) {
+            child.setParentCtx([store, setStore])
+          }
+        })
+        return null
+      }
+    } satisfies Object3DComponent
   }
 }
 
 export const Object3D = (props: Object3DProps) => {
-  const { store, Provider } = createObject3DContext(['Object3D'], props, {})
+  const ch = children(() => props.children)
+  const { store, comp } = createObject3DContext(props, ch)
 
   props.ref?.(store)
 
-  return <Provider>{props.children}</Provider>
+  return {
+    ...comp,
+    render: () => {
+      comp.render()
+      return wgpuCompRender(ch)
+    }
+  } satisfies Object3DComponent as unknown as JSX.Element
 }

@@ -1,5 +1,6 @@
 import { createSignal, Show } from 'solid-js'
 import { render } from 'solid-js/web'
+import type { CameraRef, QuatLike, Vec3Like } from 'solid-webgpu'
 import {
   Canvas,
   createOrbitControl,
@@ -11,10 +12,7 @@ import {
   Plane,
   PunctualLight,
   Quat,
-  QuatLike,
-  UnlitMaterial,
-  Vec3Like,
-  type CameraRef
+  UnlitMaterial
 } from 'solid-webgpu'
 
 const t = await imageBitmapFromImageUrl('../../static/a.png')
@@ -45,6 +43,13 @@ const App = () => {
   }
   requestAnimationFrame(af)
 
+  const unlit = (
+    <Mesh position={[-3, 0, 0]} quaternion={r()}>
+      <Plane />
+      <UnlitMaterial albedoTexture={t} />
+    </Mesh>
+  )
+
   return (
     <>
       <Canvas camera={camera()} ref={setCanvas}>
@@ -59,16 +64,13 @@ const App = () => {
 
         <Avatar position={[0, p(), 0]} quaternion={r()} />
 
-        <Show when={p() === 1}>
+        <Show when={p() % 2 === 0}>
           <Object3D position={[3, 0, 0]} quaternion={r()}>
             <Avatar position={[1, 0, 0]} />
           </Object3D>
         </Show>
 
-        <Mesh position={[-3, 0, 0]} quaternion={r()}>
-          <Plane />
-          <UnlitMaterial albedoTexture={t} />
-        </Mesh>
+        {unlit}
       </Canvas>
 
       <button onClick={() => setP(v => (v + 1) % 5)}>set position</button>

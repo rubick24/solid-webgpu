@@ -1,28 +1,34 @@
-import { createEffect, onCleanup } from 'solid-js'
+import { children, createEffect, JSX, onCleanup } from 'solid-js'
 import { createStore } from 'solid-js/store'
-import { MeshContextProvider, useSceneContext } from './context'
 
-import { createObject3DContext, Object3DProps, Object3DRef } from './object3d'
-import { GeometryContext, MaterialContext, MeshContext, VertexBufferContext } from './types'
-// import { PunctualLightToken, Token, tokenizer } from './tokenizer'
+import { createObject3DContext, Object3DProps, Object3DRef, wgpuCompRender } from './object3d'
+import {
+  GeometryContext,
+  isGeometryComponent,
+  isMaterialComponent,
+  MaterialContext,
+  MeshContext,
+  Object3DComponent,
+  VertexBufferContext
+} from './types'
 
 export type MeshRef = Object3DRef<MeshContext>
 export type MeshProps = Object3DProps<MeshContext>
 
 export const Mesh = (props: MeshProps) => {
-  const { store: _s, setStore: _setS, Provider } = createObject3DContext(['Mesh'], props, {})
-
-  const [scene, setScene] = useSceneContext()
-
+  const ch = children(() => props.children)
+  const { store: _s, comp } = createObject3DContext(props, ch)
   const id = _s.id
-
-  const [store, setStore] = createStore(scene.nodes[id] as MeshContext)
+  const [store, setStore] = createStore(_s as MeshContext)
   props.ref?.(store)
 
   createEffect(() => {
     if (!store.material || !store.geometry) {
       console.warn('no material or geometry found')
-
+      return
+    }
+    const scene = store.scene()?.[0]
+    if (!scene) {
       return
     }
     const material = scene.nodes[store.material] as MaterialContext
@@ -52,7 +58,6 @@ export const Mesh = (props: MeshProps) => {
     if (!bindGroupLayout) {
       return
     }
-
     const pipeline = device.createRenderPipeline({
       layout: device.createPipelineLayout({
         bindGroupLayouts: [bindGroupLayout]
@@ -84,16 +89,26 @@ export const Mesh = (props: MeshProps) => {
     setStore('pipeline', pipeline)
   })
 
-  setScene('renderList', v => v.concat(id))
+  createEffect(() => {
+    const setScene = store.scene()?.[1]
+    setScene?.('renderList', v => v.concat(id))
 
-  onCleanup(() => {
-    setScene('renderList', v => v.filter(x => id !== x))
+    onCleanup(() => {
+      setScene?.('renderList', v => v.filter(x => id !== x))
+    })
   })
 
-  return (
-    <Provider>
-      <MeshContextProvider value={[store, setStore]}>{props.children}</MeshContextProvider>
-    </Provider>
-  )
+  return {
+    ...comp,
+    render: () => {
+      comp.render()
+      ch.toArray().forEach(child => {
+        if (isGeometryComponent(child) || isMaterialComponent(child)) {
+          child.setMeshCtx([store, setStore])
+        }
+      })
+      return wgpuCompRender(ch)
+    }
+  } satisfies Object3DComponent as unknown as JSX.Element
 }
 const builtinAttributeNames = ['POSITION', 'NORMAL', 'TANGENT', 'TEXCOORD_0']

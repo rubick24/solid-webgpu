@@ -167,7 +167,6 @@ export const createOrbitControl = (
         lookAt(v, _camera.position(), _camera.up(), center)
         return v
       })
-      // _camera.lookAt(center)
 
       const o3d = _camera
       ops.zoom = (scale: number) => {

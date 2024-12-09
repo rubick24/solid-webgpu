@@ -61,16 +61,6 @@ const PI: f32 = 3.14159265359;
 
 @fragment
 fn fs_main(input: VertexOutput) -> @location(0) vec4<f32> {
-
-
     let values = get_values(input.uv);
-
-    let color = values.albedo;
-
-    // // Tone mapping
-    // let mapped = color / (color + vec3<f32>(1.0));
-    // // Gamma correction
-    // let corrected = pow(mapped, vec3<f32>(1.0 / 2.2));
-
-    return vec4<f32>(color, 1.0);
+    return vec4<f32>(values.albedo, 1.0);
 }

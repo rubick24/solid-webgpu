@@ -1,57 +1,69 @@
-import { batch, createEffect, createSignal, JSX, onCleanup, untrack } from 'solid-js'
-import { createStore } from 'solid-js/store'
-import { GeometryContextProvider, useGeometryContext, useMeshContext, useSceneContext } from '../context'
-import { createNodeContext } from '../object3d'
+import { batch, children, createEffect, createSignal, JSX, onCleanup, untrack } from 'solid-js'
+import { createNodeContext, wgpuCompRender } from '../object3d'
 import {
+  $GEOMETRY,
+  $INDEX_BUFFER,
+  $VERTEX_BUFFER,
+  GeometryComponent,
   GeometryContext,
   GeometryExtra,
+  IndexBufferComponent,
   IndexBufferContext,
   IndexBufferExtra,
+  isIndexBufferComponent,
+  isVertexBufferComponent,
+  MeshContext,
   NodeProps,
   NodeRef,
+  StoreContext,
   TypedArray,
+  VertexBufferComponent,
   VertexBufferContext,
   VertexBufferExtra
 } from '../types'
 import { createBuffer } from '../utils'
 
 export type GeometryRef = NodeRef<GeometryContext>
-export type GeometryProps = NodeProps<GeometryContext> & {
-  vertexBuffers: JSX.Element
-  indexBuffer: JSX.Element
-}
+export type GeometryProps = NodeProps<GeometryContext>
 
 export const Geometry = (props: GeometryProps) => {
-  const {
-    store: _s,
-    setStore: _setS,
-    Provider
-  } = createNodeContext(['Geometry'], props, {
+  const ch = children(() => props.children)
+  const ext = {
+    [$GEOMETRY]: true,
     vertexBuffers: [],
     topology: 'triangle-list',
     instanceCount: 1,
     drawRange: { start: 0, count: Infinity }
-  } as GeometryExtra)
-  const [scene, setScene] = useSceneContext()
-
-  const id = _s.id
-
-  const [store, setStore] = createStore(scene.nodes[id] as GeometryContext)
+  } as GeometryExtra
+  const { store, setStore, comp } = createNodeContext<GeometryContext>(props, ch, ext)
 
   props.ref?.(store)
 
-  const [_, setMesh] = useMeshContext()
+  const [meshCtx, setMeshCtx] = createSignal<StoreContext<MeshContext>>()
+  createEffect(() => {
+    meshCtx()?.[1]('geometry', store.id)
+    setStore('mesh', meshCtx()?.[0].id)
 
-  setMesh('geometry', id)
+    onCleanup(() => {
+      setStore('mesh', undefined)
+      meshCtx()?.[1]('geometry', undefined)
+    })
+  })
 
-  return (
-    <Provider>
-      <GeometryContextProvider value={[store, setStore]}>
-        {props.vertexBuffers}
-        {props.indexBuffer}
-      </GeometryContextProvider>
-    </Provider>
-  )
+  return {
+    ...comp,
+    [$GEOMETRY]: true as const,
+    setMeshCtx,
+    render: () => {
+      comp.render()
+      ch.toArray().forEach(child => {
+        if (isVertexBufferComponent(child) || isIndexBufferComponent(child)) {
+          child.setGeometryCtx([store, setStore])
+        }
+      })
+      return wgpuCompRender(ch)
+    }
+  } satisfies GeometryComponent as unknown as JSX.Element
 }
 
 export type VertexBufferRef = NodeRef<VertexBufferContext>
@@ -64,26 +76,27 @@ export type VertexBufferProps = NodeProps<VertexBufferContext> & {
   value: TypedArray
 }
 export const VertexBuffer = (props: VertexBufferProps) => {
+  const ch = children(() => props.children)
   const val = createSignal(
     untrack(() => props.value),
     { equals: false }
   )
-  const { store: _s, setStore: _setS } = createNodeContext(['VertexBuffer'], props, {
+  const ext: VertexBufferExtra = {
+    [$VERTEX_BUFFER]: true,
     layout: untrack(() => props.layout),
     value: val[0],
     setValue: val[1]
-  } satisfies VertexBufferExtra)
-
-  const [scene] = useSceneContext()
-  const id = _s.id
-
-  const [store, setStore] = createStore(scene.nodes[id] as VertexBufferContext)
+  }
+  const { store, setStore, comp } = createNodeContext<VertexBufferContext>(props, ch, ext)
 
   createEffect(() => setStore('attribute', props.attribute))
   createEffect(() => setStore('layout', props.layout))
 
   createEffect(() => {
-    const { device } = scene
+    const { device } = store.scene()?.[0] ?? {}
+    if (!device) {
+      return
+    }
     const data = props.value
     const buffer = createBuffer({ device, data, usage: GPUBufferUsage.VERTEX })
     batch(() => {
@@ -96,10 +109,24 @@ export const VertexBuffer = (props: VertexBufferProps) => {
 
   props.ref?.(store)
 
-  const [_, setG] = useGeometryContext()
-  setG('vertexBuffers', v => v.concat(id))
+  const [geometryCtx, setGeometryCtx] = createSignal<StoreContext<GeometryContext>>()
 
-  return null
+  createEffect(() => {
+    geometryCtx()?.[1]('vertexBuffers', v => v.concat(store.id))
+    onCleanup(() => {
+      geometryCtx()?.[1]('vertexBuffers', v => v.filter(x => x !== store.id))
+    })
+  })
+
+  return {
+    ...comp,
+    [$VERTEX_BUFFER]: true,
+    setGeometryCtx,
+    render: () => {
+      comp.render()
+      return wgpuCompRender(ch)
+    }
+  } satisfies VertexBufferComponent as unknown as JSX.Element
 }
 
 export type IndexBufferRef = NodeRef<IndexBufferContext>
@@ -107,21 +134,25 @@ export type IndexBufferProps = NodeProps<IndexBufferContext> & {
   value: TypedArray
 }
 export const IndexBuffer = (props: IndexBufferProps) => {
+  const ch = children(() => props.children)
   const val = createSignal(
     untrack(() => props.value),
     { equals: false }
   )
-  const { store: _s, setStore: _setS } = createNodeContext(['IndexBuffer'], props, {
+  const ext: IndexBufferExtra = {
+    [$INDEX_BUFFER]: true,
     value: val[0],
     setValue: val[1]
-  } satisfies IndexBufferExtra)
-  const [scene] = useSceneContext()
-  const id = _s.id
+  }
+  const { store, setStore, comp } = createNodeContext<IndexBufferContext>(props, ch, ext)
 
-  const [store, setStore] = createStore(scene.nodes[id] as IndexBufferContext)
+  const id = store.id
 
   createEffect(() => {
-    const { device } = scene
+    const { device } = store.scene()?.[0] ?? {}
+    if (!device) {
+      return
+    }
     const data = props.value
     const buffer = createBuffer({ device, data, usage: GPUBufferUsage.INDEX })
 
@@ -134,8 +165,23 @@ export const IndexBuffer = (props: IndexBufferProps) => {
   })
 
   props.ref?.(store)
-  const [_, setG] = useGeometryContext()
-  setG('indexBuffer', id)
 
-  return null
+  const [geometryCtx, setGeometryCtx] = createSignal<StoreContext<GeometryContext>>()
+
+  createEffect(() => {
+    geometryCtx()?.[1]('indexBuffer', id)
+    onCleanup(() => {
+      geometryCtx()?.[1]('indexBuffer', undefined)
+    })
+  })
+
+  return {
+    ...comp,
+    [$INDEX_BUFFER]: true,
+    setGeometryCtx,
+    render: () => {
+      comp.render()
+      return wgpuCompRender(ch)
+    }
+  } as IndexBufferComponent as unknown as JSX.Element
 }

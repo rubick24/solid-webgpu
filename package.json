@@ -1,10 +1,10 @@
 {
-  "name": "shadertoy-webgpu",
   "private": true,
   "version": "0.0.1",
   "type": "module",
   "scripts": {
-    "dev": "concurrently \"pnpm -r run --if-present --parallel watch\" \"pnpm -C examples dev\""
+    "dev": "concurrently \"pnpm -r run --if-present --parallel watch\" \"pnpm -C examples dev\"",
+    "build": "pnpm -r run --if-present build"
   },
   "devDependencies": {
     "@babel/preset-typescript": "^7.26.0",
