@@ -12,11 +12,11 @@
     "@solid-primitives/jsx-tokenizer": "^1.0.10",
     "@solid-primitives/raf": "^2.2.0",
     "math": "workspace:*",
+    "solid-js": "^1.9.3",
     "solid-webgpu": "workspace:*",
-    "solid-webgpu-gltf": "workspace:*",
-    "solid-js": "^1.9.3"
+    "solid-webgpu-gltf": "workspace:*"
   },
   "devDependencies": {
-    "vite-plugin-solid": "^2.10.2"
+    "vite-plugin-solid": "^2.11.0"
   }
 }
