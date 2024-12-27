@@ -341,7 +341,7 @@ export const UniformBuffer = (props: UniformBufferProps) => {
       store.setValue(v => {
         const bo =
           'length' in v && v.length === builtInBufferLength.base
-            ? (v as Float32Array)
+            ? (v as Float32Array<ArrayBuffer>)
             : new Float32Array(builtInBufferLength.base)
         const cameraID = scene.currentCamera
         if (!cameraID) {
@@ -368,7 +368,7 @@ export const UniformBuffer = (props: UniformBufferProps) => {
       store.setValue(v => {
         const lightValues =
           'length' in v && v.length === builtInBufferLength.punctual_lights
-            ? (v as Float32Array)
+            ? (v as Float32Array<ArrayBuffer>)
             : new Float32Array(builtInBufferLength.punctual_lights)
 
         const { lightList } = scene

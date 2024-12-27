@@ -1,4 +1,4 @@
-import type { TypedArrayConstructor } from 'solid-webgpu'
+import type { TypedArray, TypedArrayConstructor } from 'solid-webgpu'
 import { Accessor } from './generated/glTF'
 import { LoaderContext } from './types'
 
@@ -60,7 +60,11 @@ export const getAccessor = (index: number, context: LoaderContext) => {
 
   const itemType = componentValueType[accessor.componentType]
   const buffer = buffers[bufferView.buffer]
-  const ArrayType = componentTypedArray[accessor.componentType]
+  const ArrayType = componentTypedArray[accessor.componentType] as unknown as new (
+    buffer: ArrayBuffer,
+    byteOffset: number,
+    length: number
+  ) => TypedArray
   const byteOffset = (bufferView.byteOffset ?? 0) + (accessor.byteOffset ?? 0)
 
   return {
