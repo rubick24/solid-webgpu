@@ -18,7 +18,6 @@
     "solid-js": "^1.9.3"
   },
   "devDependencies": {
-    "@solid-primitives/raf": "^2.2.0",
     "babel-preset-solid": "^1.9.3",
     "math": "workspace:*",
     "solid-js": "^1.9.3"

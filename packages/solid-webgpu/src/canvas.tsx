@@ -1,4 +1,3 @@
-import createRAF from '@solid-primitives/raf'
 import { Vec3 } from 'math'
 import { batch, children, createEffect, For, mergeProps, onCleanup, ParentProps, splitProps } from 'solid-js'
 import { createStore } from 'solid-js/store'
@@ -228,8 +227,12 @@ export const Canvas = (props: CanvasProps) => {
     device.queue.submit([commandEncoder.finish()])
   }
 
-  const [running, start, stop] = createRAF(() => renderFn())
-  start()
+  createEffect(() => {
+    renderFn()
+  })
+
+  // const [running, start, stop] = createRAF(() => renderFn())
+  // start()
 
   const ch = children(() => cProps.children)
 

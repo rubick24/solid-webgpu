@@ -423,17 +423,22 @@ export const UniformBuffer = (props: UniformBufferProps) => {
       return
     }
     const { device } = scene
-    const data = store.value
-    const buffer = createBuffer({
-      device,
-      data: data(),
-      usage: GPUBufferUsage.UNIFORM,
-      label: `uniform buffer ${store.id} ${store.label}`
-    })
-
-    setStore('buffer', buffer)
-
-    onCleanup(() => buffer.destroy())
+    let buffer = untrack(() => store.buffer)
+    const value = store.value()
+    if (!buffer || buffer.size !== value.byteLength) {
+      // create new buffer
+      buffer?.destroy()
+      buffer = createBuffer({
+        device,
+        data: value,
+        usage: GPUBufferUsage.UNIFORM,
+        label: `uniform buffer ${store.id} ${store.label}`
+      })
+      setStore('buffer', buffer)
+    } else {
+      // write to existing buffer
+      device.queue.writeBuffer(buffer, 0, value)
+    }
   })
 
   return {

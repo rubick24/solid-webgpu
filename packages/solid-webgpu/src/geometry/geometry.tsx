@@ -97,14 +97,18 @@ export const VertexBuffer = (props: VertexBufferProps) => {
     if (!device) {
       return
     }
+    let buffer = untrack(() => store.buffer)
     const data = props.value
-    const buffer = createBuffer({ device, data, usage: GPUBufferUsage.VERTEX })
-    batch(() => {
-      store.setValue(data)
-      setStore('buffer', buffer)
-    })
-
-    onCleanup(() => buffer.destroy())
+    if (!buffer || buffer.size !== data.byteLength) {
+      buffer?.destroy()
+      buffer = createBuffer({ device, data, usage: GPUBufferUsage.VERTEX })
+      batch(() => {
+        store.setValue(data)
+        setStore('buffer', buffer)
+      })
+    } else {
+      device.queue.writeBuffer(buffer, 0, data)
+    }
   })
 
   props.ref?.(store)
@@ -153,9 +157,19 @@ export const IndexBuffer = (props: IndexBufferProps) => {
     if (!device) {
       return
     }
-    const data = props.value
-    const buffer = createBuffer({ device, data, usage: GPUBufferUsage.INDEX })
 
+    let buffer = untrack(() => store.buffer)
+    const data = props.value
+    if (!buffer || buffer.size !== data.byteLength) {
+      buffer?.destroy()
+      buffer = createBuffer({ device, data, usage: GPUBufferUsage.INDEX })
+      batch(() => {
+        store.setValue(data)
+        setStore('buffer', buffer)
+      })
+    } else {
+      device.queue.writeBuffer(buffer, 0, data)
+    }
     batch(() => {
       store.setValue(data)
       setStore('buffer', buffer)
