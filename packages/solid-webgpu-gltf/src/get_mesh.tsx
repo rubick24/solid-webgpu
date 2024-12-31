@@ -1,7 +1,6 @@
-// import { Geometry, Mesh } from 'core'
-import { Geometry, IndexBuffer, Mesh, VertexBuffer } from 'solid-webgpu'
+import { Mesh } from 'solid-webgpu'
 import { getAccessor } from './get_accessor'
-import { DefaultMaterial, getMaterial } from './get_material'
+import { getMaterial } from './get_material'
 import { LoaderContext } from './types'
 
 export const getMesh = async (index: number, context: LoaderContext) => {
