@@ -1,6 +1,6 @@
 {
   "name": "solid-webgpu-gltf",
-  "private": true,
+  "license": "MIT",
   "version": "0.1.0",
   "type": "module",
   "files": [
