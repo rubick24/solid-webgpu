@@ -1,4 +1,4 @@
-import { Mesh } from 'solid-webgpu'
+import { createBufferFromValue, Mesh } from 'solid-webgpu'
 import { getAccessor } from './get_accessor'
 import { getMaterial } from './get_material'
 import { LoaderContext } from './types'
@@ -22,45 +22,54 @@ export const getMesh = async (index: number, context: LoaderContext) => {
       }
       const attributeKeys = Object.keys(primitive.attributes)
 
-      const Geo = () => (
-        <Geometry>
-          {primitive.indices !== undefined ? (
-            <IndexBuffer value={_accessor(primitive.indices!).bufferData} />
-          ) : undefined}
-          {attributeKeys.map((k, i) => {
-            const accessor = _accessor(primitive.attributes[k])
-            const buffer = accessor.bufferData
-            return (
-              <VertexBuffer
-                value={buffer}
-                layout={{
-                  arrayStride: accessor.arrayStride,
-                  attributes: [
-                    {
-                      format: accessor.format,
-                      offset: 0,
-                      shaderLocation: i
-                    }
-                  ]
-                }}
-                attribute={{
-                  name: k,
-                  type: `vec${accessor.itemSize}<${accessor.itemType}>`
-                }}
-              />
-            )
-          })}
-        </Geometry>
-      )
+      const createMat = primitive.material !== undefined ? await _material(primitive.material) : undefined
 
-      const Mat = primitive.material !== undefined ? await _material(primitive.material) : DefaultMaterial
+      return () => {
+        const ibAc = _accessor(primitive.indices!)
+        const indexBuffer =
+          primitive.indices !== undefined
+            ? {
+                buffer: createBufferFromValue(
+                  { usage: GPUBufferUsage.INDEX | GPUBufferUsage.COPY_DST },
+                  ibAc.bufferData
+                )(),
+                BYTES_PER_ELEMENT: ibAc.bufferData.BYTES_PER_ELEMENT
+              }
+            : undefined
+        const vertexBuffers = attributeKeys.map((k, i) => {
+          const accessor = _accessor(primitive.attributes[k])
+          const buffer = accessor.bufferData
+          const vbs = createBufferFromValue({ usage: GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST }, buffer)
+          return {
+            buffer: vbs(),
+            layout: {
+              arrayStride: accessor.arrayStride,
+              attributes: [
+                {
+                  format: accessor.format,
+                  offset: 0,
+                  shaderLocation: i
+                }
+              ]
+            },
+            name: k,
+            type: `vec${accessor.itemSize}<${accessor.itemType}>`
+          }
+        })
 
-      return () => (
-        <Mesh label={json.name ?? `gltf mesh ${index}`}>
-          <Mat />
-          <Geo />
-        </Mesh>
-      )
+        const mat = createMat?.()
+
+        return (
+          <Mesh
+            label={json.name ?? `gltf mesh ${index}`}
+            geometry={{
+              indexBuffer,
+              vertexBuffers
+            }}
+            material={mat?.()}
+          ></Mesh>
+        )
+      }
     })
   )
 }

@@ -18,11 +18,11 @@ import type { CameraRef, QuatLike, Vec3Like } from 'solid-webgpu'
 import {
   Canvas,
   createOrbitControl,
+  createPBRMaterial,
+  createPlaneGeometry,
   imageBitmapFromImageUrl,
   Mesh,
-  PBRMaterial,
   PerspectiveCamera,
-  Plane,
   PunctualLight,
   Quat
 } from 'solid-webgpu'
@@ -30,12 +30,9 @@ import {
 const t = await imageBitmapFromImageUrl('../../static/a.png')
 
 const Avatar = (props: { position?: Vec3Like; quaternion?: QuatLike }) => {
-  return (
-    <Mesh {...props}>
-      <Plane />
-      <PBRMaterial albedoTexture={t} occlusionRoughnessMetallicTexture={t} />
-    </Mesh>
-  )
+  const planeGeo = createPlaneGeometry()
+  const pbrMat = createPBRMaterial({ albedoTexture: t })
+  return <Mesh geometry={planeGeo} material={pbrMat()} {...props} />
 }
 
 const App = () => {
@@ -83,22 +80,18 @@ render(() => <App />, document.getElementById('app')!)
 <Canvas />
 <Object3D />
 <Mesh />
-<Geometry />
-  <VertexBuffer /> <IndexBuffer />
-<Material />
-  <Texture /> <Sampler /> <UniformBuffer />
 <Camera />
 <PunctualLight />
 
 <PerspectiveCamera />
 <OrthographicCamera />
-<DefaultTexture />
-<PBRMaterial />
-<UnlitMaterial />
 ```
 
 ## Methods
 
 ```ts
+createPBRMaterial
+createUnlitMaterial
+createPlaneGeometry
 createOrbitControl
 ```

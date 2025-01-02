@@ -222,7 +222,7 @@ export type MaterialOptions = {
   fragmentEntryPoint?: string
 }
 export type GeometryOptions = {
-  indexBuffer: {
+  indexBuffer?: {
     buffer: GPUBuffer
     BYTES_PER_ELEMENT: number
   }
@@ -278,18 +278,7 @@ export const createUnlitMaterial = (
   return createMaterial(unlitShaderCode, uniforms, updateBase)
 }
 
-export const createPlaneGeometry = (): {
-  indexBuffer: {
-    buffer: GPUBuffer
-    BYTES_PER_ELEMENT: number
-  }
-  vertexBuffers: {
-    buffer: GPUBuffer
-    layout: GPUVertexBufferLayout
-    name?: string
-    type?: string
-  }[]
-} => {
+export const createPlaneGeometry = (): GeometryOptions => {
   const vbs = [
     createBufferFromValue(
       { usage: GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST },
