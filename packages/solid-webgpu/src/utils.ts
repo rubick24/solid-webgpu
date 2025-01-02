@@ -1,3 +1,4 @@
+import { Accessor } from 'solid-js'
 import { MaybeAccessor, MaybeAccessorValue } from './types'
 
 // export const createWithCache = (cache: Map<string, unknown>) => {
@@ -32,3 +33,5 @@ export const white1pxBase64 =
 
 export const access = <T extends MaybeAccessor<any>>(v: T): MaybeAccessorValue<T> =>
   typeof v === 'function' && !v.length ? v() : v
+
+export const isAccessor = <T>(v: MaybeAccessor<T>): v is Accessor<T> => typeof v === 'function' && !v.length

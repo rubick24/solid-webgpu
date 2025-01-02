@@ -78,7 +78,11 @@ const builtInBufferLength = {
 
 export const createUniformBufferBase = () => {
   const val = new Float32Array(builtInBufferLength.base)
-  const buffer = createBufferFromValue({ usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST }, val)
+  const buffer = device.createBuffer({
+    size: val.byteLength,
+    usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST
+  })
+  device.queue.writeBuffer(buffer, 0, val)
 
   const update = (ref: MeshRef) => {
     const scene = ref.scene()?.[0]
@@ -102,7 +106,7 @@ export const createUniformBufferBase = () => {
     // cameraPosition
     Vec3.copy(val.subarray(76, 79), camera.matrix().subarray(12, 15))
 
-    device.queue.writeBuffer(buffer(), 0, val)
+    device.queue.writeBuffer(buffer, 0, val)
   }
 
   return { buffer, update }
@@ -110,13 +114,11 @@ export const createUniformBufferBase = () => {
 
 export const createUniformBufferPunctualLights = () => {
   const lightValues = new Float32Array(builtInBufferLength.punctual_lights)
-
-  const buffer = createBufferFromValue(
-    {
-      usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST
-    },
-    lightValues
-  )
+  const buffer = device.createBuffer({
+    size: lightValues.byteLength,
+    usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST
+  })
+  device.queue.writeBuffer(buffer, 0, lightValues)
 
   const update = (ref: MeshRef) => {
     const scene = ref?.scene()?.[0]
@@ -153,62 +155,62 @@ export const createUniformBufferPunctualLights = () => {
       new DataView(lightValues.buffer).setUint32((offset + 15) * 4, m[light.lightType], true)
     }
 
-    device.queue.writeBuffer(buffer(), 0, lightValues)
+    device.queue.writeBuffer(buffer, 0, lightValues)
   }
 
   return { buffer, update }
 }
 
 const defaultBitmap = await imageBitmapFromImageUrl(white1pxBase64)
-export const createDefaultTexture = () =>
-  createTextureFromImage(
-    {
-      format: 'rgba8unorm'
-    },
-    defaultBitmap
-  )
-
-export const createBindGroupLayout = (uniforms: MaybeAccessor<(GPUTexture | GPUSampler | GPUBuffer)[]>) =>
-  createMemo<GPUBindGroupLayout>(() => {
-    return device.createBindGroupLayout({
-      entries: access(uniforms).map((u, index) => {
-        return {
-          binding: index,
-          visibility:
-            u instanceof GPUBuffer ? GPUShaderStage.VERTEX | GPUShaderStage.FRAGMENT : GPUShaderStage.FRAGMENT,
-          ...{
-            texture: u instanceof GPUTexture ? {} : undefined,
-            sampler: u instanceof GPUSampler ? {} : undefined,
-            buffer: u instanceof GPUBuffer ? {} : undefined
-          }
-        }
-      })
-    })
+const defaultTexture = (() => {
+  const size = { width: defaultBitmap.width, height: defaultBitmap.height }
+  return device.createTexture({
+    format: 'rgba8unorm',
+    usage:
+      GPUTextureUsage.TEXTURE_BINDING |
+      GPUTextureUsage.RENDER_ATTACHMENT |
+      GPUTextureUsage.COPY_SRC |
+      GPUTextureUsage.COPY_DST,
+    size
   })
+})()
 
-export const createBindGroupEntries = (uniforms: MaybeAccessor<(GPUTexture | GPUSampler | GPUBuffer)[]>) =>
-  createMemo<GPUBindGroupEntry[]>(() => {
-    return access(uniforms).map((u, index) => {
-      const resource = u instanceof GPUTexture ? u.createView() : u instanceof GPUSampler ? u : { buffer: u }
+export const createBindGroupLayoutStatic = (uniforms: (GPUTexture | GPUSampler | GPUBuffer)[]) =>
+  device.createBindGroupLayout({
+    entries: uniforms.map((u, index) => {
       return {
         binding: index,
-        resource
+        visibility: u instanceof GPUBuffer ? GPUShaderStage.VERTEX | GPUShaderStage.FRAGMENT : GPUShaderStage.FRAGMENT,
+        ...{
+          texture: u instanceof GPUTexture ? {} : undefined,
+          sampler: u instanceof GPUSampler ? {} : undefined,
+          buffer: u instanceof GPUBuffer ? {} : undefined
+        }
       }
     })
   })
+
+// TODO: use mapArray here?
+export const createBindGroupLayout = (uniforms: MaybeAccessor<(GPUTexture | GPUSampler | GPUBuffer)[]>) =>
+  createMemo<GPUBindGroupLayout>(() => createBindGroupLayoutStatic(access(uniforms)))
+
+export const createBindGroupEntriesStatic = (uniforms: (GPUTexture | GPUSampler | GPUBuffer)[]) =>
+  uniforms.map((u, index) => {
+    const resource = u instanceof GPUTexture ? u.createView() : u instanceof GPUSampler ? u : { buffer: u }
+    return {
+      binding: index,
+      resource
+    }
+  })
+export const createBindGroupEntries = (uniforms: MaybeAccessor<(GPUTexture | GPUSampler | GPUBuffer)[]>) =>
+  createMemo<GPUBindGroupEntry[]>(() => createBindGroupEntriesStatic(access(uniforms)))
+
 export const createBindGroup = (
   options: MaybeAccessor<{
     layout: GPUBindGroupLayout
     entries: GPUBindGroupEntry[]
   }>
-) =>
-  createMemo<GPUBindGroup>(() => {
-    const ops = access(options)
-    return device.createBindGroup({
-      layout: ops.layout,
-      entries: ops.entries
-    })
-  })
+) => createMemo<GPUBindGroup>(() => device.createBindGroup(access(options)))
 
 export type MaterialOptions = {
   shaderCode: string
@@ -239,6 +241,44 @@ export type GeometryOptions = {
   instanceCount?: number
   drawRange?: { start: number; count: number }
 }
+
+export const createMaterialStatic = (
+  shaderCode: string,
+  uniforms: (GPUTexture | GPUSampler | GPUBuffer)[],
+  update?: (ref: MeshRef) => void
+): MaterialOptions => {
+  const bindGroupLayout = createBindGroupLayoutStatic(uniforms)
+  const bindGroupEntries = createBindGroupEntriesStatic(uniforms)
+  const bindGroup = device.createBindGroup({
+    layout: bindGroupLayout,
+    entries: bindGroupEntries
+  })
+  return {
+    bindGroupLayout,
+    bindGroup,
+    shaderCode,
+    update
+  }
+}
+export const createMaterial = (
+  shaderCode: MaybeAccessor<string>,
+  uniforms: MaybeAccessor<(GPUTexture | GPUSampler | GPUBuffer)[]>,
+  update?: (ref: MeshRef) => void
+): Accessor<MaterialOptions> => {
+  const bindGroupLayout = createBindGroupLayout(uniforms)
+  const bindGroupEntries = createBindGroupEntries(uniforms)
+  const bindGroup = createBindGroup(() => ({
+    layout: bindGroupLayout(),
+    entries: bindGroupEntries()
+  }))
+
+  return createMemo(() => ({
+    bindGroupLayout: bindGroupLayout(),
+    bindGroup: bindGroup(),
+    shaderCode: access(shaderCode),
+    update
+  }))
+}
 export const createUnlitMaterial = (
   options?: MaybeAccessor<{
     albedo?: Vec3Like
@@ -252,62 +292,77 @@ export const createUnlitMaterial = (
   // update albedo & texture flag
   const bufferValue = new ArrayBuffer(16)
   const albedo = new Vec3(bufferValue)
-  const buffer = createBufferFromValue(
-    {
-      usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST
-    },
-    bufferValue
-  )
+  const buffer = device.createBuffer({
+    size: bufferValue.byteLength,
+    usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST
+  })
+  device.queue.writeBuffer(buffer, 0, bufferValue)
   createEffect(() => {
     albedo.copy(access(options ?? {}).albedo ?? [0, 0.5, 1])
     const flag = new Uint32Array(bufferValue, 12, 1)
     flag[0] = setBitOfValue(flag[0], 0, !!albedoTexture())
-    device.queue.writeBuffer(buffer(), 0, bufferValue)
+    device.queue.writeBuffer(buffer, 0, bufferValue)
   })
 
   const texture = createMemo(() => {
-    return albedoTexture()
-      ? createTextureFromImage({ format: 'rgba8unorm' }, albedoTexture()!)()
-      : createDefaultTexture()()
+    return albedoTexture() ? createTextureFromImage({ format: 'rgba8unorm' }, albedoTexture()!)() : defaultTexture
   })
 
-  const sampler = createSampler()
+  const sampler = device.createSampler()
 
-  const uniforms = () => [base(), buffer(), texture(), sampler()]
+  const uniforms = () => [base, buffer, texture(), sampler]
 
   return createMaterial(unlitShaderCode, uniforms, updateBase)
 }
 
+export const defaultMaterial = (() => {
+  const { buffer: base, update: updateBase } = createUniformBufferBase()
+
+  const bufferValue = new ArrayBuffer(16)
+
+  const buffer = device.createBuffer({
+    size: bufferValue.byteLength,
+    usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST
+  })
+  device.queue.writeBuffer(buffer, 0, bufferValue)
+
+  const sampler = device.createSampler()
+
+  const uniforms = [base, buffer, defaultTexture, sampler]
+
+  return createMaterialStatic(unlitShaderCode, uniforms, updateBase)
+})()
+
 export const createPlaneGeometry = (): GeometryOptions => {
   const vbs = [
-    createBufferFromValue(
-      { usage: GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST },
-      new Float32Array([1, 1, 0, -1, 1, 0, -1, -1, 0, 1, -1, 0])
-    ),
-    createBufferFromValue(
-      { usage: GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST },
-      new Float32Array([0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1])
-    ),
-    createBufferFromValue({ usage: GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST }, new Float32Array(4 * 4).fill(0)),
-    createBufferFromValue(
-      { usage: GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST },
-      new Float32Array([1, 1, 0, 1, 0, 0, 1, 0])
-    )
-  ]
+    new Float32Array([1, 1, 0, -1, 1, 0, -1, -1, 0, 1, -1, 0]),
+    new Float32Array([0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1]),
+    new Float32Array(4 * 4).fill(0),
+    new Float32Array([1, 1, 0, 1, 0, 0, 1, 0])
+  ].map(v => {
+    const buffer = device.createBuffer({
+      size: v.byteLength,
+      usage: GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST
+    })
+    device.queue.writeBuffer(buffer, 0, v)
+    return buffer
+  })
 
-  const ib = createBufferFromValue(
-    { usage: GPUBufferUsage.INDEX | GPUBufferUsage.COPY_DST },
-    new Uint32Array([0, 1, 2, 0, 2, 3])
-  )
+  const ibVal = new Uint32Array([0, 1, 2, 0, 2, 3])
+  const ib = device.createBuffer({
+    size: ibVal.byteLength,
+    usage: GPUBufferUsage.INDEX | GPUBufferUsage.COPY_DST
+  })
+  device.queue.writeBuffer(ib, 0, ibVal)
 
   return {
     indexBuffer: {
-      buffer: ib(),
+      buffer: ib,
       BYTES_PER_ELEMENT: Uint32Array.BYTES_PER_ELEMENT
     },
     vertexBuffers: [
       {
-        buffer: vbs[0](),
+        buffer: vbs[0],
         layout: {
           attributes: [
             {
@@ -320,7 +375,7 @@ export const createPlaneGeometry = (): GeometryOptions => {
         }
       },
       {
-        buffer: vbs[1](),
+        buffer: vbs[1],
         layout: {
           attributes: [
             {
@@ -334,7 +389,7 @@ export const createPlaneGeometry = (): GeometryOptions => {
       },
 
       {
-        buffer: vbs[2](),
+        buffer: vbs[2],
         layout: {
           attributes: [
             {
@@ -347,7 +402,7 @@ export const createPlaneGeometry = (): GeometryOptions => {
         }
       },
       {
-        buffer: vbs[3](),
+        buffer: vbs[3],
         layout: {
           attributes: [
             {
@@ -374,12 +429,10 @@ export const createPBRMaterial = (
   }>
 ) => {
   const _pbrBuffer = new ArrayBuffer(32)
-  const buffer = createBufferFromValue(
-    {
-      usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST
-    },
-    _pbrBuffer
-  )
+  const buffer = device.createBuffer({
+    size: _pbrBuffer.byteLength,
+    usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST
+  })
 
   createEffect(() => {
     const ops = access(options)
@@ -392,7 +445,7 @@ export const createPBRMaterial = (
     pbrFlag[0] = setBitOfValue(pbrFlag[0], 0, !!ops?.albedoTexture)
     pbrFlag[0] = setBitOfValue(pbrFlag[0], 1, !!ops?.occlusionRoughnessMetallicTexture)
 
-    device.queue.writeBuffer(buffer(), 0, _pbrBuffer)
+    device.queue.writeBuffer(buffer, 0, _pbrBuffer)
   })
 
   const { buffer: base, update: updateBase } = createUniformBufferBase()
@@ -403,42 +456,20 @@ export const createPBRMaterial = (
   const albedoTexture = createMemo(() => {
     return albedoTextureSource()
       ? createTextureFromImage({ format: 'rgba8unorm' }, albedoTextureSource()!)()
-      : createDefaultTexture()()
+      : defaultTexture
   })
   const ormTexture = createMemo(() => {
-    return ormTextureSource()
-      ? createTextureFromImage({ format: 'rgba8unorm' }, ormTextureSource()!)()
-      : createDefaultTexture()()
+    return ormTextureSource() ? createTextureFromImage({ format: 'rgba8unorm' }, ormTextureSource()!)() : defaultTexture
   })
 
-  const sampler = createSampler()
+  const sampler = device.createSampler()
 
-  const uniforms = () => [base(), buffer(), albedoTexture(), ormTexture(), sampler(), punctualLights()]
+  const uniforms = () => [base, buffer, albedoTexture(), ormTexture(), sampler, punctualLights]
 
   return createMaterial(pbrShaderCode, uniforms, v => {
     updateBase(v)
     updatePunctualLights(v)
   })
-}
-
-const createMaterial = (
-  shaderCode: MaybeAccessor<string>,
-  uniforms: MaybeAccessor<(GPUTexture | GPUSampler | GPUBuffer)[]>,
-  update?: (ref: MeshRef) => void
-) => {
-  const bindGroupLayout = createBindGroupLayout(uniforms)
-  const bindGroupEntries = createBindGroupEntries(uniforms)
-  const bindGroup = createBindGroup(() => ({
-    layout: bindGroupLayout(),
-    entries: bindGroupEntries()
-  }))
-
-  return createMemo(() => ({
-    bindGroupLayout: bindGroupLayout(),
-    bindGroup: bindGroup(),
-    shaderCode: access(shaderCode),
-    update
-  }))
 }
 
 const builtinAttributeNames = ['POSITION', 'NORMAL', 'TANGENT', 'TEXCOORD_0']

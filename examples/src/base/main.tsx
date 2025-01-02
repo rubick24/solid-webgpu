@@ -1,4 +1,4 @@
-import { createSignal } from 'solid-js'
+import { createResource, createSignal, Show } from 'solid-js'
 import { render } from 'solid-js/web'
 import type { CameraRef, QuatLike, Vec3Like } from 'solid-webgpu'
 import {
@@ -13,11 +13,17 @@ import {
   Quat
 } from 'solid-webgpu'
 
-const t = await imageBitmapFromImageUrl('../../static/a.png')
-
 const Avatar = (props: { position?: Vec3Like; quaternion?: QuatLike }) => {
+  const [t] = createResource(async () => {
+    await new Promise(r => setTimeout(r, 1000))
+    return imageBitmapFromImageUrl('../../static/a.png')
+  })
+
   const planeGeo = createPlaneGeometry()
-  const pbrMat = createPBRMaterial({ albedoTexture: t })
+  const pbrMat = createPBRMaterial(() => ({
+    albedoTexture: t(),
+    occlusionRoughnessMetallicTexture: t()
+  }))
   return <Mesh geometry={planeGeo} material={pbrMat()} {...props} />
 }
 
@@ -38,8 +44,7 @@ const App = () => {
   }
   requestAnimationFrame(af)
 
-  const planeGeo = createPlaneGeometry()
-  const x = <Mesh geometry={planeGeo} position={[-2, 0, 0]} quaternion={r()} />
+  const x = <Mesh geometry={createPlaneGeometry()} position={[-3, 0, 0]} quaternion={r()} />
 
   return (
     <>
@@ -54,6 +59,9 @@ const App = () => {
         />
         {x}
         <Avatar position={[0, p(), 0]} />
+        <Show when={p() % 2 === 1}>
+          <Avatar position={[3, 0, 0]} />
+        </Show>
       </Canvas>
 
       <button onClick={() => setP(v => (v + 1) % 5)}>set position</button>

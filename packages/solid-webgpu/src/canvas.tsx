@@ -95,6 +95,9 @@ export const Canvas = (props: CanvasProps) => {
     })
   })
 
+  /**
+   * update render order
+   */
   createEffect(() => {
     if (!scene.currentCamera) {
       return
