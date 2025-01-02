@@ -1,29 +1,24 @@
-import { createSignal, Show } from 'solid-js'
+import { createSignal } from 'solid-js'
 import { render } from 'solid-js/web'
 import type { CameraRef, QuatLike, Vec3Like } from 'solid-webgpu'
 import {
   Canvas,
   createOrbitControl,
+  createPBRMaterial,
+  createPlaneGeometry,
   imageBitmapFromImageUrl,
   Mesh,
-  Object3D,
-  PBRMaterial,
   PerspectiveCamera,
-  Plane,
   PunctualLight,
-  Quat,
-  UnlitMaterial
+  Quat
 } from 'solid-webgpu'
 
 const t = await imageBitmapFromImageUrl('../../static/a.png')
 
 const Avatar = (props: { position?: Vec3Like; quaternion?: QuatLike }) => {
-  return (
-    <Mesh {...props}>
-      <Plane />
-      <PBRMaterial albedoTexture={t} occlusionRoughnessMetallicTexture={t} />
-    </Mesh>
-  )
+  const planeGeo = createPlaneGeometry()
+  const pbrMat = createPBRMaterial({ albedoTexture: t })
+  return <Mesh geometry={planeGeo} material={pbrMat()} {...props} />
 }
 
 const App = () => {
@@ -43,12 +38,8 @@ const App = () => {
   }
   requestAnimationFrame(af)
 
-  const unlit = (
-    <Mesh position={[-3, 0, 0]} quaternion={r()}>
-      <Plane />
-      <UnlitMaterial albedoTexture={t} />
-    </Mesh>
-  )
+  const planeGeo = createPlaneGeometry()
+  const x = <Mesh geometry={planeGeo} position={[-2, 0, 0]} quaternion={r()} />
 
   return (
     <>
@@ -61,16 +52,8 @@ const App = () => {
           color={[1, 1, 1]}
           intensity={100}
         />
-
-        <Avatar position={[0, p(), 0]} quaternion={r()} />
-
-        <Show when={p() % 2 === 0}>
-          <Object3D position={[3, 0, 0]} quaternion={r()}>
-            <Avatar position={[1, 0, 0]} />
-          </Object3D>
-        </Show>
-
-        {unlit}
+        {x}
+        <Avatar position={[0, p(), 0]} />
       </Canvas>
 
       <button onClick={() => setP(v => (v + 1) % 5)}>set position</button>

@@ -37,86 +37,12 @@ export type MaybeAccessorValue<T extends MaybeAccessor<unknown>> = T extends () 
 export type StoreContext<T> = [T, SetStoreFunction<T>]
 
 export const $WGPU_COMPONENT = Symbol('solid-webgpu component')
-export const $OBJECT3D = Symbol('Object3D')
-export const $CAMERA = Symbol('Camera')
-export const $MESH = Symbol('Mesh')
-export const $GEOMETRY = Symbol('Geometry')
-export const $MATERIAL = Symbol('Material')
-export const $VERTEX_BUFFER = Symbol('VertexBuffer')
-export const $INDEX_BUFFER = Symbol('IndexBuffer')
-export const $TEXTURE = Symbol('Texture')
-export const $SAMPLER = Symbol('Sampler')
-export const $UNIFORM_BUFFER = Symbol('UniformBuffer')
-export const $PUNCTUAL_LIGHT = Symbol('Camera')
-
 export type WgpuComponent = {
   [$WGPU_COMPONENT]: true
   id: string
   render: () => JSX.Element
   setSceneCtx: Setter<StoreContext<SceneContext> | undefined>
 }
-export type Object3DComponent = WgpuComponent & {
-  [$OBJECT3D]: true
-  setParentCtx: Setter<StoreContext<Object3DContext> | undefined>
-}
-
-export type GeometryComponent = WgpuComponent & {
-  [$GEOMETRY]: true
-  setMeshCtx: Setter<StoreContext<MeshContext> | undefined>
-}
-export type VertexBufferComponent = WgpuComponent & {
-  [$VERTEX_BUFFER]: true
-  setGeometryCtx: Setter<StoreContext<GeometryContext> | undefined>
-}
-export type IndexBufferComponent = WgpuComponent & {
-  [$INDEX_BUFFER]: true
-  setGeometryCtx: Setter<StoreContext<GeometryContext> | undefined>
-}
-export type MaterialComponent = WgpuComponent & {
-  [$MATERIAL]: true
-  setMeshCtx: Setter<StoreContext<MeshContext> | undefined>
-}
-export type TextureComponent = WgpuComponent & {
-  [$TEXTURE]: true
-  setMaterialCtx: Setter<StoreContext<MaterialContext> | undefined>
-}
-export type SamplerComponent = WgpuComponent & {
-  [$SAMPLER]: true
-  setMaterialCtx: Setter<StoreContext<MaterialContext> | undefined>
-}
-export type UniformBufferComponent = WgpuComponent & {
-  [$UNIFORM_BUFFER]: true
-  setMaterialCtx: Setter<StoreContext<MaterialContext> | undefined>
-}
-
-export const isWgpuComponent = (value: unknown): value is Object3DComponent => {
-  return !!value && typeof value === 'object' && $WGPU_COMPONENT in value
-}
-export const isObject3DComponent = (value: unknown): value is Object3DComponent => {
-  return isWgpuComponent(value) && $OBJECT3D in value
-}
-export const isGeometryComponent = (value: unknown): value is GeometryComponent => {
-  return isWgpuComponent(value) && $GEOMETRY in value
-}
-export const isVertexBufferComponent = (value: unknown): value is VertexBufferComponent => {
-  return isWgpuComponent(value) && $VERTEX_BUFFER in value
-}
-export const isIndexBufferComponent = (value: unknown): value is IndexBufferComponent => {
-  return isWgpuComponent(value) && $INDEX_BUFFER in value
-}
-export const isMaterialComponent = (value: unknown): value is MaterialComponent => {
-  return isWgpuComponent(value) && $MATERIAL in value
-}
-export const isTextureComponent = (value: unknown): value is TextureComponent => {
-  return isWgpuComponent(value) && $TEXTURE in value
-}
-export const isSamplerComponent = (value: unknown): value is SamplerComponent => {
-  return isWgpuComponent(value) && $SAMPLER in value
-}
-export const isUniformBufferComponent = (value: unknown): value is UniformBufferComponent => {
-  return isWgpuComponent(value) && $UNIFORM_BUFFER in value
-}
-
 export type NodeRef<T = {}> = T & NodeContext
 export type NodeProps<T = {}> = {
   label?: string
@@ -130,7 +56,15 @@ export type NodeContext = {
 
   scene: Accessor<StoreContext<SceneContext> | undefined>
 }
+export const isWgpuComponent = (value: unknown): value is Object3DComponent => {
+  return !!value && typeof value === 'object' && $WGPU_COMPONENT in value
+}
 
+export const $OBJECT3D = Symbol('Object3D')
+export type Object3DComponent = WgpuComponent & {
+  [$OBJECT3D]: true
+  setParentCtx: Setter<StoreContext<Object3DContext> | undefined>
+}
 export type Object3DExtra = {
   [$OBJECT3D]: true
   matrix: Accessor<Mat4>
@@ -145,7 +79,11 @@ export type Object3DExtra = {
   setUp: Setter<Vec3>
 }
 export type Object3DContext = NodeContext & Object3DExtra
+export const isObject3DComponent = (value: unknown): value is Object3DComponent => {
+  return isWgpuComponent(value) && $OBJECT3D in value
+}
 
+export const $CAMERA = Symbol('Camera')
 export type CameraExtra = {
   [$CAMERA]: true
   projectionMatrix: Accessor<Mat4>
@@ -157,6 +95,7 @@ export type CameraExtra = {
 }
 export type CameraContext = Object3DContext & CameraExtra
 
+export const $PUNCTUAL_LIGHT = Symbol('Camera')
 export type PunctualLightExtra = {
   [$PUNCTUAL_LIGHT]: true
   color: Accessor<Vec3>
@@ -169,91 +108,12 @@ export type PunctualLightExtra = {
 }
 export type PunctualLightContext = Object3DContext & PunctualLightExtra
 
+export const $MESH = Symbol('Mesh')
 export type MeshExtra = {
   [$MESH]: true
-  geometry?: string
-  material?: string
-
-  pipeline?: GPURenderPipeline
+  draw: (passEncoder: GPURenderPassEncoder) => void
 }
 export type MeshContext = Object3DContext & MeshExtra
-
-export type GeometryExtra = {
-  [$GEOMETRY]: true
-  mesh?: string
-
-  vertexBuffers: string[]
-  indexBuffer?: string
-
-  topology: GPUPrimitiveTopology
-  instanceCount: number
-  drawRange: { start: number; count: number }
-}
-export type GeometryContext = NodeContext & GeometryExtra
-
-export type VertexBufferExtra = {
-  [$VERTEX_BUFFER]: true
-  attribute?: {
-    name: string
-    type: string
-  }
-  layout: GPUVertexBufferLayout
-  value: Accessor<TypedArray>
-  setValue: Setter<TypedArray>
-  buffer?: GPUBuffer
-}
-export type VertexBufferContext = NodeContext & VertexBufferExtra
-
-export type IndexBufferExtra = {
-  [$INDEX_BUFFER]: true
-  value: Accessor<TypedArray>
-  setValue: Setter<TypedArray>
-  buffer?: GPUBuffer
-  // arrayStride: number
-}
-export type IndexBufferContext = NodeContext & IndexBufferExtra
-
-export type MaterialExtra = {
-  [$MATERIAL]: true
-  mesh?: string
-
-  uniforms: string[]
-  shaderCode: string
-  cullMode: GPUCullMode
-  transparent: boolean
-  depthTest: boolean
-  depthWrite: boolean
-  blending?: GPUBlendState
-
-  bindGroupLayout?: GPUBindGroupLayout
-  bindGroupEntries?: GPUBindGroupEntry[]
-  bindGroup?: GPUBindGroup
-}
-export type MaterialContext = NodeContext & MaterialExtra
-
-export type SamplerExtra = {
-  [$SAMPLER]: true
-  descriptor: GPUSamplerDescriptor
-  sampler?: GPUSampler
-}
-export type SamplerContext = NodeContext & SamplerExtra
-export type TextureExtra = {
-  [$TEXTURE]: true
-  descriptor: Optional<GPUTextureDescriptor, 'usage' | 'format'>
-  image?: ImageBitmap | ImageData | HTMLCanvasElement | OffscreenCanvas
-  texture?: GPUTexture
-}
-export type TextureContext = NodeContext & TextureExtra
-export type UniformBufferExtra = {
-  [$UNIFORM_BUFFER]: true
-  value: Accessor<TypedArray | ArrayBuffer>
-  setValue: Setter<TypedArray | ArrayBuffer>
-  builtIn?: string
-  buffer?: GPUBuffer
-}
-export type UniformBufferContext = NodeContext & UniformBufferExtra
-// TODO: external texture ?
-export type UniformContext = SamplerContext | TextureContext | UniformBufferContext
 
 export type SceneContext = {
   nodes: Record<string, NodeContext & Record<string, unknown>>
@@ -264,7 +124,6 @@ export type SceneContext = {
   autoClear: boolean
   samples: number
 
-  device: GPUDevice
   canvas?: HTMLCanvasElement
   context?: GPUCanvasContext
 
