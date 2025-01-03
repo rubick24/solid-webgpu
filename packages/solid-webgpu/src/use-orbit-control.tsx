@@ -1,8 +1,8 @@
 import { Vec3 } from 'math'
 import { createEffect, onCleanup, untrack } from 'solid-js'
 
-import { CameraRef, lookAt } from './camera'
-import { MaybeAccessor } from './types'
+import { lookAt } from './camera'
+import { CameraRef, MaybeAccessor } from './types'
 import { access, clamp } from './utils'
 
 enum BUTTONS {

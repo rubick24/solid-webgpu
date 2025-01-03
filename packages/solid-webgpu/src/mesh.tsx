@@ -1,22 +1,22 @@
 import { children, createEffect, createMemo, JSX, onCleanup } from 'solid-js'
 import { createStore } from 'solid-js/store'
-
-import { createRenderPipeline, createUnlitMaterial, GeometryOptions, MaterialOptions } from './hks'
-import { createObject3DContext, Object3DProps, Object3DRef, wgpuCompRender } from './object3d'
-import { MeshContext, Object3DComponent } from './types'
+import { GeometryOptions } from './geometry'
+import { createRenderPipeline } from './hks'
+import { defaultMaterial, MaterialOptions } from './material'
+import { createObject3DRef, Object3DProps, wgpuCompRender } from './object3d'
+import { MeshRef, Object3DComponent } from './types'
 import { access } from './utils'
 
-export type MeshRef = Object3DRef<MeshContext>
-export type MeshProps = Object3DProps<MeshContext> & {
+export type MeshProps = Object3DProps<MeshRef> & {
   material?: MaterialOptions
   geometry: GeometryOptions
 }
 
 export const Mesh = (props: MeshProps) => {
   const ch = children(() => props.children)
-  const { store: _s, comp } = createObject3DContext(props, ch)
+  const { store: _s, comp } = createObject3DRef(props, ch)
   const id = _s.id
-  const [store, setStore] = createStore(_s as MeshContext)
+  const [store, setStore] = createStore(_s as MeshRef)
   props.ref?.(store)
 
   createEffect(() => {
@@ -28,8 +28,7 @@ export const Mesh = (props: MeshProps) => {
     })
   })
 
-  const defaultMaterial = createUnlitMaterial({})
-  const material = () => props.material ?? defaultMaterial()
+  const material = () => props.material ?? defaultMaterial
 
   createEffect(() => {
     if (material().update) {

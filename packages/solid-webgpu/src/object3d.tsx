@@ -8,7 +8,6 @@ import {
   For,
   JSX,
   onCleanup,
-  ParentProps,
   splitProps
 } from 'solid-js'
 import { createStore, produce, SetStoreFunction } from 'solid-js/store'
@@ -17,35 +16,32 @@ import {
   $WGPU_COMPONENT,
   isObject3DComponent,
   isWgpuComponent,
-  NodeContext,
   NodeProps,
   NodeRef,
   Object3DComponent,
-  Object3DContext,
   Object3DExtra,
+  Object3DRef,
   SceneContext,
   StoreContext,
   WgpuComponent
 } from './types'
 
-export type Object3DRef<T = {}> = NodeRef<T>
-export type Object3DProps<T = {}> = NodeProps<T> &
-  ParentProps & {
-    position?: Vec3Like
-    quaternion?: QuatLike
-    scale?: Vec3Like
-  }
+export type Object3DProps<T = {}> = NodeProps<T> & {
+  position?: Vec3Like
+  quaternion?: QuatLike
+  scale?: Vec3Like
+}
 
-export const createNodeContext = <T extends NodeContext>(
+export const createNodeRef = <T extends NodeRef>(
   props: Omit<NodeProps, 'ref'>,
   ch: ChildrenReturn,
-  init?: Omit<T, keyof NodeContext>
+  init?: Omit<T, keyof NodeRef>
 ) => {
   const [cProps] = splitProps(props, ['label'])
 
   const [sceneCtx, setSceneCtx] = createSignal<StoreContext<SceneContext>>()
 
-  const nodeContext: NodeContext = {
+  const NodeRef: NodeRef = {
     [$WGPU_COMPONENT]: true as const,
     id: createUniqueId(),
     label: '',
@@ -53,7 +49,7 @@ export const createNodeContext = <T extends NodeContext>(
     ...init
   }
 
-  const [store, setStore] = createStore<NodeContext>(nodeContext)
+  const [store, setStore] = createStore<NodeRef>(NodeRef)
   createEffect(() => setStore('label', cProps.label ?? ''))
 
   // register node to scene
@@ -99,10 +95,10 @@ export const wgpuCompRender = (ch: ChildrenReturn) => (
   </For>
 )
 
-export const createObject3DContext = <T extends Object3DContext>(
+export const createObject3DRef = <T extends Object3DRef>(
   props: Omit<Object3DProps, 'ref'>,
   ch: ChildrenReturn,
-  init?: Omit<T, keyof Object3DContext>
+  init?: Omit<T, keyof Object3DRef>
 ) => {
   const m = createSignal(Mat4.create(), { equals: false })
   const p = createSignal(Vec3.create(), { equals: false })
@@ -123,7 +119,7 @@ export const createObject3DContext = <T extends Object3DContext>(
     setUp: u[1]
   }
 
-  const { store, setStore, comp } = createNodeContext<Object3DContext>(props, ch, { ...init, ...o3dExt })
+  const { store, setStore, comp } = createNodeRef<Object3DRef>(props, ch, { ...init, ...o3dExt })
 
   const [o3dProps] = splitProps(props, ['position', 'quaternion', 'scale'])
 
@@ -150,7 +146,7 @@ export const createObject3DContext = <T extends Object3DContext>(
     })
   })
 
-  const [parentCtx, setParentCtx] = createSignal<StoreContext<Object3DContext>>()
+  const [parentCtx, setParentCtx] = createSignal<StoreContext<Object3DRef>>()
 
   // update matrix
   createEffect(() => {
@@ -189,7 +185,7 @@ export const createObject3DContext = <T extends Object3DContext>(
 
 export const Object3D = (props: Object3DProps) => {
   const ch = children(() => props.children)
-  const { store, comp } = createObject3DContext(props, ch)
+  const { store, comp } = createObject3DRef(props, ch)
 
   props.ref?.(store)
 

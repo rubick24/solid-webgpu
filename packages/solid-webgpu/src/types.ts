@@ -43,28 +43,24 @@ export type WgpuComponent = {
   render: () => JSX.Element
   setSceneCtx: Setter<StoreContext<SceneContext> | undefined>
 }
-export type NodeRef<T = {}> = T & NodeContext
-export type NodeProps<T = {}> = {
-  label?: string
-  ref?: (v: NodeRef<T>) => void
-  children?: JSX.Element
-}
-export type NodeContext = {
+export type NodeRef = {
   [$WGPU_COMPONENT]: true
   id: string
   label: string
 
   scene: Accessor<StoreContext<SceneContext> | undefined>
 }
+export type NodeProps<T = NodeRef> = {
+  label?: string
+  ref?: (v: T) => void
+  children?: JSX.Element
+}
+
 export const isWgpuComponent = (value: unknown): value is Object3DComponent => {
   return !!value && typeof value === 'object' && $WGPU_COMPONENT in value
 }
 
 export const $OBJECT3D = Symbol('Object3D')
-export type Object3DComponent = WgpuComponent & {
-  [$OBJECT3D]: true
-  setParentCtx: Setter<StoreContext<Object3DContext> | undefined>
-}
 export type Object3DExtra = {
   [$OBJECT3D]: true
   matrix: Accessor<Mat4>
@@ -78,11 +74,16 @@ export type Object3DExtra = {
   up: Accessor<Vec3>
   setUp: Setter<Vec3>
 }
-export type Object3DContext = NodeContext & Object3DExtra
+export type Object3DRef = NodeRef & Object3DExtra
+export type Object3DComponent = WgpuComponent & {
+  [$OBJECT3D]: true
+  setParentCtx: Setter<StoreContext<Object3DRef> | undefined>
+}
 export const isObject3DComponent = (value: unknown): value is Object3DComponent => {
   return isWgpuComponent(value) && $OBJECT3D in value
 }
 
+export type CameraRef = Object3DRef & CameraExtra
 export const $CAMERA = Symbol('Camera')
 export type CameraExtra = {
   [$CAMERA]: true
@@ -93,8 +94,8 @@ export type CameraExtra = {
   projectionViewMatrix: Accessor<Mat4>
   setProjectionViewMatrix: Setter<Mat4>
 }
-export type CameraContext = Object3DContext & CameraExtra
 
+export type PunctualLightRef = Object3DRef & PunctualLightExtra
 export const $PUNCTUAL_LIGHT = Symbol('Camera')
 export type PunctualLightExtra = {
   [$PUNCTUAL_LIGHT]: true
@@ -106,17 +107,16 @@ export type PunctualLightExtra = {
   innerConeAngle: number
   outerConeAngle: number
 }
-export type PunctualLightContext = Object3DContext & PunctualLightExtra
 
+export type MeshRef = Object3DRef & MeshExtra
 export const $MESH = Symbol('Mesh')
 export type MeshExtra = {
   [$MESH]: true
   draw: (passEncoder: GPURenderPassEncoder) => void
 }
-export type MeshContext = Object3DContext & MeshExtra
 
 export type SceneContext = {
-  nodes: Record<string, NodeContext & Record<string, unknown>>
+  nodes: Record<string, NodeRef & Record<string, unknown>>
 
   width: number
   height: number

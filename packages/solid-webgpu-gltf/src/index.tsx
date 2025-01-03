@@ -1,8 +1,8 @@
 import { For } from 'solid-js'
 import { Object3D } from 'solid-webgpu'
 import { GlTF } from './generated/glTF'
-import { getNode } from './get_node'
-import { parseGLB } from './parse_glb'
+import { getNode } from './get-node'
+import { parseGLB } from './parse-glb'
 import { LoaderContext } from './types'
 import { createWithCache } from './utils'
 

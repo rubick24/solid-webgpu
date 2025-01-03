@@ -1,6 +1,6 @@
 // import { PBRMaterial, UnlitMaterial } from 'core'
 import { createPBRMaterial, createUnlitMaterial, Vec3 } from 'solid-webgpu'
-import { getTexture } from './get_texture'
+import { getTexture } from './get-texture'
 import { LoaderContext } from './types'
 
 export const getMaterial = async (index: number, context: LoaderContext) => {

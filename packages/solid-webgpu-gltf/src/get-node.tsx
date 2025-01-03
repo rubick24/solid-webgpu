@@ -1,7 +1,7 @@
 import { Component, For } from 'solid-js'
 import { Mat4, Mat4Like, Object3D, Quat, QuatLike, Vec3Like } from 'solid-webgpu'
-import { getMesh } from './get_mesh'
-import { getPunctualLight } from './get_punctual_light'
+import { getMesh } from './get-mesh'
+import { getPunctualLight } from './get-punctual-light'
 import { LoaderContext } from './types'
 
 export const getNode = async (index: number, context: LoaderContext) => {

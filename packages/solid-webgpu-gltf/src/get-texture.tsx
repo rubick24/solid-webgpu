@@ -1,5 +1,5 @@
 // import { textureFromImageData } from 'core'
-import { getImage } from './get_image'
+import { getImage } from './get-image'
 import { LoaderContext } from './types'
 
 export const getTexture = async (textureIndex: number, context: LoaderContext) => {

@@ -1,10 +1,9 @@
 import { Vec3, Vec3Like } from 'math'
 import { children, createEffect, createSignal, JSX, onCleanup } from 'solid-js'
-import { createObject3DContext, Object3DProps, Object3DRef, wgpuCompRender } from './object3d'
-import { $PUNCTUAL_LIGHT, Object3DComponent, PunctualLightContext, PunctualLightExtra } from './types'
+import { createObject3DRef, Object3DProps, wgpuCompRender } from './object3d'
+import { $PUNCTUAL_LIGHT, Object3DComponent, PunctualLightExtra, PunctualLightRef } from './types'
 
-export type PunctualLightRef = Object3DRef<PunctualLightContext>
-export type PunctualLightProps = Object3DProps<PunctualLightContext> & {
+export type PunctualLightProps = Object3DProps<PunctualLightRef> & {
   color?: Vec3Like
   intensity?: number
   range?: number
@@ -24,7 +23,7 @@ export const PunctualLight = (props: PunctualLightProps) => {
     innerConeAngle: 0,
     outerConeAngle: Math.PI / 4
   } satisfies PunctualLightExtra
-  const { store, setStore, comp } = createObject3DContext<PunctualLightContext>(props, ch, lightExt)
+  const { store, setStore, comp } = createObject3DRef<PunctualLightRef>(props, ch, lightExt)
 
   const id = store.id
 

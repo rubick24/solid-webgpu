@@ -1,9 +1,8 @@
 import { Vec3 } from 'math'
 import { batch, children, createEffect, For, mergeProps, onCleanup, ParentProps, splitProps } from 'solid-js'
 import { createStore } from 'solid-js/store'
-import { CameraRef } from './camera'
 import { device } from './hks'
-import { CameraContext, isWgpuComponent, MeshContext, SceneContext } from './types'
+import { CameraRef, isWgpuComponent, MeshRef, SceneContext } from './types'
 
 const tempVec3 = Vec3.create()
 
@@ -102,7 +101,7 @@ export const Canvas = (props: CanvasProps) => {
     if (!scene.currentCamera) {
       return
     }
-    const camera = scene.nodes[scene.currentCamera] as CameraContext
+    const camera = scene.nodes[scene.currentCamera] as CameraRef
     if (!camera) {
       return
     }
@@ -110,7 +109,7 @@ export const Canvas = (props: CanvasProps) => {
 
     const renderOrder = scene.renderList
       .map(id => {
-        const v = scene.nodes[id] as MeshContext
+        const v = scene.nodes[id] as MeshRef
         return {
           m: v.matrix(),
           id: v.id
@@ -168,7 +167,7 @@ export const Canvas = (props: CanvasProps) => {
     })
     passEncoder.setViewport(0, 0, canvas.width, canvas.height, 0, 1)
     for (const id of renderOrder) {
-      const mesh = scene.nodes[id] as MeshContext
+      const mesh = scene.nodes[id] as MeshRef
       mesh.draw(passEncoder)
     }
 

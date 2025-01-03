@@ -1,6 +1,6 @@
 import { createBufferFromValue, Mesh } from 'solid-webgpu'
-import { getAccessor } from './get_accessor'
-import { getMaterial } from './get_material'
+import { getAccessor } from './get-accessor'
+import { getMaterial } from './get-material'
 import { LoaderContext } from './types'
 
 export const getMesh = async (index: number, context: LoaderContext) => {

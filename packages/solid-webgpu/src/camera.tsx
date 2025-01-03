@@ -1,10 +1,9 @@
 import { DEG2RAD, Mat4, Quat, Vec3 } from 'math'
 import { children, createEffect, createSignal, JSX, mergeProps, splitProps } from 'solid-js'
-import { createObject3DContext, Object3DProps, Object3DRef, wgpuCompRender } from './object3d'
-import { $CAMERA, CameraContext, CameraExtra, Object3DComponent } from './types'
+import { createObject3DRef, Object3DProps, wgpuCompRender } from './object3d'
+import { $CAMERA, CameraExtra, CameraRef, Object3DComponent } from './types'
 
-export type CameraRef = Object3DRef<CameraContext>
-export type CameraProps = Object3DProps<CameraContext>
+export type CameraProps = Object3DProps<CameraRef>
 
 const tempM = Mat4.create()
 
@@ -29,7 +28,7 @@ export const Camera = (props: CameraProps) => {
     projectionViewMatrix: pv[0],
     setProjectionViewMatrix: pv[1]
   } satisfies CameraExtra
-  const { store, comp } = createObject3DContext<CameraContext>(props, ch, cameraExt)
+  const { store, comp } = createObject3DRef<CameraRef>(props, ch, cameraExt)
 
   props.ref?.(store)
 
