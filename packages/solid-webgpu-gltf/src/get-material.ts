@@ -1,4 +1,3 @@
-// import { PBRMaterial, UnlitMaterial } from 'core'
 import { createPBRMaterial, createUnlitMaterial, Vec3 } from 'solid-webgpu'
 import { getTexture } from './get-texture'
 import { LoaderContext } from './types'

@@ -1,4 +1,3 @@
-// import { textureFromImageData } from 'core'
 import { getImage } from './get-image'
 import { LoaderContext } from './types'
 
@@ -22,6 +21,4 @@ export const getTexture = async (textureIndex: number, context: LoaderContext) =
   const image = await context.withCache(`image_${json.source}`, () => getImage(json.source!, context))
 
   return image
-  // const Tex = () => <Texture image={image} descriptor={{ size: { width: image.width, height: image.height } }} />
-  // return Tex
 }
