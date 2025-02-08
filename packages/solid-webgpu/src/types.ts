@@ -122,7 +122,7 @@ export type SceneContext = {
   height: number
   format: GPUTextureFormat
   autoClear: boolean
-  samples: number
+  sampleCount: number
 
   canvas?: HTMLCanvasElement
   context?: GPUCanvasContext

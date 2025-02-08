@@ -31,7 +31,7 @@ const t = await imageBitmapFromImageUrl('../../static/a.png')
 
 const Avatar = (props: { position?: Vec3Like; quaternion?: QuatLike }) => {
   const planeGeo = createPlaneGeometry()
-  const pbrMat = createPBRMaterial({ albedoTexture: t })
+  const pbrMat = createPBRMaterial({ albedoTextureSource: t })
   return <Mesh geometry={planeGeo} material={pbrMat()} {...props} />
 }
 

@@ -11,8 +11,10 @@ export type CanvasProps = ParentProps & {
   height?: number
   format?: GPUTextureFormat
   autoClear?: boolean
-  samples?: number
+  clearValue?: GPUColor
+  sampleCount?: number
   camera?: CameraRef
+  texture?: GPUTexture
   ref?: (v: HTMLCanvasElement) => void
 }
 
@@ -22,7 +24,8 @@ export const Canvas = (props: CanvasProps) => {
     height: 540,
     format: navigator.gpu.getPreferredCanvasFormat(),
     autoClear: true,
-    samples: 4
+    clearValue: { r: 0.0, g: 0.0, b: 0.0, a: 1.0 },
+    sampleCount: 4
   }
 
   const [cProps, _props] = splitProps(props, ['children', 'ref'])
@@ -35,7 +38,13 @@ export const Canvas = (props: CanvasProps) => {
     renderOrder: [],
     lightList: []
   })
-  const canvas = (<canvas width={propsWithDefault.width} height={propsWithDefault.height} />) as HTMLCanvasElement
+  const canvas = (
+    <canvas
+      style={{ display: propsWithDefault.texture ? 'none' : undefined }}
+      width={propsWithDefault.width}
+      height={propsWithDefault.height}
+    />
+  ) as HTMLCanvasElement
   cProps.ref?.(canvas)
 
   batch(() => {
@@ -43,11 +52,11 @@ export const Canvas = (props: CanvasProps) => {
     setScene('context', canvas.getContext('webgpu')!)
   })
 
-  createEffect(() => setScene('width', propsWithDefault.width))
-  createEffect(() => setScene('height', propsWithDefault.height))
-  createEffect(() => setScene('format', propsWithDefault.format))
+  createEffect(() => setScene('width', propsWithDefault.texture?.width ?? propsWithDefault.width))
+  createEffect(() => setScene('height', propsWithDefault.texture?.height ?? propsWithDefault.height))
+  createEffect(() => setScene('format', propsWithDefault.texture?.format ?? propsWithDefault.format))
   createEffect(() => setScene('autoClear', propsWithDefault.autoClear))
-  createEffect(() => setScene('samples', propsWithDefault.samples))
+  createEffect(() => setScene('sampleCount', propsWithDefault.texture?.sampleCount ?? propsWithDefault.sampleCount))
 
   createEffect(() => setScene('currentCamera', propsWithDefault.camera?.id))
 
@@ -64,9 +73,9 @@ export const Canvas = (props: CanvasProps) => {
       format,
       alphaMode: 'premultiplied'
     })
-    const size = [canvas.width, canvas.height]
+    const size = [scene.width, scene.height]
     const usage = GPUTextureUsage.COPY_DST | GPUTextureUsage.RENDER_ATTACHMENT
-    const sampleCount = propsWithDefault.samples
+    const sampleCount = propsWithDefault.sampleCount
 
     const msaaTexture = device.createTexture({
       format,
@@ -140,7 +149,7 @@ export const Canvas = (props: CanvasProps) => {
       return
     }
 
-    const resolveTarget = context.getCurrentTexture().createView()
+    const resolveTarget = propsWithDefault.texture?.createView() ?? context.getCurrentTexture().createView()
     const loadOp: GPULoadOp = propsWithDefault.autoClear ? 'clear' : 'load'
     const storeOp: GPUStoreOp = 'store'
     const commandEncoder = device.createCommandEncoder()
@@ -150,7 +159,7 @@ export const Canvas = (props: CanvasProps) => {
       resolveTarget,
       loadOp,
       storeOp,
-      clearValue: { r: 0.0, g: 0.0, b: 0.0, a: 1.0 }
+      clearValue: propsWithDefault.clearValue
     }
 
     const passEncoder = commandEncoder.beginRenderPass({
@@ -165,7 +174,7 @@ export const Canvas = (props: CanvasProps) => {
         stencilStoreOp: storeOp
       }
     })
-    passEncoder.setViewport(0, 0, canvas.width, canvas.height, 0, 1)
+    passEncoder.setViewport(0, 0, scene.width, scene.height, 0, 1)
     for (const id of renderOrder) {
       const mesh = scene.nodes[id] as MeshRef
       mesh.draw(passEncoder)

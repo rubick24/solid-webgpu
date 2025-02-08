@@ -14,18 +14,19 @@ export const getMaterial = async (index: number, context: LoaderContext) => {
   const mr = json.pbrMetallicRoughness
 
   if (json.extensions?.KHR_materials_unlit) {
-    const albedoTexture = mr.baseColorTexture !== undefined ? await _texture(mr.baseColorTexture.index) : undefined
+    const albedoTextureSource =
+      mr.baseColorTexture !== undefined ? await _texture(mr.baseColorTexture.index) : undefined
     return () =>
       createUnlitMaterial({
         albedo: mr.baseColorFactor
           ? Vec3.fromValues(...(mr.baseColorFactor?.slice(0, 3) as [number, number, number]))
           : undefined,
-        albedoTexture
+        albedoTextureSource
       })
   }
 
-  const albedoTexture = mr.baseColorTexture !== undefined ? await _texture(mr.baseColorTexture.index) : undefined
-  const occlusionRoughnessMetallicTexture =
+  const albedoTextureSource = mr.baseColorTexture !== undefined ? await _texture(mr.baseColorTexture.index) : undefined
+  const occlusionRoughnessMetallicTextureSource =
     mr.metallicRoughnessTexture !== undefined ? await _texture(mr.metallicRoughnessTexture.index) : undefined
   /**
    * TODO: handle
@@ -44,7 +45,7 @@ export const getMaterial = async (index: number, context: LoaderContext) => {
 
       metallic: mr.metallicFactor,
       roughness: mr.roughnessFactor,
-      albedoTexture,
-      occlusionRoughnessMetallicTexture
+      albedoTextureSource,
+      occlusionRoughnessMetallicTextureSource
     })
 }

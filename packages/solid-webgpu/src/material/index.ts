@@ -47,12 +47,14 @@ export const createMaterial = (
 export const createUnlitMaterial = (
   options?: MaybeAccessor<{
     albedo?: Vec3Like
-    albedoTexture?: ImageBitmap
+    albedoTexture?: GPUTexture
+    albedoTextureSource?: ImageBitmap
   }>
 ): Accessor<MaterialOptions> => {
   const { buffer: base, update: updateBase } = createUniformBufferBase()
 
   const albedoTexture = () => access(options ?? {}).albedoTexture
+  const albedoTextureSource = () => access(options ?? {}).albedoTextureSource
 
   // update albedo & texture flag
   const bufferValue = new ArrayBuffer(16)
@@ -65,12 +67,20 @@ export const createUnlitMaterial = (
   createEffect(() => {
     albedo.copy(access(options ?? {}).albedo ?? [0, 0.5, 1])
     const flag = new Uint32Array(bufferValue, 12, 1)
-    flag[0] = setBitOfValue(flag[0], 0, !!albedoTexture())
+    flag[0] = setBitOfValue(flag[0], 0, !!(albedoTexture() || albedoTextureSource()))
     device.queue.writeBuffer(buffer, 0, bufferValue)
   })
 
   const texture = createMemo(() => {
-    return albedoTexture() ? createTextureFromImage({ format: 'rgba8unorm' }, albedoTexture()!)() : defaultTexture
+    const _albedoTextureSource = albedoTextureSource()
+    const _albedoTexture = albedoTexture()
+    if (_albedoTexture) {
+      return _albedoTexture
+    } else if (_albedoTextureSource) {
+      return createTextureFromImage({ format: 'rgba8unorm' }, _albedoTextureSource)()
+    } else {
+      return defaultTexture
+    }
   })
 
   const sampler = device.createSampler()
@@ -86,8 +96,10 @@ export const createPBRMaterial = (
     metallic?: number
     roughness?: number
     occlusion?: number
-    albedoTexture?: ImageBitmap
-    occlusionRoughnessMetallicTexture?: ImageBitmap
+    albedoTexture?: GPUTexture
+    albedoTextureSource?: ImageBitmap
+    occlusionRoughnessMetallicTexture?: GPUTexture
+    occlusionRoughnessMetallicTextureSource?: ImageBitmap
   }>
 ) => {
   const _pbrBuffer = new ArrayBuffer(32)
@@ -112,16 +124,30 @@ export const createPBRMaterial = (
 
   const { buffer: base, update: updateBase } = createUniformBufferBase()
   const { buffer: punctualLights, update: updatePunctualLights } = createUniformBufferPunctualLights()
-  const albedoTextureSource = () => access(options ?? {}).albedoTexture
-  const ormTextureSource = () => access(options ?? {}).occlusionRoughnessMetallicTexture
 
   const albedoTexture = createMemo(() => {
-    return albedoTextureSource()
-      ? createTextureFromImage({ format: 'rgba8unorm' }, albedoTextureSource()!)()
-      : defaultTexture
+    const ops = access(options ?? {})
+    const _albedoTextureSource = ops.albedoTextureSource
+    const _albedoTexture = ops.albedoTexture
+    if (_albedoTexture) {
+      return _albedoTexture
+    } else if (_albedoTextureSource) {
+      return createTextureFromImage({ format: 'rgba8unorm' }, _albedoTextureSource)()
+    } else {
+      return defaultTexture
+    }
   })
   const ormTexture = createMemo(() => {
-    return ormTextureSource() ? createTextureFromImage({ format: 'rgba8unorm' }, ormTextureSource()!)() : defaultTexture
+    const ops = access(options ?? {})
+    const _ormTextureSource = ops.occlusionRoughnessMetallicTextureSource
+    const _ormTexture = ops.occlusionRoughnessMetallicTexture
+    if (_ormTexture) {
+      return _ormTexture
+    } else if (_ormTextureSource) {
+      return createTextureFromImage({ format: 'rgba8unorm' }, _ormTextureSource)()
+    } else {
+      return defaultTexture
+    }
   })
 
   const sampler = device.createSampler()

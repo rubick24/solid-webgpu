@@ -21,8 +21,8 @@ const Avatar = (props: { position?: Vec3Like; quaternion?: QuatLike }) => {
 
   const planeGeo = createPlaneGeometry()
   const pbrMat = createPBRMaterial(() => ({
-    albedoTexture: t(),
-    occlusionRoughnessMetallicTexture: t()
+    albedoTextureSource: t(),
+    occlusionRoughnessMetallicTextureSource: t()
   }))
   return <Mesh geometry={planeGeo} material={pbrMat()} {...props} />
 }
