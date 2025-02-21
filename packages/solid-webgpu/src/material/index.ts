@@ -116,8 +116,12 @@ export const createPBRMaterial = (
     pbrParamsValue[1] = ops?.roughness ?? 0.5
     pbrParamsValue[2] = ops?.occlusion ?? 1.0
     const pbrFlag = new Uint32Array(_pbrBuffer, 24, 1)
-    pbrFlag[0] = setBitOfValue(pbrFlag[0], 0, !!ops?.albedoTexture)
-    pbrFlag[0] = setBitOfValue(pbrFlag[0], 1, !!ops?.occlusionRoughnessMetallicTexture)
+    pbrFlag[0] = setBitOfValue(pbrFlag[0], 0, !!(ops?.albedoTexture || ops?.albedoTextureSource))
+    pbrFlag[0] = setBitOfValue(
+      pbrFlag[0],
+      1,
+      !!(ops?.occlusionRoughnessMetallicTexture || ops?.occlusionRoughnessMetallicTextureSource)
+    )
 
     device.queue.writeBuffer(buffer, 0, _pbrBuffer)
   })
