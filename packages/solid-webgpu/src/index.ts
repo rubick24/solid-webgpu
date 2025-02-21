@@ -1,6 +1,7 @@
 export * from 'math'
 export * from './camera'
 export * from './canvas'
+export * from './create-render'
 export * from './geometry'
 export * from './hks'
 export * from './material'

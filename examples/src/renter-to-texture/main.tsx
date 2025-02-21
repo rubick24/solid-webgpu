@@ -4,6 +4,7 @@ import {
   Canvas,
   createOrbitControl,
   createPlaneGeometry,
+  createRender,
   createTexture,
   createUnlitMaterial,
   Mesh,
@@ -37,15 +38,14 @@ const App = () => {
       GPUTextureUsage.COPY_DST
   })
 
-  const planeGeo = createPlaneGeometry()
-  const pbrMat = createUnlitMaterial(() => ({
-    albedoTexture: texture()
-  }))
-
-  return (
-    <>
-      {/* TODO: better api */}
-      <Canvas camera={texCamera()} texture={texture()} clearValue={{ r: 0, g: 0.5, b: 1.0, a: 1.0 }}>
+  createRender(
+    () => ({
+      texture: texture(),
+      clearValue: { r: 0, g: 0.5, b: 1.0, a: 1.0 },
+      camera: texCamera()
+    }),
+    () => (
+      <>
         <PerspectiveCamera label="render_to_texture_camera" ref={setTexCamera} position={[0, 0, 5]} aspect={1} />
         <PunctualLight
           type="spot"
@@ -56,11 +56,20 @@ const App = () => {
         />
 
         <GLTFModel />
-      </Canvas>
+      </>
+    )
+  )
 
+  const planeGeo = createPlaneGeometry()
+  const unlitMat = createUnlitMaterial(() => ({
+    albedoTexture: texture()
+  }))
+
+  return (
+    <>
       <Canvas camera={camera()} ref={setCanvas}>
         <PerspectiveCamera label="main_camera" ref={setCamera} position={[0, 0, 5]} aspect={16 / 9} />
-        <Mesh geometry={planeGeo} material={pbrMat()} />
+        <Mesh geometry={planeGeo} material={unlitMat()} />
       </Canvas>
     </>
   )

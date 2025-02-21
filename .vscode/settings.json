@@ -1,6 +1,6 @@
 {
   "editor.formatOnSave": true,
-  "editor.codeActionsOnSave": ["source.organizeImports", "source.fixAll.eslint"],
+  "editor.codeActionsOnSave": ["source.organizeImports", "source.fixAll.eslint", "source.fixAll.addMissingImports"],
   "[typescript]": {
     "editor.defaultFormatter": "esbenp.prettier-vscode",
     "editor.tabSize": 2

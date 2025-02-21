@@ -137,6 +137,7 @@ export const createPBRMaterial = (
       return defaultTexture
     }
   })
+
   const ormTexture = createMemo(() => {
     const ops = access(options ?? {})
     const _ormTextureSource = ops.occlusionRoughnessMetallicTextureSource
