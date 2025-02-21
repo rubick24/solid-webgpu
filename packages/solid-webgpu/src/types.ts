@@ -118,12 +118,18 @@ export type MeshExtra = {
 export type SceneContext = {
   nodes: Record<string, NodeRef & Record<string, unknown>>
 
+  // shared
   width: number
   height: number
   format: GPUTextureFormat
   autoClear: boolean
+  clearValue: GPUColor
   sampleCount: number
 
+  // render to texture
+  texture?: GPUTexture
+
+  // render to canvas
   canvas?: HTMLCanvasElement
   context?: GPUCanvasContext
 

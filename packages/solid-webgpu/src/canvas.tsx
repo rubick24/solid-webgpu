@@ -52,13 +52,21 @@ export const Canvas = (props: CanvasProps) => {
     setScene('context', canvas.getContext('webgpu')!)
   })
 
-  createEffect(() => setScene('width', propsWithDefault.texture?.width ?? propsWithDefault.width))
-  createEffect(() => setScene('height', propsWithDefault.texture?.height ?? propsWithDefault.height))
-  createEffect(() => setScene('format', propsWithDefault.texture?.format ?? propsWithDefault.format))
-  createEffect(() => setScene('autoClear', propsWithDefault.autoClear))
-  createEffect(() => setScene('sampleCount', propsWithDefault.texture?.sampleCount ?? propsWithDefault.sampleCount))
-
-  createEffect(() => setScene('currentCamera', propsWithDefault.camera?.id))
+  createEffect(() => {
+    setScene(v => {
+      return {
+        ...v,
+        width: propsWithDefault.texture?.width ?? propsWithDefault.width,
+        height: propsWithDefault.texture?.height ?? propsWithDefault.height,
+        format: propsWithDefault.texture?.format ?? propsWithDefault.format,
+        sampleCount: propsWithDefault.texture?.sampleCount ?? propsWithDefault.sampleCount,
+        autoClear: propsWithDefault.autoClear,
+        clearValue: propsWithDefault.clearValue,
+        currentCamera: propsWithDefault.camera?.id,
+        scene: propsWithDefault.texture
+      }
+    })
+  })
 
   /**
    * resize swapchain
@@ -75,7 +83,7 @@ export const Canvas = (props: CanvasProps) => {
     })
     const size = [scene.width, scene.height]
     const usage = GPUTextureUsage.COPY_DST | GPUTextureUsage.RENDER_ATTACHMENT
-    const sampleCount = propsWithDefault.sampleCount
+    const sampleCount = scene.sampleCount
 
     const msaaTexture = device.createTexture({
       format,
@@ -149,8 +157,8 @@ export const Canvas = (props: CanvasProps) => {
       return
     }
 
-    const resolveTarget = propsWithDefault.texture?.createView() ?? context.getCurrentTexture().createView()
-    const loadOp: GPULoadOp = propsWithDefault.autoClear ? 'clear' : 'load'
+    const resolveTarget = scene.texture?.createView() ?? context.getCurrentTexture().createView()
+    const loadOp: GPULoadOp = scene.autoClear ? 'clear' : 'load'
     const storeOp: GPUStoreOp = 'store'
     const commandEncoder = device.createCommandEncoder()
 
@@ -159,7 +167,7 @@ export const Canvas = (props: CanvasProps) => {
       resolveTarget,
       loadOp,
       storeOp,
-      clearValue: propsWithDefault.clearValue
+      clearValue: scene.clearValue
     }
 
     const passEncoder = commandEncoder.beginRenderPass({
