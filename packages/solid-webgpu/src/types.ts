@@ -142,4 +142,7 @@ export type SceneContext = {
   renderOrder: string[]
   lightList: string[]
   currentCamera?: string
+
+  // user
+  update?: (t: number) => void
 }

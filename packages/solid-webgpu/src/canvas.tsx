@@ -14,6 +14,8 @@ export type CanvasProps = ParentProps & {
   sampleCount?: number
   camera?: CameraRef
   ref?: (v: HTMLCanvasElement) => void
+
+  update?: (t: number) => void
 }
 
 export const Canvas = (props: CanvasProps) => {

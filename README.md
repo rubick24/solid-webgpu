@@ -12,7 +12,7 @@ Packed with a forked version of `gl-matrix` v4 beta at `packages/math`, it may b
 ## Get Started
 
 ```tsx
-import { createSignal } from 'solid-js'
+import { createResource, createSignal, Show } from 'solid-js'
 import { render } from 'solid-js/web'
 import type { CameraRef, QuatLike, Vec3Like } from 'solid-webgpu'
 import {
@@ -27,11 +27,17 @@ import {
   Quat
 } from 'solid-webgpu'
 
-const t = await imageBitmapFromImageUrl('../../static/a.png')
-
 const Avatar = (props: { position?: Vec3Like; quaternion?: QuatLike }) => {
+  const [t] = createResource(async () => {
+    await new Promise(r => setTimeout(r, 1000))
+    return imageBitmapFromImageUrl('../../static/a.png')
+  })
+
   const planeGeo = createPlaneGeometry()
-  const pbrMat = createPBRMaterial({ albedoTextureSource: t })
+  const pbrMat = createPBRMaterial(() => ({
+    albedoTextureSource: t(),
+    occlusionRoughnessMetallicTextureSource: t()
+  }))
   return <Mesh geometry={planeGeo} material={pbrMat()} {...props} />
 }
 
@@ -43,18 +49,16 @@ const App = () => {
   createOrbitControl(canvas, camera)
 
   const [r, setR] = createSignal(Quat.create(), { equals: false })
-  const af = (t: number) => {
+  const update = (t: number) => {
     setR(v => {
       Quat.fromEuler(v, 0, 0, t / 20)
       return v
     })
-    requestAnimationFrame(af)
   }
-  requestAnimationFrame(af)
 
   return (
     <>
-      <Canvas camera={camera()} ref={setCanvas}>
+      <Canvas camera={camera()} ref={setCanvas} update={update}>
         <PerspectiveCamera label="main_camera" ref={setCamera} position={[0, 0, 5]} aspect={16 / 9} />
         <PunctualLight
           type="spot"

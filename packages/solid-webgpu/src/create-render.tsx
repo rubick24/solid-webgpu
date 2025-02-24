@@ -8,7 +8,6 @@ import { access } from './utils'
 const tempVec3 = Vec3.create()
 export const createRender = (
   options: MaybeAccessor<{
-    // children: JSX.Element
     camera?: CameraRef
     autoClear?: boolean
     clearValue?: GPUColor
@@ -25,6 +24,9 @@ export const createRender = (
     height?: number
     format?: GPUTextureFormat
     sampleCount?: number
+
+    // user
+    update?: (t: number) => void
   }>,
   ch: () => JSX.Element
 ) => {
@@ -58,7 +60,9 @@ export const createRender = (
       currentCamera: opts.camera?.id ?? v.currentCamera,
       texture: opts.texture ?? v.texture,
       canvas: opts.canvas ?? v.canvas,
-      context: opts.context ?? v.context
+      context: opts.context ?? v.context,
+
+      update: opts.update ?? v.update
     }))
   })
 
@@ -146,7 +150,7 @@ export const createRender = (
   })
 
   // render function
-  createEffect(() => {
+  const renderFn = () => {
     const { msaaTextureView, depthTextureView, context, renderOrder } = scene
     if (!msaaTextureView || !depthTextureView) {
       return
@@ -185,12 +189,39 @@ export const createRender = (
 
     passEncoder.end()
     device.queue.submit([commandEncoder.finish()])
+  }
+
+  let timeout = NaN
+  createEffect(() => {
+    // Explicitly list all dependencies that should trigger a re-render
+    const deps = {
+      renderOrder: scene.renderOrder,
+      width: scene.width,
+      height: scene.height,
+      autoClear: scene.autoClear,
+      clearValue: scene.clearValue,
+      texture: scene.texture
+    }
+
+    if (timeout) {
+      cancelAnimationFrame(timeout)
+    }
+    timeout = requestAnimationFrame(t => {
+      scene.update?.(t)
+      renderFn()
+    })
+
+    onCleanup(() => {
+      if (timeout) {
+        cancelAnimationFrame(timeout)
+      }
+    })
   })
 
-  const x = children(ch)
+  const c = children(ch)
 
   const comp = (
-    <For each={x.toArray()}>
+    <For each={c.toArray()}>
       {child => {
         if (isWgpuComponent(child)) {
           child.setSceneCtx([scene, setScene])

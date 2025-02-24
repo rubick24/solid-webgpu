@@ -35,20 +35,21 @@ const App = () => {
   createOrbitControl(canvas, camera)
 
   const [r, setR] = createSignal(Quat.create(), { equals: false })
-  const af = (t: number) => {
+  const update = (t: number) => {
     setR(v => {
       Quat.fromEuler(v, 0, 0, t / 20)
       return v
     })
-    requestAnimationFrame(af)
   }
-  requestAnimationFrame(af)
 
-  const x = <Mesh geometry={createPlaneGeometry()} position={[-3, 0, 0]} quaternion={r()} />
+  const planeGeo = createPlaneGeometry()
+
+  // create object3d outside canvas context
+  const x = <Mesh geometry={planeGeo} position={[-3, 0, 0]} quaternion={r()} />
 
   return (
     <>
-      <Canvas camera={camera()} ref={setCanvas}>
+      <Canvas camera={camera()} ref={setCanvas} update={update}>
         <PerspectiveCamera label="main_camera" ref={setCamera} position={[0, 0, 5]} aspect={16 / 9} />
         <PunctualLight
           type="spot"
@@ -59,6 +60,8 @@ const App = () => {
         />
         {x}
         <Avatar position={[0, p(), 0]} />
+
+        {/* conditional rendering */}
         <Show when={p() % 2 === 1}>
           <Avatar position={[3, 0, 0]} />
         </Show>
