@@ -1,22 +1,23 @@
 import { Vec3 } from 'math'
-import { mergeProps, ParentProps, splitProps } from 'solid-js'
+import { JSX, mergeProps, ParentProps, splitProps } from 'solid-js'
 import { createRender } from './create-render'
 import { CameraRef } from './types'
 
 const tempVec3 = Vec3.create()
 
-export type CanvasProps = ParentProps & {
-  width?: number
-  height?: number
-  format?: GPUTextureFormat
-  autoClear?: boolean
-  clearValue?: GPUColor
-  sampleCount?: number
-  camera?: CameraRef
-  ref?: (v: HTMLCanvasElement) => void
+export type CanvasProps = ParentProps &
+  JSX.HTMLAttributes<HTMLCanvasElement> & {
+    width?: number
+    height?: number
+    format?: GPUTextureFormat
+    autoClear?: boolean
+    clearValue?: GPUColor
+    sampleCount?: number
+    camera?: CameraRef
+    ref?: (v: HTMLCanvasElement) => void
 
-  update?: (t: number) => void
-}
+    update?: (t: number) => void
+  }
 
 export const Canvas = (props: CanvasProps) => {
   const defaultProps = {
@@ -28,11 +29,24 @@ export const Canvas = (props: CanvasProps) => {
     sampleCount: 4
   }
 
-  const [cProps, _props] = splitProps(props, ['children', 'ref'])
+  const [_props, rest] = splitProps(props, [
+    'children',
+    'ref',
+    'width',
+    'height',
+    'format',
+    'autoClear',
+    'clearValue',
+    'sampleCount',
+    'camera',
+    'update'
+  ])
   const propsWithDefault = mergeProps(defaultProps, _props)
 
-  const canvas = (<canvas width={propsWithDefault.width} height={propsWithDefault.height} />) as HTMLCanvasElement
-  cProps.ref?.(canvas)
+  const canvas = (
+    <canvas {...rest} width={propsWithDefault.width} height={propsWithDefault.height} />
+  ) as HTMLCanvasElement
+  propsWithDefault.ref?.(canvas)
 
   const context = canvas.getContext('webgpu')!
 
@@ -50,7 +64,7 @@ export const Canvas = (props: CanvasProps) => {
       canvas,
       context
     }),
-    () => cProps.children
+    () => propsWithDefault.children
   )
 
   return canvas

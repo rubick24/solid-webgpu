@@ -87,20 +87,22 @@ export const createRender = (
       format,
       size,
       usage,
-      sampleCount
+      sampleCount,
+      label: 'msaaTexture'
     })
     const depthTexture = device.createTexture({
       format: 'depth24plus-stencil8',
       size,
       usage,
-      sampleCount
+      sampleCount,
+      label: 'depthTexture'
     })
 
     batch(() => {
       setScene('msaaTexture', msaaTexture)
-      setScene('msaaTextureView', msaaTexture.createView())
+      setScene('msaaTextureView', msaaTexture.createView({ label: 'msaaTextureView' }))
       setScene('depthTexture', depthTexture)
-      setScene('depthTextureView', depthTexture.createView())
+      setScene('depthTextureView', depthTexture.createView({ label: 'depthTextureView' }))
     })
 
     onCleanup(() => {
@@ -161,9 +163,10 @@ export const createRender = (
     const storeOp: GPUStoreOp = 'store'
     const commandEncoder = device.createCommandEncoder()
 
+    const direct = context && scene.sampleCount === 1
     const colorAttachment: GPURenderPassColorAttachment = {
-      view: msaaTextureView,
-      resolveTarget,
+      view: direct ? resolveTarget! : msaaTextureView,
+      resolveTarget: direct ? undefined : resolveTarget,
       loadOp,
       storeOp,
       clearValue: scene.clearValue
@@ -200,7 +203,8 @@ export const createRender = (
       height: scene.height,
       autoClear: scene.autoClear,
       clearValue: scene.clearValue,
-      texture: scene.texture
+      texture: scene.texture,
+      sampleCount: scene.sampleCount
     }
 
     if (timeout) {

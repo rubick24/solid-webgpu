@@ -230,6 +230,8 @@ export const createRenderPipeline = (
 
     primitive?: GPUPrimitiveState
     depthStencil?: GPUDepthStencilState
+
+    multisample?: GPUMultisampleState
   }>
 ) => {
   const pipeline = createMemo<GPURenderPipeline>(() => {
@@ -273,7 +275,7 @@ export const createRenderPipeline = (
         format: 'depth24plus-stencil8',
         ...ops.depthStencil
       },
-      multisample: { count: 4 }
+      multisample: ops.multisample
     })
   })
 

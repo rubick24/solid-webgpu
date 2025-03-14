@@ -44,9 +44,10 @@ export const Mesh = (props: MeshProps) => {
     vertexEntryPoint: material().vertexEntryPoint,
     fragmentEntryPoint: material().fragmentEntryPoint,
     primitive: props.geometry.primitive,
-    depthStencil: props.geometry.depthStencil
+    depthStencil: props.geometry.depthStencil,
+    multisample: store.scene()?.[0].sampleCount ? { count: store.scene()?.[0].sampleCount } : undefined
   }))
-  const pipeline = createRenderPipeline(pipelineOps())
+  const pipeline = createRenderPipeline(pipelineOps)
 
   const _instanceCount = () => props.geometry.instanceCount ?? 1
   const _drawRange = () => props.geometry.drawRange ?? { start: 0, count: Infinity }
