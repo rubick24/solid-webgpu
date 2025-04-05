@@ -14,6 +14,7 @@ export const createRender = (
 
     // render to texture
     texture?: GPUTexture
+    updateSignal?: () => number
 
     // render to canvas
     canvas?: HTMLCanvasElement
@@ -194,6 +195,8 @@ export const createRender = (
     device.queue.submit([commandEncoder.finish()])
   }
 
+  const updateSignal = access(options).updateSignal
+
   let timeout = NaN
   createEffect(() => {
     // Explicitly list all dependencies that should trigger a re-render
@@ -206,6 +209,8 @@ export const createRender = (
       texture: scene.texture,
       sampleCount: scene.sampleCount
     }
+    // trigger update if exists
+    updateSignal?.()
 
     if (timeout) {
       cancelAnimationFrame(timeout)

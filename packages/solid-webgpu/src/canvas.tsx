@@ -17,6 +17,7 @@ export type CanvasProps = ParentProps &
     ref?: (v: HTMLCanvasElement) => void
 
     update?: (t: number) => void
+    updateSignal?: () => number
   }
 
 export const Canvas = (props: CanvasProps) => {
@@ -39,7 +40,8 @@ export const Canvas = (props: CanvasProps) => {
     'clearValue',
     'sampleCount',
     'camera',
-    'update'
+    'update',
+    'updateSignal'
   ])
   const propsWithDefault = mergeProps(defaultProps, _props)
 
@@ -62,7 +64,10 @@ export const Canvas = (props: CanvasProps) => {
       sampleCount: propsWithDefault.sampleCount,
       // render to canvas
       canvas,
-      context
+      context,
+
+      update: propsWithDefault.update,
+      updateSignal: propsWithDefault.updateSignal
     }),
     () => propsWithDefault.children
   )

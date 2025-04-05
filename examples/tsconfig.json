@@ -7,8 +7,13 @@
     // "emitDeclarationOnly": true,
 
     "jsx": "preserve",
-    "jsxImportSource": "solid-js"
+    "jsxImportSource": "solid-js",
     // "jsxImportSource": "solid-webgpu"
+
+    "paths": {
+      "solid-webgpu": ["../packages/solid-webgpu/src"],
+      "solid-webgpu-gltf": ["../packages/solid-webgpu-gltf/src"]
+    }
   },
   "include": ["src"],
   "exclude": ["src/**/*.test.ts"]
