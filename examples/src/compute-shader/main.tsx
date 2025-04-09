@@ -13,61 +13,74 @@ import {
   Vec3Like,
   type CameraRef
 } from 'solid-webgpu'
+import shaderCode from './shader.wgsl?raw'
 
-const formLineVertices = (options: { pointA: Vec3Like; pointB: Vec3Like; lineWidth: number; segments: number }) => {
-  const { pointA, pointB, segments } = options
-  const vertices = []
-  const indices = []
+const formLineVertices = (options: { points: Vec3Like[]; lineWidth: number; segments: number }) => {
+  const { points, segments } = options
+  const vertices: number[][] = []
+  const indices: number[] = []
   let vertexCount = 0
 
-  const direction = Vec3.subtract(Vec3.create(), pointB, pointA)
-  direction.normalize()
+  if (points.length < 2) return { vertices, indices }
 
-  vertices.push(
-    // position, tangent, normal, side, isEndpoint, endpointAngle
-    [...pointA, ...direction, -1.0, 0, 0.0],
-    [...pointA, ...direction, 1.0, 0, 0.0],
-    [...pointB, ...direction, -1.0, 0, 0.0],
-    [...pointB, ...direction, 1.0, 0, 0.0]
-  )
-  // main box
-  indices.push(0, 1, 2, 2, 1, 3)
-  vertexCount = 4
+  // 处理每个线段
+  for (let i = 0; i < points.length - 1; i++) {
+    const pointA = points[i]
+    const pointB = points[i + 1]
 
-  const startCenter = vertexCount
-  vertices.push([...pointA, ...direction, 0.0, 1, 0.0]) // 中心点
-  vertexCount++
+    // 计算当前线段方向
+    const direction = Vec3.subtract(Vec3.create(), pointB, pointA)
+    direction.normalize()
 
-  for (let i = 0; i <= segments; i++) {
-    const angle = (Math.PI * i) / segments // 0 到 π
-    vertices.push([...pointA, ...direction, 1, 1, angle])
+    // 1. 添加线段主体
+    const segmentStart = vertexCount
+    vertices.push(
+      [...pointA, ...direction, -1.0, 0, 0.0],
+      [...pointA, ...direction, 1.0, 0, 0.0],
+      [...pointB, ...direction, -1.0, 0, 0.0],
+      [...pointB, ...direction, 1.0, 0, 0.0]
+    )
+    indices.push(segmentStart, segmentStart + 1, segmentStart + 2, segmentStart + 2, segmentStart + 1, segmentStart + 3)
+    vertexCount += 4
 
-    if (i > 0) {
-      indices.push(startCenter, vertexCount - 1, vertexCount)
-    }
-    vertexCount++
-  }
+    // // 2. 处理起点（仅第一个点）
+    // if (i === 0) {
+    //   const jointCenter = vertexCount
+    //   vertices.push([...pointA, ...direction, 0.0, 1, 0.0]) // 端点中心
+    //   vertexCount++
 
-  const endCenter = vertexCount
-  vertices.push([...pointB, ...direction, 0.0, 2, 0.0]) // 中心点
-  vertexCount++
+    //   for (let j = 0; j <= segments; j++) {
+    //     const angle = (2 * Math.PI * j) / segments // 0 到 π
+    //     vertices.push([...pointA, ...direction, 1.0, 1, angle])
 
-  for (let i = 0; i <= segments; i++) {
-    const angle = (Math.PI * i) / segments // 0 到 π
-    vertices.push([...pointB, ...direction, 1, 2, angle])
+    //     if (j > 0) {
+    //       indices.push(jointCenter, vertexCount - 1, vertexCount)
+    //     }
+    //     vertexCount++
+    //   }
+    // }
 
-    if (i > 0) {
-      indices.push(endCenter, vertexCount, vertexCount - 1)
-    }
-    vertexCount++
+    // // 3. 处理关节
+    // const jointCenter = vertexCount
+    // vertices.push([...pointB, ...direction, 0.0, 1, 0.0])
+    // vertexCount++
+
+    // for (let j = 0; j <= segments; j++) {
+    //   const angle = (2 * Math.PI * j) / segments // 0 到 2π
+    //   vertices.push([...pointB, ...direction, 1.0, 1, angle])
+
+    //   if (j > 0) {
+    //     indices.push(jointCenter, vertexCount, vertexCount - 1)
+    //   }
+    //   vertexCount++
+    // }
   }
 
   return { vertices, indices }
 }
-
 const createLineGeometry = (options: { vertices: number[][]; indices: number[] }) => {
   const { vertices, indices } = options
-  const sizePerVertex = 9
+  const sizePerVertex = 9 // 位置(3) + 当前方向(3) + 侧边(1) + 端点类型(1) + 角度(1)
 
   const b = new ArrayBuffer(vertices.length * sizePerVertex * Float32Array.BYTES_PER_ELEMENT)
   const f32arr = new Float32Array(b)
@@ -75,9 +88,9 @@ const createLineGeometry = (options: { vertices: number[][]; indices: number[] }
   for (let i = 0; i < vertices.length; i++) {
     const v = vertices[i]
     f32arr.set(v, i * sizePerVertex)
-
-    i32arr[i * sizePerVertex + 7] = v[7]
+    i32arr[i * sizePerVertex + 7] = v[7] // isEndpoint
   }
+
   const vertexBuffer = device.createBuffer({
     size: b.byteLength,
     usage: GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST
@@ -93,8 +106,8 @@ const createLineGeometry = (options: { vertices: number[][]; indices: number[] }
 
   const geo: GeometryOptions = {
     primitive: {
-      topology: 'triangle-list'
-      // cullMode: 'none'
+      topology: 'triangle-list',
+      cullMode: 'none'
     },
     indexBuffer: {
       buffer: indexBuffer,
@@ -121,17 +134,17 @@ const createLineGeometry = (options: { vertices: number[][]; indices: number[] }
               shaderLocation: 2,
               offset: 24,
               format: 'float32'
-            }, // side
+            }, // SIDE
             {
               shaderLocation: 3,
               offset: 28,
               format: 'uint32'
-            }, // isEndpoint
+            }, // IS_ENDPOINT (0=线段, 1=起点, 2=终点, 3=关节)
             {
               shaderLocation: 4,
               offset: 32,
               format: 'float32'
-            } // endpointAngle
+            } // ANGLE
           ]
         }
       }
@@ -146,111 +159,18 @@ const App = () => {
 
   createOrbitControl(canvas, camera)
 
-  const geo = createLineGeometry(
-    formLineVertices({
-      pointA: [0, 0, 0],
-      pointB: [1, 1, 1],
-      lineWidth: 0.5,
-      segments: 8
-    })
-  )
+  const vertices = formLineVertices({
+    points: [
+      [0, 0, 0],
+      [1, 1, 1],
+      [2, 0, 0]
+    ],
+    lineWidth: 0.5,
+    segments: 16
+  })
+  const geo = createLineGeometry(vertices)
   const { buffer: base, update: updateBase } = createUniformBufferBase()
-  const mat = createMaterial(
-    `
-struct VertexInput {
-    @location(0) POSITION: vec3<f32>,
-    @location(1) TANGENT: vec3<f32>,
-    @location(2) SIDE: f32,
-    @location(3) IS_ENDPOINT: u32,
-    @location(4) ENDPOINT_ANGLE: f32
-};
-
-struct VertexOutput {
-    @builtin(position) clip_position: vec4<f32>,
-    @location(0) uv: vec2<f32>,
-};
-
-struct BaseUniforms {
-    model: mat4x4<f32>,
-    view: mat4x4<f32>,
-    projection: mat4x4<f32>,
-    model_view: mat4x4<f32>,
-    normal_matrix: mat3x3<f32>,
-    camera_position: vec3<f32>
-};
-
-
-@group(0) @binding(0)
-var<uniform> uniforms: BaseUniforms;
-
-const worldLineWidth: f32 = 0.5;
-
-@vertex
-fn vs_main(input: VertexInput) -> VertexOutput {
-    let halfWidth = worldLineWidth * 0.5;
-    var finalPosition = input.POSITION;
-
-
-    let camDir = normalize(vec3(
-        -uniforms.view[0][2],
-        -uniforms.view[1][2],
-        -uniforms.view[2][2]
-    ));
-    let dir = normalize(cross(camDir, input.TANGENT));
-
-    if (input.IS_ENDPOINT == 0u) {
-        finalPosition += dir * halfWidth * input.SIDE;
-    } else {
-        let angle = input.ENDPOINT_ANGLE;  // 0到π的角度
-        let circleX = cos(angle) * halfWidth;
-        let circleY = sin(angle) * halfWidth;
-
-        var capDir = select(input.TANGENT, -input.TANGENT, input.IS_ENDPOINT == 1u);
-        capDir = rotateVectorToPlane(capDir, camDir);
-
-        let endPos = input.POSITION + (circleY * capDir - circleX * dir);
-        finalPosition = endPos;
-    }
-
-    var output: VertexOutput;
-    let world_position = (uniforms.model * vec4<f32>(finalPosition, 1.0)).xyz;
-    let view_position = (uniforms.view * vec4<f32>(world_position, 1.0)).xyz;
-    output.clip_position = uniforms.projection * vec4<f32>(view_position, 1.0);
-    return output;
-}
-@fragment
-fn fs_main(input: VertexOutput) -> @location(0) vec4<f32> {
-    return vec4<f32>(1.0, 1.0, 1.0, 1.0);
-}
-
-fn rotateVectorToPlane(v: vec3f, n: vec3f) -> vec3f {
-    // Calculate the original length
-    let originalLength = length(v);
-
-    // Subtract to get the component in the plane
-    var projectedVector = v - dot(v, n) * n;
-    
-    // Check if the projection is non-zero
-    let projectedLength = length(projectedVector);
-    if (projectedLength < 0.0001) {
-        // The vector is perpendicular to the plane, so we need to choose
-        // an arbitrary vector in the plane
-        let arbitrary = select(vec3(1., 0., 0.), vec3(0., 1., 0.), abs(n.x) < 0.9);
-        projectedVector = normalize(cross(n, arbitrary));
-    } else {
-        // Normalize and scale to preserve the original length
-        projectedVector = projectedVector / projectedLength;
-    }
-    
-    // Scale to original length
-    return projectedVector * originalLength;
-}
-
-    
-    `,
-    [base],
-    updateBase
-  )
+  const mat = createMaterial(shaderCode, [base], updateBase)
 
   return (
     <Canvas camera={camera()} ref={setCanvas}>
