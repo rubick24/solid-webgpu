@@ -43,37 +43,37 @@ const formLineVertices = (options: { points: Vec3Like[]; lineWidth: number; segm
     indices.push(segmentStart, segmentStart + 1, segmentStart + 2, segmentStart + 2, segmentStart + 1, segmentStart + 3)
     vertexCount += 4
 
-    // // 2. 处理起点（仅第一个点）
-    // if (i === 0) {
-    //   const jointCenter = vertexCount
-    //   vertices.push([...pointA, ...direction, 0.0, 1, 0.0]) // 端点中心
-    //   vertexCount++
+    // 2. 处理起点（仅第一个点）
+    if (i === 0) {
+      const jointCenter = vertexCount
+      vertices.push([...pointA, ...direction, 0.0, 1, 0.0]) // 端点中心
+      vertexCount++
 
-    //   for (let j = 0; j <= segments; j++) {
-    //     const angle = (2 * Math.PI * j) / segments // 0 到 π
-    //     vertices.push([...pointA, ...direction, 1.0, 1, angle])
+      for (let j = 0; j <= segments; j++) {
+        const angle = (2 * Math.PI * j) / segments // 0 到 π
+        vertices.push([...pointA, ...direction, 1.0, 1, angle])
 
-    //     if (j > 0) {
-    //       indices.push(jointCenter, vertexCount - 1, vertexCount)
-    //     }
-    //     vertexCount++
-    //   }
-    // }
+        if (j > 0) {
+          indices.push(jointCenter, vertexCount - 1, vertexCount)
+        }
+        vertexCount++
+      }
+    }
 
-    // // 3. 处理关节
-    // const jointCenter = vertexCount
-    // vertices.push([...pointB, ...direction, 0.0, 1, 0.0])
-    // vertexCount++
+    // 3. 处理关节
+    const jointCenter = vertexCount
+    vertices.push([...pointB, ...direction, 0.0, 1, 0.0])
+    vertexCount++
 
-    // for (let j = 0; j <= segments; j++) {
-    //   const angle = (2 * Math.PI * j) / segments // 0 到 2π
-    //   vertices.push([...pointB, ...direction, 1.0, 1, angle])
+    for (let j = 0; j <= segments; j++) {
+      const angle = (2 * Math.PI * j) / segments // 0 到 2π
+      vertices.push([...pointB, ...direction, 1.0, 1, angle])
 
-    //   if (j > 0) {
-    //     indices.push(jointCenter, vertexCount, vertexCount - 1)
-    //   }
-    //   vertexCount++
-    // }
+      if (j > 0) {
+        indices.push(jointCenter, vertexCount, vertexCount - 1)
+      }
+      vertexCount++
+    }
   }
 
   return { vertices, indices }
@@ -161,11 +161,16 @@ const App = () => {
 
   const vertices = formLineVertices({
     points: [
-      [0, 0, 0],
-      [1, 1, 1],
-      [2, 0, 0]
+      [-1, -1, -1],
+      [1, -1, -1],
+      [1, -1, 1],
+      [-1, -1, 1],
+      [-1, 1, 1],
+      [-1, 1, -1],
+      [1, 1, -1],
+      [1, 1, 1]
     ],
-    lineWidth: 0.5,
+    lineWidth: 0.4,
     segments: 16
   })
   const geo = createLineGeometry(vertices)

@@ -24,37 +24,31 @@ struct BaseUniforms {
 @group(0) @binding(0)
 var<uniform> uniforms: BaseUniforms;
 
-const worldLineWidth: f32 = 0.5;
+const worldLineWidth: f32 = 0.3;
 
 @vertex
 fn vs_main(input: VertexInput) -> VertexOutput {
     let halfWidth = worldLineWidth * 0.5;
     var finalPosition = input.POSITION;
 
-    // 获取相机方向
-    let camDir = normalize(vec3(
-        -uniforms.view[0][2],
-        -uniforms.view[1][2],
-        -uniforms.view[2][2]
-    ));
-    let camRight = normalize(vec3(
-        uniforms.view[0][0],
-        uniforms.view[1][0],
-        uniforms.view[2][0]
-    ));
-    let camUp = normalize(vec3(
-        uniforms.view[0][1],
-        uniforms.view[1][1],
-        uniforms.view[2][1]
-    ));
-    
     if (input.IS_ENDPOINT == 0u) {
-        // line
-        var dir = normalize(cross(camDir, input.TANGENT));
-        // dir = rotateVectorToPlane(dir, camDir);
+        let camDir = normalize(uniforms.camera_position - input.POSITION);
+        var dir = cross(camDir, input.TANGENT);
+        dir = normalize(dir);
         finalPosition += dir * halfWidth * input.SIDE;
     } else {
         // joint
+        let camRight = normalize(vec3(
+            uniforms.view[0][0],
+            uniforms.view[1][0],
+            uniforms.view[2][0]
+        ));
+        let camUp = normalize(vec3(
+            uniforms.view[0][1],
+            uniforms.view[1][1],
+            uniforms.view[2][1]
+        ));
+
         let angle = input.ANGLE;
         let circleX = cos(angle) * halfWidth;
         let circleY = sin(angle) * halfWidth;
@@ -71,27 +65,4 @@ fn vs_main(input: VertexInput) -> VertexOutput {
 @fragment
 fn fs_main(input: VertexOutput) -> @location(0) vec4<f32> {
     return vec4<f32>(1.0, 1.0, 1.0, 1.0);
-}
-
-fn rotateVectorToPlane(v: vec3f, n: vec3f) -> vec3f {
-    // Calculate the original length
-    let originalLength = length(v);
-
-    // Subtract to get the component in the plane
-    var projectedVector = v - dot(v, n) * n;
-    
-    // Check if the projection is non-zero
-    let projectedLength = length(projectedVector);
-    if (projectedLength < 0.0001) {
-        // The vector is perpendicular to the plane, so we need to choose
-        // an arbitrary vector in the plane
-        let arbitrary = select(vec3(1., 0., 0.), vec3(0., 1., 0.), abs(n.x) < 0.9);
-        projectedVector = normalize(cross(n, arbitrary));
-    } else {
-        // Normalize and scale to preserve the original length
-        projectedVector = projectedVector / projectedLength;
-    }
-    
-    // Scale to original length
-    return projectedVector * originalLength;
 }
