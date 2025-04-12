@@ -71,6 +71,9 @@ importers:
       '@rubick24/math':
         specifier: workspace:*
         version: link:../math
+      '@webgpu/types':
+        specifier: ^0.1.51
+        version: 0.1.51
     devDependencies:
       babel-preset-solid:
         specifier: ^1.9.3
@@ -80,6 +83,10 @@ importers:
         version: 1.9.3
 
   packages/solid-webgpu-gltf:
+    dependencies:
+      solid-webgpu:
+        specifier: workspace:*
+        version: link:../solid-webgpu
     devDependencies:
       '@types/node':
         specifier: ^22.10.2
@@ -93,9 +100,6 @@ importers:
       solid-js:
         specifier: ^1.9.3
         version: 1.9.3
-      solid-webgpu:
-        specifier: workspace:*
-        version: link:../solid-webgpu
 
 packages:
 
