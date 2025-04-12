@@ -1,4 +1,4 @@
-import { Mat4, Quat, QuatLike, Vec3, Vec3Like } from 'math'
+import { Mat4, Quat, QuatLike, Vec3, Vec3Like } from '@rubick24/math'
 import {
   children,
   ChildrenReturn,

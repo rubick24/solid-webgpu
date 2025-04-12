@@ -1,4 +1,4 @@
-import type { Mat4, Quat, Vec3 } from 'math'
+import type { Mat4, Quat, Vec3 } from '@rubick24/math'
 import type { Accessor, JSX, Setter } from 'solid-js'
 import type { SetStoreFunction } from 'solid-js/store'
 

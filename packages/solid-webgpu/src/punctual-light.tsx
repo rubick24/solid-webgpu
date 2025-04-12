@@ -1,4 +1,4 @@
-import { Vec3, Vec3Like } from 'math'
+import { Vec3, Vec3Like } from '@rubick24/math'
 import { children, createEffect, createSignal, JSX, onCleanup } from 'solid-js'
 import { createObject3DRef, Object3DProps, wgpuCompRender } from './object3d'
 import { $PUNCTUAL_LIGHT, Object3DComponent, PunctualLightExtra, PunctualLightRef } from './types'

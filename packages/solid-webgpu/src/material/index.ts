@@ -1,4 +1,4 @@
-import { Vec3, Vec3Like } from 'math'
+import { Vec3, Vec3Like } from '@rubick24/math'
 import { Accessor, createEffect, createMemo, createRoot } from 'solid-js'
 import {
   createBindGroup,

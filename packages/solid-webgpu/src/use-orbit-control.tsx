@@ -1,4 +1,4 @@
-import { Vec3 } from 'math'
+import { Vec3 } from '@rubick24/math'
 import { createEffect, onCleanup, untrack } from 'solid-js'
 
 import { lookAt } from './camera'

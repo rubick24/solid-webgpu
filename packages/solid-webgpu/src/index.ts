@@ -1,4 +1,4 @@
-export * from 'math'
+export * from '@rubick24/math'
 export * from './camera'
 export * from './canvas'
 export * from './create-render'

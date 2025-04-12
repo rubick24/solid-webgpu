@@ -1,4 +1,4 @@
-import { Mat3, Mat4, Vec3 } from 'math'
+import { Mat3, Mat4, Vec3 } from '@rubick24/math'
 import { createEffect, createMemo, onCleanup } from 'solid-js'
 
 import { CameraRef, MaybeAccessor, MeshRef, Optional, PunctualLightRef, TypedArray } from './types'

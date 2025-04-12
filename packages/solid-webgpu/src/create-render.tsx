@@ -1,4 +1,4 @@
-import { Vec3 } from 'math'
+import { Vec3 } from '@rubick24/math'
 import { batch, children, createEffect, For, JSX, onCleanup } from 'solid-js'
 import { createStore } from 'solid-js/store'
 import { device } from './hks'

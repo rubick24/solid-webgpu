@@ -1,7 +1,8 @@
 {
-  "name": "math",
-  "private": true,
-  "version": "1.0.0",
+  "name": "@rubick24/math",
+  "license": "MIT",
+  "description": "forked from gl-matrix v4 branch",
+  "version": "0.0.1",
   "type": "module",
   "exports": {
     ".": {

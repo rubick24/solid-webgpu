@@ -44,7 +44,7 @@ importers:
 
   examples:
     dependencies:
-      math:
+      '@rubick24/math':
         specifier: workspace:*
         version: link:../packages/math
       solid-js:
@@ -67,13 +67,14 @@ importers:
   packages/math: {}
 
   packages/solid-webgpu:
+    dependencies:
+      '@rubick24/math':
+        specifier: workspace:*
+        version: link:../math
     devDependencies:
       babel-preset-solid:
         specifier: ^1.9.3
         version: 1.9.3(@babel/core@7.26.0)
-      math:
-        specifier: workspace:*
-        version: link:../math
       solid-js:
         specifier: ^1.9.3
         version: 1.9.3

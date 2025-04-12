@@ -1,4 +1,4 @@
-import { DEG2RAD, Mat4, Quat, Vec3 } from 'math'
+import { DEG2RAD, Mat4, Quat, Vec3 } from '@rubick24/math'
 import { children, createEffect, createSignal, JSX, mergeProps, splitProps } from 'solid-js'
 import { createObject3DRef, Object3DProps, wgpuCompRender } from './object3d'
 import { $CAMERA, CameraExtra, CameraRef, Object3DComponent } from './types'

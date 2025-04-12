@@ -1,4 +1,4 @@
-import { Vec3 } from 'math'
+import { Vec3 } from '@rubick24/math'
 import { JSX, mergeProps, ParentProps, splitProps } from 'solid-js'
 import { createRender } from './create-render'
 import { CameraRef } from './types'

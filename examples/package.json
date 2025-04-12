@@ -9,7 +9,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "math": "workspace:*",
+    "@rubick24/math": "workspace:*",
     "solid-js": "^1.9.3",
     "solid-webgpu": "workspace:*",
     "solid-webgpu-gltf": "workspace:*"
