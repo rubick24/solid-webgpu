@@ -1,6 +1,7 @@
-import { createSignal } from 'solid-js'
 import { render } from '@solidjs/web'
+import { createSignal } from 'solid-js'
 import {
+  type CameraRef,
   Canvas,
   createMaterial,
   createOrbitControl,
@@ -8,7 +9,6 @@ import {
   createUniformBufferBase,
   Mesh,
   PerspectiveCamera,
-  type CameraRef
 } from 'solid-webgpu'
 
 const App = () => {
@@ -64,7 +64,7 @@ fn fs_main(input: VertexOutput) -> @location(0) vec4<f32> {
     
     `,
     [base],
-    updateBase
+    updateBase,
   )
 
   return (

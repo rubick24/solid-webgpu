@@ -19,6 +19,6 @@ export const record = (canvas: HTMLCanvasElement) => {
       const blob = new Blob(chunks, { type: 'video/webm' })
       chunks = []
       return blob
-    }
+    },
   }
 }

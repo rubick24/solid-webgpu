@@ -1,8 +1,8 @@
 import { Vec3 } from '@rubick24/math'
-import { merge, omit, onSettled, type ParentProps, untrack } from 'solid-js'
 import type { JSX } from '@solidjs/web'
+import { merge, omit, onSettled, type ParentProps, untrack } from 'solid-js'
 import { createRender } from './create-render'
-import { CameraRef } from './types'
+import type { CameraRef } from './types'
 
 const tempVec3 = Vec3.create()
 
@@ -28,7 +28,7 @@ export const Canvas = (props: CanvasProps) => {
     format: navigator.gpu.getPreferredCanvasFormat(),
     autoClear: true,
     clearValue: { r: 0.0, g: 0.0, b: 0.0, a: 1.0 },
-    sampleCount: 4
+    sampleCount: 4,
   }
 
   const rest = omit(
@@ -43,7 +43,7 @@ export const Canvas = (props: CanvasProps) => {
     'sampleCount',
     'camera',
     'update',
-    'renderRef'
+    'renderRef',
   )
   const propsWithDefault = merge(defaultProps, props)
 
@@ -70,9 +70,9 @@ export const Canvas = (props: CanvasProps) => {
       canvas,
       context,
 
-      update: propsWithDefault.update
+      update: propsWithDefault.update,
     }),
-    () => propsWithDefault.children
+    () => propsWithDefault.children,
   )
   onSettled(() => {
     untrack(() => props.renderRef?.(() => scene.renderNow?.()))

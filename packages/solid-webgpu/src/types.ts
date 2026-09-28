@@ -1,6 +1,6 @@
 import type { Mat4, Quat, Vec3 } from '@rubick24/math'
-import type { Accessor, Setter, StoreSetter } from 'solid-js'
 import type { JSX } from '@solidjs/web'
+import type { Accessor, Setter, StoreSetter } from 'solid-js'
 
 export type Optional<T, K extends keyof T> = Partial<Pick<T, K>> & Omit<T, K>
 
@@ -65,6 +65,7 @@ export type Object3DExtra = {
   [$OBJECT3D]: true
   matrix: Accessor<Mat4>
   setMatrix: Setter<Mat4>
+  updateMatrix: () => void
   position: Accessor<Vec3>
   setPosition: Setter<Vec3>
   quaternion: Accessor<Quat>

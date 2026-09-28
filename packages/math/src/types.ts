@@ -20,7 +20,7 @@ export type Mat4Like =
       number,
       number,
       number,
-      number
+      number,
     ]
   | FloatArray
 

@@ -1,17 +1,17 @@
-import { createSignal } from 'solid-js'
 import { render } from '@solidjs/web'
+import { createSignal } from 'solid-js'
 import {
+  type CameraRef,
   Canvas,
   createMaterial,
   createOrbitControl,
   createUniformBufferBase,
   device,
-  GeometryOptions,
+  type GeometryOptions,
   Mesh,
   PerspectiveCamera,
   Vec3,
-  Vec3Like,
-  type CameraRef
+  type Vec3Like,
 } from 'solid-webgpu'
 import shaderCode from './shader.wgsl?raw'
 
@@ -38,7 +38,7 @@ const formLineVertices = (options: { points: Vec3Like[]; lineWidth: number; segm
       [...pointA, ...direction, -1.0, 0, 0.0],
       [...pointA, ...direction, 1.0, 0, 0.0],
       [...pointB, ...direction, -1.0, 0, 0.0],
-      [...pointB, ...direction, 1.0, 0, 0.0]
+      [...pointB, ...direction, 1.0, 0, 0.0],
     )
     indices.push(segmentStart, segmentStart + 1, segmentStart + 2, segmentStart + 2, segmentStart + 1, segmentStart + 3)
     vertexCount += 4
@@ -93,25 +93,25 @@ const createLineGeometry = (options: { vertices: number[][]; indices: number[] }
 
   const vertexBuffer = device.createBuffer({
     size: b.byteLength,
-    usage: GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST
+    usage: GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST,
   })
   device.queue.writeBuffer(vertexBuffer, 0, b)
 
   const indexVals = new Uint32Array(indices)
   const indexBuffer = device.createBuffer({
     size: indexVals.byteLength,
-    usage: GPUBufferUsage.INDEX | GPUBufferUsage.COPY_DST
+    usage: GPUBufferUsage.INDEX | GPUBufferUsage.COPY_DST,
   })
   device.queue.writeBuffer(indexBuffer, 0, indexVals)
 
   const geo: GeometryOptions = {
     primitive: {
       topology: 'triangle-list',
-      cullMode: 'none'
+      cullMode: 'none',
     },
     indexBuffer: {
       buffer: indexBuffer,
-      BYTES_PER_ELEMENT: Uint32Array.BYTES_PER_ELEMENT
+      BYTES_PER_ELEMENT: Uint32Array.BYTES_PER_ELEMENT,
     },
     vertexBuffers: [
       {
@@ -123,32 +123,32 @@ const createLineGeometry = (options: { vertices: number[][]; indices: number[] }
             {
               shaderLocation: 0,
               offset: 0,
-              format: 'float32x3'
+              format: 'float32x3',
             }, // POSITION
             {
               shaderLocation: 1,
               offset: 12,
-              format: 'float32x3'
+              format: 'float32x3',
             }, // TANGENT
             {
               shaderLocation: 2,
               offset: 24,
-              format: 'float32'
+              format: 'float32',
             }, // SIDE
             {
               shaderLocation: 3,
               offset: 28,
-              format: 'uint32'
+              format: 'uint32',
             }, // IS_ENDPOINT (0=线段, 1=起点, 2=终点, 3=关节)
             {
               shaderLocation: 4,
               offset: 32,
-              format: 'float32'
-            } // ANGLE
-          ]
-        }
-      }
-    ]
+              format: 'float32',
+            }, // ANGLE
+          ],
+        },
+      },
+    ],
   }
   return geo
 }
@@ -168,10 +168,10 @@ const App = () => {
       [-1, 1, 1],
       [-1, 1, -1],
       [1, 1, -1],
-      [1, 1, 1]
+      [1, 1, 1],
     ],
     lineWidth: 0.4,
-    segments: 16
+    segments: 16,
   })
   const geo = createLineGeometry(vertices)
   const { buffer: base, update: updateBase } = createUniformBufferBase()

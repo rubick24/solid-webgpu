@@ -1,6 +1,6 @@
-import { createMemo, createSignal, Loading } from 'solid-js'
 import { Dynamic, render } from '@solidjs/web'
-import { Canvas, createOrbitControl, PerspectiveCamera, PunctualLight, Quat, type CameraRef } from 'solid-webgpu'
+import { createMemo, createSignal, Loading } from 'solid-js'
+import { type CameraRef, Canvas, createOrbitControl, PerspectiveCamera, PunctualLight, Quat } from 'solid-webgpu'
 import { loadGLTF } from 'solid-webgpu-gltf'
 
 const App = () => {
@@ -18,7 +18,7 @@ const App = () => {
         <PunctualLight
           type="spot"
           position={[0, 3, 0.5]}
-          quaternion={Quat.fromEuler(Quat.create(), 90, 0, 0)}
+          quaternion={Quat.fromEuler(Quat.create(), -90, 0, 0)}
           color={[1, 1, 1]}
           intensity={100}
         />

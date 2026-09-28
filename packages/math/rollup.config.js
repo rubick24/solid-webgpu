@@ -5,16 +5,16 @@ export default {
   input: 'src/index.ts',
   output: {
     file: 'dist/index.js',
-    format: 'es'
+    format: 'es',
   },
   plugins: [
     nodeResolve({
-      extensions: ['.js', '.ts', '.tsx']
+      extensions: ['.js', '.ts', '.tsx'],
     }),
     babel({
       babelHelpers: 'bundled',
       extensions: ['.js', '.ts', '.tsx'],
-      presets: ['@babel/preset-typescript']
-    })
-  ]
+      presets: [['@babel/preset-typescript', { allowDeclareFields: true }]],
+    }),
+  ],
 }

@@ -6,6 +6,12 @@ import type { Mat4Like, QuatLike, Vec4Like } from './types'
  * 4 Dimensional Vector
  */
 export class Vec4 extends Float32Array {
+  declare sub: typeof Vec4.prototype.subtract
+  declare mul: typeof Vec4.prototype.multiply
+  declare div: typeof Vec4.prototype.divide
+  declare dist: typeof Vec4.prototype.distance
+  declare sqrDist: typeof Vec4.prototype.squaredDistance
+
   /**
    * Create a {@link Vec4}.
    *
@@ -971,19 +977,14 @@ export class Vec4 extends Float32Array {
   static len = this.magnitude
 }
 
-export interface Vec4 {
-  sub: typeof Vec4.prototype.subtract
-  mul: typeof Vec4.prototype.multiply
-  div: typeof Vec4.prototype.divide
-  dist: typeof Vec4.prototype.distance
-  sqrDist: typeof Vec4.prototype.squaredDistance
-}
 ;(
   [
     ['sub', 'subtract'],
     ['mul', 'multiply'],
     ['div', 'divide'],
     ['dist', 'distance'],
-    ['sqrDist', 'squaredDistance']
+    ['sqrDist', 'squaredDistance'],
   ] as const
-).forEach(v => (Vec4.prototype[v[0]] = Vec4.prototype[v[1]] as any))
+).forEach(v => {
+  Vec4.prototype[v[0]] = Vec4.prototype[v[1]] as any
+})

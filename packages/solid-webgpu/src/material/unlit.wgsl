@@ -2,12 +2,15 @@ struct VertexInput {
     @location(0) POSITION: vec3<f32>,
     @location(1) NORMAL: vec3<f32>,
     @location(2) TANGENT: vec4<f32>,
-    @location(3) TEXCOORD_0: vec2<f32>
+    @location(3) TEXCOORD_0: vec2<f32>,
+    @location(4) COLOR_0: vec4<f32>
 };
 
 struct VertexOutput {
     @builtin(position) clip_position: vec4<f32>,
-    @location(0) uv: vec2<f32>,
+    @location(0) uv_0: vec2<f32>,
+    @location(1) color: vec4<f32>,
+    /*TEXCOORD_OUTPUTS*/
 };
 
 struct BaseUniforms {
@@ -20,8 +23,9 @@ struct BaseUniforms {
 };
 
 struct Params {
-    albedo: vec3<f32>,
+    base_color: vec4<f32>,
     use_textures: u32, // Bitfield to indicate use value or textures
+    alpha_cutoff: f32,
 };
 
 @group(0) @binding(0)
@@ -42,7 +46,9 @@ fn vs_main(input: VertexInput) -> VertexOutput {
     let world_position = (uniforms.model * vec4<f32>(input.POSITION, 1.0)).xyz;
     let view_position = (uniforms.view * vec4<f32>(world_position, 1.0)).xyz;
     output.clip_position = uniforms.projection * vec4<f32>(view_position, 1.0);
-    output.uv = input.TEXCOORD_0;
+    output.uv_0 = input.TEXCOORD_0;
+    output.color = input.COLOR_0;
+    /*TEXCOORD_ASSIGNMENTS*/
     return output;
 }
 
@@ -50,7 +56,7 @@ fn get_values(uv: vec2<f32>) -> Params {
     var result = params;
 
     if (params.use_textures & 1u) != 0u {
-        result.albedo = textureSample(albedo_texture, texture_sampler, uv).rgb;
+        result.base_color *= textureSample(albedo_texture, texture_sampler, uv);
     }
 
     return result;
@@ -61,6 +67,10 @@ const PI: f32 = 3.14159265359;
 
 @fragment
 fn fs_main(input: VertexOutput) -> @location(0) vec4<f32> {
-    let values = get_values(input.uv);
-    return vec4<f32>(values.albedo, 1.0);
+    var values = get_values(__BASE_COLOR_UV__);
+    values.base_color *= input.color;
+    if (params.use_textures & 2u) != 0u && values.base_color.a < params.alpha_cutoff {
+        discard;
+    }
+    return values.base_color;
 }

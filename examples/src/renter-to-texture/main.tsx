@@ -1,6 +1,7 @@
-import { createSignal } from 'solid-js'
 import { render } from '@solidjs/web'
+import { createSignal } from 'solid-js'
 import {
+  type CameraRef,
   Canvas,
   createOrbitControl,
   createPlaneGeometry,
@@ -11,7 +12,6 @@ import {
   PerspectiveCamera,
   PunctualLight,
   Quat,
-  type CameraRef
 } from 'solid-webgpu'
 import { loadGLTF } from 'solid-webgpu-gltf'
 
@@ -36,7 +36,7 @@ const App = () => {
       GPUTextureUsage.TEXTURE_BINDING |
       GPUTextureUsage.RENDER_ATTACHMENT |
       GPUTextureUsage.COPY_SRC |
-      GPUTextureUsage.COPY_DST
+      GPUTextureUsage.COPY_DST,
   })
 
   const [, , textureRender] = createRender(
@@ -44,7 +44,7 @@ const App = () => {
       texture: texture(),
       clearValue: { r: 0, g: 0.5, b: 1.0, a: 1.0 },
       camera: texCamera(),
-      afterRender: () => renderCanvas()
+      afterRender: () => renderCanvas(),
     }),
     () => (
       <>
@@ -52,19 +52,19 @@ const App = () => {
         <PunctualLight
           type="spot"
           position={[0, 3, 0.5]}
-          quaternion={Quat.fromEuler(Quat.create(), 90, 0, 0)}
+          quaternion={Quat.fromEuler(Quat.create(), -90, 0, 0)}
           color={[1, 1, 1]}
           intensity={100}
         />
 
         <GLTFModel />
       </>
-    )
+    ),
   )
 
   const planeGeo = createPlaneGeometry()
   const unlitMat = createUnlitMaterial(() => ({
-    albedoTexture: texture()
+    albedoTexture: texture(),
   }))
 
   return (

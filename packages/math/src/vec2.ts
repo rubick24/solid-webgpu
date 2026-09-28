@@ -1,7 +1,13 @@
 import { GLM_EPSILON } from './common'
-import { Mat2Like, Mat2dLike, Mat3Like, Mat4Like, Vec2Like } from './types'
+import type { Mat2dLike, Mat2Like, Mat3Like, Mat4Like, Vec2Like } from './types'
 
 export class Vec2 extends Float32Array {
+  declare sub: typeof Vec2.prototype.subtract
+  declare mul: typeof Vec2.prototype.multiply
+  declare div: typeof Vec2.prototype.divide
+  declare dist: typeof Vec2.prototype.distance
+  declare sqrDist: typeof Vec2.prototype.squaredDistance
+
   constructor(...values: [Readonly<Vec2Like> | ArrayBufferLike, number?] | number[]) {
     switch (values.length) {
       case 2: {
@@ -362,20 +368,14 @@ export class Vec2 extends Float32Array {
   static sqrLen = this.squaredLength
 }
 
-export interface Vec2 {
-  sub: typeof Vec2.prototype.subtract
-  mul: typeof Vec2.prototype.multiply
-  div: typeof Vec2.prototype.divide
-  dist: typeof Vec2.prototype.distance
-  sqrDist: typeof Vec2.prototype.squaredDistance
-}
-
 ;(
   [
     ['sub', 'subtract'],
     ['mul', 'multiply'],
     ['div', 'divide'],
     ['dist', 'distance'],
-    ['sqrDist', 'squaredDistance']
+    ['sqrDist', 'squaredDistance'],
   ] as const
-).forEach(v => (Vec2.prototype[v[0]] = Vec2.prototype[v[1]] as any))
+).forEach(v => {
+  Vec2.prototype[v[0]] = Vec2.prototype[v[1]] as any
+})

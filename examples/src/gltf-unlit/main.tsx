@@ -1,6 +1,6 @@
-import { createSignal } from 'solid-js'
 import { render } from '@solidjs/web'
-import { Canvas, createOrbitControl, PerspectiveCamera, type CameraRef } from 'solid-webgpu'
+import { createSignal } from 'solid-js'
+import { type CameraRef, Canvas, createOrbitControl, PerspectiveCamera } from 'solid-webgpu'
 import { loadGLTF } from 'solid-webgpu-gltf'
 
 const { json, scenes } = await loadGLTF('../../static/suzanne_unlit.glb')

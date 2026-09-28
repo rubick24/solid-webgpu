@@ -1,6 +1,6 @@
-import { createMemo, createSignal, Loading } from 'solid-js'
 import { Dynamic, render } from '@solidjs/web'
-import { Canvas, createOrbitControl, PerspectiveCamera, type CameraRef } from 'solid-webgpu'
+import { createMemo, createSignal, Loading } from 'solid-js'
+import { type CameraRef, Canvas, createOrbitControl, PerspectiveCamera } from 'solid-webgpu'
 import { loadGLTF } from 'solid-webgpu-gltf'
 
 const App = () => {
@@ -20,9 +20,9 @@ const App = () => {
         height={90}
         sampleCount={1}
         style={{
-          'width': '960px',
-          'height': '540px',
-          'image-rendering': 'pixelated'
+          width: '960px',
+          height: '540px',
+          'image-rendering': 'pixelated',
         }}
       >
         <PerspectiveCamera label="main_camera" ref={setCamera} position={[0, 0, 5]} aspect={16 / 9} />

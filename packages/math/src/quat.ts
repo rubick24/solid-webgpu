@@ -1,13 +1,14 @@
 import { GLM_EPSILON } from './common'
+import type { Mat3Like, QuatLike, Vec3Like } from './types'
 import { Vec3 } from './vec3'
 import { Vec4 } from './vec4'
-
-import type { Mat3Like, QuatLike, Vec3Like } from './types'
 
 /**
  * Quaternion
  */
 export class Quat extends Float32Array {
+  declare mul: typeof Quat.prototype.multiply
+
   static DEFAULT_ANGLE_ORDER = 'zyx'
 
   // Temporary variables to prevent repeated allocations in the algorithms within Quat.
@@ -938,7 +939,7 @@ export class Quat extends Float32Array {
     b: Readonly<QuatLike>,
     c: Readonly<QuatLike>,
     d: Readonly<QuatLike>,
-    t: number
+    t: number,
   ): T {
     Quat.slerp(Quat.TMP_QUAT1, a, d, t)
     Quat.slerp(Quat.TMP_QUAT2, b, c, t)
@@ -963,7 +964,7 @@ export class Quat extends Float32Array {
     out: T,
     view: Readonly<Vec3Like>,
     right: Readonly<Vec3Like>,
-    up: Readonly<Vec3Like>
+    up: Readonly<Vec3Like>,
   ): T {
     Quat.TMP_MAT3[0] = right[0]
     Quat.TMP_MAT3[3] = right[1]
@@ -996,7 +997,4 @@ export class Quat extends Float32Array {
   static len = this.magnitude
 }
 
-export interface Quat {
-  mul: typeof Quat.prototype.multiply
-}
 Quat.prototype.mul = Quat.prototype.multiply

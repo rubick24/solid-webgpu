@@ -1,4 +1,5 @@
 import { Vec3 } from '@rubick24/math'
+import type { JSX } from '@solidjs/web'
 import {
   children,
   createEffect,
@@ -9,11 +10,10 @@ import {
   onCleanup,
   reconcile,
   snapshot,
-  untrack
+  untrack,
 } from 'solid-js'
-import type { JSX } from '@solidjs/web'
 import { device } from './hks'
-import { CameraRef, isWgpuComponent, MaybeAccessor, MeshRef, SceneContext } from './types'
+import { type CameraRef, isWgpuComponent, type MaybeAccessor, type MeshRef, type SceneContext } from './types'
 import { access } from './utils'
 
 const tempVec3 = Vec3.create()
@@ -40,7 +40,7 @@ export const createRender = (
     update?: (t: number) => void
     afterRender?: () => void
   }>,
-  ch: () => JSX.Element
+  ch: () => JSX.Element,
 ) => {
   let renderNow = (_t?: number) => {}
   let requestRender = () => {}
@@ -50,7 +50,7 @@ export const createRender = (
     format: navigator.gpu.getPreferredCanvasFormat(),
     autoClear: true,
     clearValue: { r: 0.0, g: 0.0, b: 0.0, a: 1.0 },
-    sampleCount: 4
+    sampleCount: 4,
   }
 
   const [scene, setScene] = createStore<SceneContext>({
@@ -59,7 +59,7 @@ export const createRender = (
     renderList: [],
     lightList: [],
     renderNow: (t?: number) => renderNow(t),
-    invalidate: () => requestRender()
+    invalidate: () => requestRender(),
   })
   createEffect(
     () => {
@@ -76,10 +76,23 @@ export const createRender = (
         canvas: opts.canvas,
         context: opts.context,
         update: opts.update,
-        afterRender: opts.afterRender
+        afterRender: opts.afterRender,
       }
     },
-    ({ cameraId, texture, width, height, format, sampleCount, autoClear, clearValue, canvas, context, update, afterRender }) =>
+    ({
+      cameraId,
+      texture,
+      width,
+      height,
+      format,
+      sampleCount,
+      autoClear,
+      clearValue,
+      canvas,
+      context,
+      update,
+      afterRender,
+    }) =>
       setScene(scene => {
         scene.width = texture?.width ?? width ?? scene.width
         scene.height = texture?.height ?? height ?? scene.height
@@ -98,13 +111,13 @@ export const createRender = (
             scene.clearValue = clearValue
           }
         }
-        scene.currentCamera = cameraId
+        scene.currentCamera = cameraId ?? scene.currentCamera
         scene.texture = texture ?? scene.texture
         scene.canvas = canvas ?? scene.canvas
         scene.context = context ?? scene.context
         scene.update = update
         scene.afterRender = afterRender
-      })
+      }),
   )
 
   /**
@@ -119,7 +132,7 @@ export const createRender = (
         format: scene.format,
         width: scene.width,
         height: scene.height,
-        sampleCount: scene.sampleCount
+        sampleCount: scene.sampleCount,
       }
     },
     ({ context, format, width, height, sampleCount }) => {
@@ -127,7 +140,7 @@ export const createRender = (
         context.configure({
           device,
           format,
-          alphaMode: 'premultiplied'
+          alphaMode: 'premultiplied',
         })
       }
 
@@ -138,14 +151,14 @@ export const createRender = (
         size,
         usage,
         sampleCount,
-        label: 'msaaTexture'
+        label: 'msaaTexture',
       })
       const depthTexture = device.createTexture({
         format: 'depth24plus-stencil8',
         size,
         usage,
         sampleCount,
-        label: 'depthTexture'
+        label: 'depthTexture',
       })
 
       setScene(scene => {
@@ -159,7 +172,7 @@ export const createRender = (
         msaaTexture.destroy()
         depthTexture.destroy()
       }
-    }
+    },
   )
 
   // render function
@@ -203,7 +216,7 @@ export const createRender = (
       resolveTarget: direct ? undefined : resolveTarget,
       loadOp,
       storeOp,
-      clearValue: currentScene.clearValue
+      clearValue: currentScene.clearValue,
     }
 
     const passEncoder = commandEncoder.beginRenderPass({
@@ -215,8 +228,8 @@ export const createRender = (
         depthStoreOp: storeOp,
         stencilClearValue: 0,
         stencilLoadOp: loadOp,
-        stencilStoreOp: storeOp
-      }
+        stencilStoreOp: storeOp,
+      },
     })
     passEncoder.setViewport(0, 0, currentScene.width, currentScene.height, 0, 1)
     for (const id of orderedIds) {
@@ -253,9 +266,7 @@ export const createRender = (
   createEffect(
     () => {
       // Explicitly list all dependencies that should trigger a re-render.
-      const camera = scene.currentCamera
-        ? (scene.nodes[scene.currentCamera] as CameraRef | undefined)
-        : undefined
+      const camera = scene.currentCamera ? (scene.nodes[scene.currentCamera] as CameraRef | undefined) : undefined
       const deps = {
         cameraMatrix: camera?.projectionViewMatrix(),
         width: scene.width,
@@ -265,13 +276,13 @@ export const createRender = (
         texture: scene.texture,
         sampleCount: scene.sampleCount,
         update: scene.update,
-        afterRender: scene.afterRender
+        afterRender: scene.afterRender,
       }
       return deps
     },
     () => {
       requestRender()
-    }
+    },
   )
 
   const c = children(ch)

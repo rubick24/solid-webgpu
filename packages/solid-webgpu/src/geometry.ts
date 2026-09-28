@@ -1,6 +1,7 @@
 import { device } from './hks'
 
 export type GeometryOptions = {
+  update?: () => void
   indexBuffer?: {
     buffer: GPUBuffer
     BYTES_PER_ELEMENT: number
@@ -23,11 +24,12 @@ export const createPlaneGeometry = (): GeometryOptions => {
     new Float32Array([1, 1, 0, -1, 1, 0, -1, -1, 0, 1, -1, 0]),
     new Float32Array([0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1]),
     new Float32Array(4 * 4).fill(0),
-    new Float32Array([1, 1, 0, 1, 0, 0, 1, 0])
+    new Float32Array([1, 1, 0, 1, 0, 0, 1, 0]),
+    new Float32Array(4 * 4).fill(1),
   ].map(v => {
     const buffer = device.createBuffer({
       size: v.byteLength,
-      usage: GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST
+      usage: GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST,
     })
     device.queue.writeBuffer(buffer, 0, v)
     return buffer
@@ -36,14 +38,14 @@ export const createPlaneGeometry = (): GeometryOptions => {
   const ibVal = new Uint32Array([0, 1, 2, 0, 2, 3])
   const ib = device.createBuffer({
     size: ibVal.byteLength,
-    usage: GPUBufferUsage.INDEX | GPUBufferUsage.COPY_DST
+    usage: GPUBufferUsage.INDEX | GPUBufferUsage.COPY_DST,
   })
   device.queue.writeBuffer(ib, 0, ibVal)
 
   return {
     indexBuffer: {
       buffer: ib,
-      BYTES_PER_ELEMENT: Uint32Array.BYTES_PER_ELEMENT
+      BYTES_PER_ELEMENT: Uint32Array.BYTES_PER_ELEMENT,
     },
     vertexBuffers: [
       {
@@ -53,11 +55,13 @@ export const createPlaneGeometry = (): GeometryOptions => {
             {
               shaderLocation: 0,
               offset: 0,
-              format: 'float32x3'
-            } // POSITION
+              format: 'float32x3',
+            }, // POSITION
           ],
-          arrayStride: 12
-        }
+          arrayStride: 12,
+        },
+        name: 'POSITION',
+        type: 'vec3<f32>',
       },
       {
         buffer: vbs[1],
@@ -66,11 +70,13 @@ export const createPlaneGeometry = (): GeometryOptions => {
             {
               shaderLocation: 1,
               offset: 0,
-              format: 'float32x3'
-            } // NORMAL
+              format: 'float32x3',
+            }, // NORMAL
           ],
-          arrayStride: 12
-        }
+          arrayStride: 12,
+        },
+        name: 'NORMAL',
+        type: 'vec3<f32>',
       },
 
       {
@@ -80,11 +86,13 @@ export const createPlaneGeometry = (): GeometryOptions => {
             {
               shaderLocation: 2,
               offset: 0,
-              format: 'float32x4'
-            } // TANGENT
+              format: 'float32x4',
+            }, // TANGENT
           ],
-          arrayStride: 16
-        }
+          arrayStride: 16,
+        },
+        name: 'TANGENT',
+        type: 'vec4<f32>',
       },
       {
         buffer: vbs[3],
@@ -93,12 +101,23 @@ export const createPlaneGeometry = (): GeometryOptions => {
             {
               shaderLocation: 3,
               offset: 0,
-              format: 'float32x2'
-            } // UV
+              format: 'float32x2',
+            }, // UV
           ],
-          arrayStride: 8
-        }
-      }
-    ]
+          arrayStride: 8,
+        },
+        name: 'TEXCOORD_0',
+        type: 'vec2<f32>',
+      },
+      {
+        buffer: vbs[4],
+        layout: {
+          attributes: [{ shaderLocation: 4, offset: 0, format: 'float32x4' }],
+          arrayStride: 16,
+        },
+        name: 'COLOR_0',
+        type: 'vec4<f32>',
+      },
+    ],
   }
 }

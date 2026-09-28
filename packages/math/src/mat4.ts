@@ -6,6 +6,8 @@ import type { Mat4Like, Quat2Like, QuatLike, Vec3Like } from './types'
  * A 4x4 Matrix
  */
 export class Mat4 extends Float32Array {
+  declare mul: typeof Mat4.prototype.multiply
+
   static IDENTITY_4X4 = new Float32Array([1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1])
 
   /**
@@ -27,7 +29,7 @@ export class Mat4 extends Float32Array {
       case 2:
         super(values[0] as ArrayBuffer, values[1], 16)
         break
-      case 1:
+      case 1: {
         const v = values[0]
         if (typeof v === 'number') {
           super([v, v, v, v, v, v, v, v, v, v, v, v, v, v, v, v])
@@ -35,6 +37,7 @@ export class Mat4 extends Float32Array {
           super(v as ArrayBuffer, 0, 16)
         }
         break
+      }
       default:
         super(Mat4.IDENTITY_4X4)
         break
@@ -1631,7 +1634,7 @@ export class Mat4 extends Float32Array {
     out: T,
     q: Readonly<QuatLike>,
     v: Readonly<Vec3Like>,
-    s: Readonly<Vec3Like>
+    s: Readonly<Vec3Like>,
   ): T {
     // Quaternion math
     const x = q[0]
@@ -1702,7 +1705,7 @@ export class Mat4 extends Float32Array {
     q: Readonly<QuatLike>,
     v: Readonly<Vec3Like>,
     s: Readonly<Vec3Like>,
-    o: Readonly<Vec3Like>
+    o: Readonly<Vec3Like>,
   ): T {
     // Quaternion math
     const x = q[0]
@@ -1834,7 +1837,7 @@ export class Mat4 extends Float32Array {
     bottom: number,
     top: number,
     near: number,
-    far = Infinity
+    far = Infinity,
   ): T {
     const rl = 1 / (right - left)
     const tb = 1 / (top - bottom)
@@ -1887,7 +1890,7 @@ export class Mat4 extends Float32Array {
     bottom: number,
     top: number,
     near: number,
-    far = Infinity
+    far = Infinity,
   ): T {
     const rl = 1 / (right - left)
     const tb = 1 / (top - bottom)
@@ -2015,7 +2018,7 @@ export class Mat4 extends Float32Array {
     out: T,
     fov: { upDegrees: number; downDegrees: number; leftDegrees: number; rightDegrees: number },
     near: number,
-    far: number
+    far: number,
   ): T {
     const upTan = Math.tan((fov.upDegrees * Math.PI) / 180.0)
     const downTan = Math.tan((fov.downDegrees * Math.PI) / 180.0)
@@ -2064,7 +2067,7 @@ export class Mat4 extends Float32Array {
     bottom: number,
     top: number,
     near: number,
-    far: number
+    far: number,
   ): T {
     const lr = 1 / (left - right)
     const bt = 1 / (bottom - top)
@@ -2109,7 +2112,7 @@ export class Mat4 extends Float32Array {
     bottom: number,
     top: number,
     near: number,
-    far: number
+    far: number,
   ): T {
     const lr = 1 / (left - right)
     const bt = 1 / (bottom - top)
@@ -2148,7 +2151,7 @@ export class Mat4 extends Float32Array {
     out: T,
     eye: Readonly<Vec3Like>,
     center: Readonly<Vec3Like>,
-    up: Readonly<Vec3Like>
+    up: Readonly<Vec3Like>,
   ): T {
     const eyex = eye[0]
     const eyey = eye[1]
@@ -2242,7 +2245,7 @@ export class Mat4 extends Float32Array {
     out: T,
     eye: Readonly<Vec3Like>,
     target: Readonly<Vec3Like>,
-    up: Readonly<Vec3Like>
+    up: Readonly<Vec3Like>,
   ): T {
     const eyex = eye[0]
     const eyey = eye[1]
@@ -2318,7 +2321,7 @@ export class Mat4 extends Float32Array {
         a[12] * a[12] +
         a[13] * a[13] +
         a[14] * a[14] +
-        a[15] * a[15]
+        a[15] * a[15],
     )
   }
 
@@ -2423,7 +2426,7 @@ export class Mat4 extends Float32Array {
     out: T,
     a: Readonly<Mat4Like>,
     b: Readonly<Mat4Like>,
-    scale: number
+    scale: number,
   ): T {
     out[0] = a[0] + b[0] * scale
     out[1] = a[1] + b[1] * scale
@@ -2550,7 +2553,4 @@ export class Mat4 extends Float32Array {
   static mul = this.multiply
 }
 
-export interface Mat4 {
-  mul: typeof Mat4.prototype.multiply
-}
 Mat4.prototype.mul = Mat4.prototype.multiply

@@ -6,6 +6,12 @@ import type { Mat3Like, Mat4Like, QuatLike, Vec3Like } from './types'
  * 3 Dimensional Vector
  */
 export class Vec3 extends Float32Array {
+  declare sub: typeof Vec3.prototype.subtract
+  declare mul: typeof Vec3.prototype.multiply
+  declare div: typeof Vec3.prototype.divide
+  declare dist: typeof Vec3.prototype.distance
+  declare sqrDist: typeof Vec3.prototype.squaredDistance
+
   /**
    * Create a {@link Vec3}.
    *
@@ -838,7 +844,7 @@ export class Vec3 extends Float32Array {
     b: Readonly<Vec3Like>,
     c: Readonly<Vec3Like>,
     d: Readonly<Vec3Like>,
-    t: number
+    t: number,
   ): T {
     const factorTimes2 = t * t
     const factor1 = factorTimes2 * (2 * t - 3) + 1
@@ -871,7 +877,7 @@ export class Vec3 extends Float32Array {
     b: Readonly<Vec3Like>,
     c: Readonly<Vec3Like>,
     d: Readonly<Vec3Like>,
-    t: number
+    t: number,
   ): T {
     const inverseFactor = 1 - t
     const inverseFactorTimesTwo = inverseFactor * inverseFactor
@@ -1158,19 +1164,14 @@ export class Vec3 extends Float32Array {
   static len = this.magnitude
 }
 
-export interface Vec3 {
-  sub: typeof Vec3.prototype.subtract
-  mul: typeof Vec3.prototype.multiply
-  div: typeof Vec3.prototype.divide
-  dist: typeof Vec3.prototype.distance
-  sqrDist: typeof Vec3.prototype.squaredDistance
-}
 ;(
   [
     ['sub', 'subtract'],
     ['mul', 'multiply'],
     ['div', 'divide'],
     ['dist', 'distance'],
-    ['sqrDist', 'squaredDistance']
+    ['sqrDist', 'squaredDistance'],
   ] as const
-).forEach(v => (Vec3.prototype[v[0]] = Vec3.prototype[v[1]] as any))
+).forEach(v => {
+  Vec3.prototype[v[0]] = Vec3.prototype[v[1]] as any
+})

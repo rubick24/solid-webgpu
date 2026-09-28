@@ -21,7 +21,7 @@ export class Mat2d extends Float32Array {
       case 2:
         super(values[0] as ArrayBuffer, values[1], 6)
         break
-      case 1:
+      case 1: {
         const v = values[0]
         if (typeof v === 'number') {
           super([v, v, v, v, v, v])
@@ -29,6 +29,7 @@ export class Mat2d extends Float32Array {
           super(v as ArrayBuffer, 0, 6)
         }
         break
+      }
       default:
         super(Mat2d.IDENTITY_2X3)
         break
@@ -542,7 +543,7 @@ export class Mat2d extends Float32Array {
     out: T,
     a: Readonly<Mat2dLike>,
     b: Readonly<Mat2dLike>,
-    scale: number
+    scale: number,
   ): T {
     out[0] = a[0] + b[0] * scale
     out[1] = a[1] + b[1] * scale

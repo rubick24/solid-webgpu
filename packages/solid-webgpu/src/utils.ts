@@ -1,5 +1,5 @@
-import { Accessor } from 'solid-js'
-import { MaybeAccessor, MaybeAccessorValue } from './types'
+import type { Accessor } from 'solid-js'
+import type { MaybeAccessor, MaybeAccessorValue } from './types'
 
 // export const createWithCache = (cache: Map<string, unknown>) => {
 //   return <T>(key: string, fn: () => T, options?: { stale?: (old: T) => boolean }) => {
@@ -22,13 +22,13 @@ export const imageBitmapFromImageUrl = async (url: string, options?: ImageBitmap
   const blob = await response.blob()
   return createImageBitmap(blob, {
     imageOrientation: 'flipY',
-    ...options
+    ...options,
   })
 }
 
 export const setBitOfValue = (val: number, offset: number, bit: boolean) => {
   const mask = 1 << offset
-  return (val = bit ? val | mask : val & ~mask)
+  return bit ? val | mask : val & ~mask
 }
 
 export const white1pxBase64 =

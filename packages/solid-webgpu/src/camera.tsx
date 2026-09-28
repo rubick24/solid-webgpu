@@ -1,5 +1,7 @@
-import { DEG2RAD, Mat4, Quat, Vec3 } from '@rubick24/math'
+import { DEG2RAD, Mat4, type Quat, type Vec3 } from '@rubick24/math'
+import type { JSX } from '@solidjs/web'
 import {
+  type Accessor,
   children,
   createEffect,
   createMemo,
@@ -7,12 +9,10 @@ import {
   merge,
   omit,
   onSettled,
-  type Accessor,
-  untrack
+  untrack,
 } from 'solid-js'
-import type { JSX } from '@solidjs/web'
-import { createObject3DRef, Object3DProps, wgpuCompRender } from './object3d'
-import { $CAMERA, CameraExtra, CameraRef, Object3DComponent } from './types'
+import { createObject3DRef, type Object3DProps, wgpuCompRender } from './object3d'
+import { $CAMERA, type CameraExtra, type CameraRef, type Object3DComponent } from './types'
 
 export type CameraProps = Object3DProps<CameraRef>
 
@@ -35,11 +35,26 @@ export const Camera = (props: CameraProps) => {
     projectionMatrix: p[0],
     setProjectionMatrix: p[1],
     viewMatrix: () => readViewMatrix(),
-    projectionViewMatrix: () => readProjectionViewMatrix()
+    projectionViewMatrix: () => readProjectionViewMatrix(),
   } satisfies CameraExtra
   const { store, comp } = createObject3DRef<CameraRef>(props, ch, cameraExt)
+  const id = comp.id
   readViewMatrix = createMemo(() => Mat4.invert(new Mat4(), store.matrix()) ?? new Mat4())
   readProjectionViewMatrix = createMemo(() => Mat4.mul(new Mat4(), p[0](), readViewMatrix()))
+
+  createEffect(
+    () => store.scene()?.[1],
+    setScene => {
+      if (!setScene) return
+      setScene(scene => {
+        scene.currentCamera ??= id
+      })
+      return () =>
+        setScene(scene => {
+          if (scene.currentCamera === id) scene.currentCamera = undefined
+        })
+    },
+  )
 
   onSettled(() => {
     untrack(() => props.ref?.(store))
@@ -47,7 +62,7 @@ export const Camera = (props: CameraProps) => {
 
   return {
     ...comp,
-    render: () => wgpuCompRender(ch)
+    render: () => wgpuCompRender(ch),
   } satisfies Object3DComponent as unknown as JSX.Element
 }
 
@@ -63,11 +78,11 @@ export const PerspectiveCamera = (props: PerspectiveCameraProps) => {
   const local = merge(
     {
       fov: 75 * DEG2RAD,
-      aspect: 1,
+      aspect: undefined,
       near: 0.1,
-      far: 1000
+      far: 1000,
     },
-    props
+    props,
   )
 
   const [cameraRef, setCameraRef] = createSignal<CameraRef>()
@@ -76,16 +91,21 @@ export const PerspectiveCamera = (props: PerspectiveCameraProps) => {
     () => ({
       setProjectionMatrix: cameraRef()?.setProjectionMatrix,
       fov: local.fov,
-      aspect: local.aspect,
+      aspect:
+        local.aspect ??
+        (() => {
+          const scene = cameraRef()?.scene()?.[0]
+          return scene?.height ? scene.width / scene.height : 1
+        })(),
       near: local.near,
-      far: local.far
+      far: local.far,
     }),
     ({ setProjectionMatrix, fov, aspect, near, far }) => {
       setProjectionMatrix?.(m => {
         Mat4.perspectiveZO(m, fov, aspect, near, far)
         return m
       })
-    }
+    },
   )
 
   return (
@@ -117,9 +137,9 @@ export const OrthographicCamera = (props: OrthographicCameraProps) => {
       left: -1,
       right: 1,
       bottom: -1,
-      top: 1
+      top: 1,
     },
-    props
+    props,
   )
 
   const [cameraRef, setCameraRef] = createSignal<CameraRef>()
@@ -132,14 +152,14 @@ export const OrthographicCamera = (props: OrthographicCameraProps) => {
       bottom: local.bottom,
       top: local.top,
       near: local.near,
-      far: local.far
+      far: local.far,
     }),
     ({ setProjectionMatrix, left, right, bottom, top, near, far }) => {
       setProjectionMatrix?.(m => {
         Mat4.orthoZO(m, left, right, bottom, top, near, far)
         return m
       })
-    }
+    },
   )
 
   return (

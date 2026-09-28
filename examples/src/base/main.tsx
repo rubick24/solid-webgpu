@@ -1,5 +1,5 @@
-import { createSignal, Show } from 'solid-js'
 import { render } from '@solidjs/web'
+import { createSignal, Show } from 'solid-js'
 import type { CameraRef, MeshRef, QuatLike, Vec3Like } from 'solid-webgpu'
 import {
   Canvas,
@@ -11,28 +11,17 @@ import {
   Mesh,
   PerspectiveCamera,
   PunctualLight,
-  Quat
+  Quat,
 } from 'solid-webgpu'
 
-const Avatar = (props: {
-  texture: ImageBitmap
-  position?: Vec3Like
-  quaternion?: QuatLike
-}) => {
+const Avatar = (props: { texture: ImageBitmap; position?: Vec3Like; quaternion?: QuatLike }) => {
   const planeGeo = createPlaneGeometry()
   const pbrMat = createPBRMaterial(() => ({
     albedoTextureSource: props.texture,
-    occlusionRoughnessMetallicTextureSource: props.texture
+    occlusionRoughnessMetallicTextureSource: props.texture,
   }))
 
-  return (
-    <Mesh
-      geometry={planeGeo}
-      material={pbrMat()}
-      position={props.position}
-      quaternion={props.quaternion}
-    />
-  )
+  return <Mesh geometry={planeGeo} material={pbrMat()} position={props.position} quaternion={props.quaternion} />
 }
 
 const App = (props: { texture: ImageBitmap }) => {
@@ -53,7 +42,7 @@ const App = (props: { texture: ImageBitmap }) => {
       animatedMesh.matrix(),
       animatedRotation,
       animatedMesh.position(),
-      animatedMesh.scale()
+      animatedMesh.scale(),
     )
   }
 
@@ -69,7 +58,7 @@ const App = (props: { texture: ImageBitmap }) => {
         <PunctualLight
           type="spot"
           position={[0, 1.5, 0.5]}
-          quaternion={Quat.fromEuler(Quat.create(), 90, 0, 0)}
+          quaternion={Quat.fromEuler(Quat.create(), -90, 0, 0)}
           color={[1, 1, 1]}
           intensity={100}
         />
@@ -82,7 +71,9 @@ const App = (props: { texture: ImageBitmap }) => {
         </Show>
       </Canvas>
 
-      <button onClick={() => setP(v => (v + 1) % 5)}>set position</button>
+      <button type="button" onClick={() => setP(v => (v + 1) % 5)}>
+        set position
+      </button>
     </>
   )
 }

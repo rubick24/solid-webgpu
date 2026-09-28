@@ -1,10 +1,11 @@
 import { Mat3, Mat4, Vec3 } from '@rubick24/math'
-import { createEffect, createMemo, onCleanup } from 'solid-js'
+import { type Accessor, createEffect, createMemo, onCleanup, untrack } from 'solid-js'
 
-import { CameraRef, MaybeAccessor, MeshRef, Optional, PunctualLightRef, TypedArray } from './types'
+import type { CameraRef, MaybeAccessor, MeshRef, Optional, PunctualLightRef, TypedArray } from './types'
 import { access } from './utils'
 
 const _adapter = typeof navigator !== 'undefined' ? await navigator.gpu?.requestAdapter() : null
+// biome-ignore lint/suspicious/noNonNullAssertedOptionalChain: Allow imports without WebGPU; rendering requires an available device.
 export const device = await _adapter?.requestDevice()!
 
 export const createBuffer = (options: MaybeAccessor<GPUBufferDescriptor>) =>
@@ -16,16 +17,26 @@ export const createBuffer = (options: MaybeAccessor<GPUBufferDescriptor>) =>
 
 export const createBufferFromValue = (
   options: MaybeAccessor<Omit<GPUBufferDescriptor, 'size'>>,
-  value: MaybeAccessor<TypedArray | ArrayBuffer>
-) => {
+  value: MaybeAccessor<TypedArray | ArrayBuffer>,
+): Accessor<GPUBuffer> & { update?: () => void } => {
   const buffer = createBuffer(() => ({
-    size: access(value).byteLength,
-    ...access(options)
+    // Data can be produced from an accessor whose contents change every
+    // frame. Buffer capacity is fixed; only its contents need updating.
+    size: untrack(() => access(value).byteLength),
+    ...access(options),
   }))
 
+  if (typeof value === 'function') {
+    const update = () => {
+      const val = untrack(() => access(value))
+      device.queue.writeBuffer(buffer(), 0, val)
+    }
+    return Object.assign(buffer, { update })
+  }
+
   createEffect(
-    () => [access(value), buffer()] as const,
-    ([val, target]) => device.queue.writeBuffer(target, 0, val)
+    () => [value, buffer()] as const,
+    ([val, target]) => device.queue.writeBuffer(target, 0, val),
   )
   return buffer
 }
@@ -38,7 +49,7 @@ export const createTexture = (options: MaybeAccessor<GPUTextureDescriptor>) =>
   })
 export const createTextureFromImage = (
   options: MaybeAccessor<Optional<Omit<GPUTextureDescriptor, 'size'>, 'usage'>>,
-  image: MaybeAccessor<ImageBitmap>
+  image: MaybeAccessor<ImageBitmap>,
 ) => {
   const texture = createTexture(() => {
     const ops = access(options)
@@ -51,7 +62,7 @@ export const createTextureFromImage = (
         GPUTextureUsage.RENDER_ATTACHMENT |
         GPUTextureUsage.COPY_SRC |
         GPUTextureUsage.COPY_DST,
-      size: { width: img.width, height: img.height }
+      size: { width: img.width, height: img.height },
     }
   })
 
@@ -61,11 +72,10 @@ export const createTextureFromImage = (
       return {
         img,
         size: { width: img.width, height: img.height },
-        texture: texture()
+        texture: texture(),
       }
     },
-    ({ img, size, texture }) =>
-      device.queue.copyExternalImageToTexture({ source: img }, { texture }, size)
+    ({ img, size, texture }) => device.queue.copyExternalImageToTexture({ source: img }, { texture }, size),
   )
   return texture
 }
@@ -75,14 +85,15 @@ export const createSampler = (options?: MaybeAccessor<GPUSamplerDescriptor>) =>
 
 const builtInBufferLength = {
   base: 80,
-  punctual_lights: 16 * 4
+  punctual_lights: 16 * 16,
 } as const
 
 export const createUniformBufferBase = () => {
   const val = new Float32Array(builtInBufferLength.base)
+  const normalMatrix = new Float32Array(9)
   const buffer = device.createBuffer({
     size: val.byteLength,
-    usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST
+    usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
   })
   device.queue.writeBuffer(buffer, 0, val)
 
@@ -103,8 +114,21 @@ export const createUniformBufferBase = () => {
     Mat4.copy(val.subarray(32, 48), camera.projectionMatrix())
     const modelViewMatrix = Mat4.copy(val.subarray(48, 64), viewMatrix)
     Mat4.mul(modelViewMatrix, modelViewMatrix, modelMatrix)
-    // normalMatrix
-    Mat3.normalFromMat4(val.subarray(64, 73), modelViewMatrix)
+    // WGSL uniform mat3 columns have a 16-byte stride, unlike the packed
+    // 9-float representation returned by Mat3.normalFromMat4.
+    Mat3.normalFromMat4(normalMatrix, modelMatrix)
+    val[64] = normalMatrix[0]
+    val[65] = normalMatrix[1]
+    val[66] = normalMatrix[2]
+    val[67] = 0
+    val[68] = normalMatrix[3]
+    val[69] = normalMatrix[4]
+    val[70] = normalMatrix[5]
+    val[71] = 0
+    val[72] = normalMatrix[6]
+    val[73] = normalMatrix[7]
+    val[74] = normalMatrix[8]
+    val[75] = 0
     // cameraPosition
     Vec3.copy(val.subarray(76, 79), camera.matrix().subarray(12, 15))
 
@@ -118,7 +142,7 @@ export const createUniformBufferPunctualLights = () => {
   const lightValues = new Float32Array(builtInBufferLength.punctual_lights)
   const buffer = device.createBuffer({
     size: lightValues.byteLength,
-    usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST
+    usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
   })
   device.queue.writeBuffer(buffer, 0, lightValues)
 
@@ -128,6 +152,7 @@ export const createUniformBufferPunctualLights = () => {
       return
     }
     const { lightList } = scene
+    lightValues.fill(0)
     for (let i = 0; i < lightList.length; i++) {
       const lightID = lightList[i]
       const light = scene.nodes[lightID] as PunctualLightRef
@@ -151,7 +176,7 @@ export const createUniformBufferPunctualLights = () => {
       const m: Record<typeof light.lightType, number> = {
         directional: 1,
         point: 2,
-        spot: 3
+        spot: 3,
       }
 
       new DataView(lightValues.buffer).setUint32((offset + 15) * 4, m[light.lightType], true)
@@ -188,10 +213,10 @@ export const createBindGroupLayoutDescriptor = (uniforms: MaybeAccessor<(GPUText
           ...{
             texture: u instanceof GPUTexture ? {} : undefined,
             sampler: u instanceof GPUSampler ? {} : undefined,
-            buffer: u instanceof GPUBuffer ? {} : undefined
-          }
+            buffer: u instanceof GPUBuffer ? {} : undefined,
+          },
         }
-      })
+      }),
     }
   })
 
@@ -206,19 +231,18 @@ export const createBindGroupEntries = (uniforms: MaybeAccessor<(GPUTexture | GPU
       const resource = u instanceof GPUTexture ? u.createView() : u instanceof GPUSampler ? u : { buffer: u }
       return {
         binding: index,
-        resource
+        resource,
       }
-    })
+    }),
   )
 
 export const createBindGroup = (
   options: MaybeAccessor<{
     layout: GPUBindGroupLayout
     entries: GPUBindGroupEntry[]
-  }>
+  }>,
 ) => createMemo<GPUBindGroup>(() => device.createBindGroup(access(options)))
 
-const builtinAttributeNames = ['POSITION', 'NORMAL', 'TANGENT', 'TEXCOORD_0']
 export const createRenderPipeline = (
   options: MaybeAccessor<{
     shaderCode: string
@@ -236,52 +260,73 @@ export const createRenderPipeline = (
 
     primitive?: GPUPrimitiveState
     depthStencil?: GPUDepthStencilState
+    alphaMode?: 'OPAQUE' | 'MASK' | 'BLEND'
+    doubleSided?: boolean
 
     multisample?: GPUMultisampleState
-  }>
+  }>,
 ) => {
   const pipeline = createMemo<GPURenderPipeline>(() => {
     const ops = access(options)
 
     let code = ops.shaderCode
+    const uvSets = ops.vertexBuffers
+      .map(v => v.name?.match(/^TEXCOORD_(\d+)$/))
+      .filter((value): value is RegExpMatchArray => !!value)
+      .map(value => Number(value[1]))
+      .filter(index => index > 0)
+    const uvOutputs = uvSets.map(index => `    @location(${5 + index}) uv_${index}: vec2<f32>,`).join('\n')
+    const uvAssignments = uvSets.map(index => `    output.uv_${index} = input.TEXCOORD_${index};`).join('\n')
+    code = code.replace('/*TEXCOORD_OUTPUTS*/', uvOutputs).replace('/*TEXCOORD_ASSIGNMENTS*/', uvAssignments)
     const vertexInputStr = ops.vertexBuffers
-      .filter(v => v.name && builtinAttributeNames.includes(v.name))
-      .map((v, i) => `  @location(${i}) ${v.name}: ${v.type}`)
+      .filter(v => v.name && v.type)
+      .map(v => `  @location(${[...access(v.layout).attributes][0]?.shaderLocation ?? 0}) ${v.name}: ${v.type}`)
       .join(',\n')
     if (vertexInputStr) {
-      const old = code.match(/^struct VertexInput {\n(.|\n)*?}/)?.[0]
+      const old = code.match(/struct VertexInput\s*\{[\s\S]*?\};/)?.[0]
       const rep = `struct VertexInput {\n${vertexInputStr}\n}`
-      code = old?.length ? code.replace(old, rep) : rep + '\n' + code
+      code = old?.length ? code.replace(old, rep) : `${rep}\n${code}`
     }
     const shaderModule = device.createShaderModule({ code })
 
     return device.createRenderPipeline({
       layout: device.createPipelineLayout({
-        bindGroupLayouts: [access(ops.bindGroupLayout)]
+        bindGroupLayouts: [access(ops.bindGroupLayout)],
       }),
       vertex: {
         module: shaderModule,
         entryPoint: ops.vertexEntryPoint ?? 'vs_main',
-        buffers: ops.vertexBuffers.map(v => access(v.layout))
+        buffers: ops.vertexBuffers.map(v => access(v.layout)),
       },
       fragment: {
         module: shaderModule,
         entryPoint: ops.fragmentEntryPoint ?? 'fs_main',
-        targets: [{ format: ops.format ?? navigator.gpu.getPreferredCanvasFormat() }]
+        targets: [
+          {
+            format: ops.format ?? navigator.gpu.getPreferredCanvasFormat(),
+            blend:
+              ops.alphaMode === 'BLEND'
+                ? {
+                    color: { srcFactor: 'src-alpha', dstFactor: 'one-minus-src-alpha', operation: 'add' },
+                    alpha: { srcFactor: 'one', dstFactor: 'one-minus-src-alpha', operation: 'add' },
+                  }
+                : undefined,
+          },
+        ],
       },
       primitive: {
         frontFace: 'ccw',
-        cullMode: 'back',
+        cullMode: ops.doubleSided ? 'none' : 'back',
         topology: 'triangle-list',
-        ...ops.primitive
+        ...ops.primitive,
       },
       depthStencil: {
-        depthWriteEnabled: true,
+        depthWriteEnabled: ops.alphaMode !== 'BLEND',
         depthCompare: 'less',
         format: 'depth24plus-stencil8',
-        ...ops.depthStencil
+        ...ops.depthStencil,
       },
-      multisample: ops.multisample
+      multisample: ops.multisample,
     })
   })
 

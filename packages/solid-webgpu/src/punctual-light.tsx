@@ -1,8 +1,8 @@
-import { Vec3, Vec3Like } from '@rubick24/math'
-import { children, createEffect, createSignal, onSettled, untrack } from 'solid-js'
+import { Vec3, type Vec3Like } from '@rubick24/math'
 import type { JSX } from '@solidjs/web'
-import { createObject3DRef, Object3DProps, wgpuCompRender } from './object3d'
-import { $PUNCTUAL_LIGHT, Object3DComponent, PunctualLightExtra, PunctualLightRef } from './types'
+import { children, createEffect, createSignal, onSettled, untrack } from 'solid-js'
+import { createObject3DRef, type Object3DProps, wgpuCompRender } from './object3d'
+import { $PUNCTUAL_LIGHT, type Object3DComponent, type PunctualLightExtra, type PunctualLightRef } from './types'
 
 export type PunctualLightProps = Object3DProps<PunctualLightRef> & {
   color?: Vec3Like
@@ -24,7 +24,7 @@ export const PunctualLight = (props: PunctualLightProps) => {
     range: Infinity,
     lightType: 'directional',
     innerConeAngle: 0,
-    outerConeAngle: Math.PI / 4
+    outerConeAngle: Math.PI / 4,
   } satisfies PunctualLightExtra
   const { store, setStore, comp } = createObject3DRef<PunctualLightRef>(props, ch, lightExt)
 
@@ -41,11 +41,10 @@ export const PunctualLight = (props: PunctualLightProps) => {
       intensity: props.intensity ?? 1,
       range: props.range,
       lightType: props.type ?? 'directional',
-      innerConeAngle:
-        'innerConeAngle' in props && props.innerConeAngle !== undefined ? props.innerConeAngle : 0,
+      innerConeAngle: 'innerConeAngle' in props && props.innerConeAngle !== undefined ? props.innerConeAngle : 0,
       outerConeAngle:
         'outerConeAngle' in props && props.outerConeAngle !== undefined ? props.outerConeAngle : Math.PI / 4,
-      invalidate: store.scene()?.[0].invalidate
+      invalidate: store.scene()?.[0].invalidate,
     }),
     values => {
       values.setColor(color => {
@@ -60,7 +59,7 @@ export const PunctualLight = (props: PunctualLightProps) => {
         light.outerConeAngle = values.outerConeAngle
       })
       values.invalidate?.()
-    }
+    },
   )
 
   createEffect(
@@ -78,12 +77,12 @@ export const PunctualLight = (props: PunctualLightProps) => {
         })
         invalidate?.()
       }
-    }
+    },
   )
 
   createEffect(
     () => ({ invalidate: store.scene()?.[0].invalidate, matrix: store.matrix() }),
-    ({ invalidate }) => invalidate?.()
+    ({ invalidate }) => invalidate?.(),
   )
 
   return {
@@ -91,6 +90,6 @@ export const PunctualLight = (props: PunctualLightProps) => {
     render: () => {
       comp.render()
       return wgpuCompRender(ch)
-    }
+    },
   } satisfies Object3DComponent as unknown as JSX.Element
 }

@@ -6,6 +6,8 @@ import type { Mat2Like, Vec2Like } from './types'
  * A 2x2 Matrix
  */
 export class Mat2 extends Float32Array {
+  declare mul: typeof Mat2.prototype.multiply
+
   static readonly IDENTITY_2X2 = new Float32Array([1, 0, 0, 1])
 
   /**
@@ -21,7 +23,7 @@ export class Mat2 extends Float32Array {
       case 2:
         super(values[0] as ArrayBuffer, values[1], 4)
         break
-      case 1:
+      case 1: {
         const v = values[0]
         if (typeof v === 'number') {
           super([v, v, v, v])
@@ -29,6 +31,7 @@ export class Mat2 extends Float32Array {
           super(v as ArrayBuffer, 0, 4)
         }
         break
+      }
       default:
         super(Mat2.IDENTITY_2X2)
         break
@@ -510,7 +513,7 @@ export class Mat2 extends Float32Array {
     out: T,
     a: Readonly<Mat2Like>,
     b: Readonly<Mat2Like>,
-    scale: number
+    scale: number,
   ): T {
     out[0] = a[0] + b[0] * scale
     out[1] = a[1] + b[1] * scale
@@ -533,7 +536,7 @@ export class Mat2 extends Float32Array {
     L: Mat2Like,
     D: Readonly<Mat2Like>,
     U: Mat2Like,
-    a: Readonly<Mat2Like>
+    a: Readonly<Mat2Like>,
   ): [Mat2Like, Readonly<Mat2Like>, Mat2Like] {
     L[2] = a[2] / a[0]
     U[0] = a[0]
@@ -596,7 +599,4 @@ export class Mat2 extends Float32Array {
   static sub = this.subtract
 }
 
-export interface Mat2 {
-  mul: typeof Mat2.prototype.multiply
-}
 Mat2.prototype.mul = Mat2.prototype.multiply

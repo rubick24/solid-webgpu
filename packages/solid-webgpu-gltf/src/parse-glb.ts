@@ -1,46 +1,46 @@
-import { GlTF } from './generated/glTF'
+import type { GlTF } from './generated/glTF'
 
-const ASCII_GLTF = 0x46546c67 // glTF
-const ASCII_JSON = 0x4e4f534a // JSON
-const ASCII_BIN = 0x004e4942 //  BIN
+const GLB_MAGIC = 0x46546c67
+const JSON_CHUNK = 0x4e4f534a
+const BIN_CHUNK = 0x004e4942
+
+export const parseGLBData = (data: ArrayBuffer): [GlTF, ArrayBuffer[]] => {
+  if (data.byteLength < 20) throw new Error('Invalid GLB: file is too short')
+  const view = new DataView(data)
+  if (view.getUint32(0, true) !== GLB_MAGIC) throw new Error('Invalid GLB magic')
+  if (view.getUint32(4, true) !== 2) throw new Error('Only glTF version 2 is supported')
+
+  const declaredLength = view.getUint32(8, true)
+  if (declaredLength !== data.byteLength) throw new Error('Invalid GLB length')
+
+  let offset = 12
+  let json: GlTF | undefined
+  const binaryChunks: ArrayBuffer[] = []
+  let chunkIndex = 0
+  while (offset < declaredLength) {
+    if (offset + 8 > declaredLength) throw new Error('Invalid GLB chunk header')
+    const chunkLength = view.getUint32(offset, true)
+    const chunkType = view.getUint32(offset + 4, true)
+    offset += 8
+    if (chunkLength % 4 || offset + chunkLength > declaredLength) throw new Error('Invalid GLB chunk length')
+
+    if (chunkType === JSON_CHUNK) {
+      if (json || chunkIndex !== 0) throw new Error('GLB JSON must be the first and only JSON chunk')
+      json = JSON.parse(new TextDecoder().decode(new Uint8Array(data, offset, chunkLength))) as GlTF
+    } else if (chunkType === BIN_CHUNK) {
+      if (!json || binaryChunks.length || chunkIndex !== 1) throw new Error('GLB BIN chunk must be the second chunk')
+      binaryChunks.push(data.slice(offset, offset + chunkLength))
+    }
+    offset += chunkLength
+    chunkIndex++
+  }
+
+  if (!json) throw new Error('GLB has no JSON chunk')
+  return [json, binaryChunks]
+}
 
 export const parseGLB = async (url: string): Promise<[GlTF, ArrayBuffer[]]> => {
-  const glb = await fetch(url).then(res => res.arrayBuffer())
-
-  const header = new DataView(glb, 0, 12)
-  if (header.getUint32(0, true) !== ASCII_GLTF) {
-    throw new Error('File is not valid binary glTF')
-  }
-
-  const version = header.getUint32(4, true)
-  if (version !== 2) {
-    throw new Error('Only support glTF version 2')
-  }
-
-  const length = header.getUint32(8, true)
-  const jsonChunkHeader = new DataView(glb, 12, 8)
-  const jsonChunkLength = jsonChunkHeader.getUint32(0, true)
-  if (jsonChunkHeader.getUint32(4, true) !== ASCII_JSON) {
-    throw new Error('first chunk must be structured JSON content')
-  }
-  const jsonChunkContent = new DataView(glb, 20, jsonChunkLength)
-  const textDecoder = new TextDecoder('utf-8')
-  const json = JSON.parse(textDecoder.decode(jsonChunkContent)) as GlTF
-
-  // file header 12 byte + chunk header 8 byte + chunk data length
-  let currentLength = 20 + jsonChunkLength
-
-  if (currentLength >= length) {
-    throw new Error('glb parsing error')
-  }
-
-  const chunkHeader = new DataView(glb, currentLength, 8)
-  const chunkLength = chunkHeader.getUint32(0, true)
-  if (chunkHeader.getUint32(4, true) !== ASCII_BIN) {
-    throw new Error('glTFLoader: second chunk of glb must be BIN chunk')
-  }
-  // pass chunk header
-  currentLength += 8
-  const buffers = [glb.slice(currentLength, currentLength + chunkLength)]
-  return [json, buffers]
+  const response = await fetch(url)
+  if (!response.ok) throw new Error(`Failed to load GLB (${response.status}): ${url}`)
+  return parseGLBData(await response.arrayBuffer())
 }

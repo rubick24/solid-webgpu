@@ -2,13 +2,13 @@ import { Vec3 } from '@rubick24/math'
 import { createEffect, flush, untrack } from 'solid-js'
 
 import { lookAt } from './camera'
-import { CameraRef, MaybeAccessor } from './types'
+import type { CameraRef, MaybeAccessor } from './types'
 import { access, clamp } from './utils'
 
 enum BUTTONS {
   NONE = 0,
   LEFT = 1,
-  RIGHT = 2
+  RIGHT = 2,
 }
 
 const KEYBOARD_ZOOM_SPEED = 0.04
@@ -31,7 +31,7 @@ export type OrbitControlOptions = {
 export const createOrbitControl = (
   el: MaybeAccessor<HTMLCanvasElement | undefined>,
   camera: MaybeAccessor<CameraRef | undefined>,
-  options?: MaybeAccessor<Partial<OrbitControlOptions>>
+  options?: MaybeAccessor<Partial<OrbitControlOptions>>,
 ) => {
   const center = Vec3.create()
   const _v = Vec3.create()
@@ -57,7 +57,7 @@ export const createOrbitControl = (
 
     enableZoom: true,
     enablePan: true,
-    enableKeys: true
+    enableKeys: true,
   }
   createEffect(
     () => {
@@ -66,10 +66,10 @@ export const createOrbitControl = (
     },
     nextOptions => {
       Object.assign(opts, nextOptions)
-    }
+    },
   )
 
-  let _el: HTMLCanvasElement | undefined = undefined
+  let _el: HTMLCanvasElement | undefined
   createEffect(
     () => access(el),
     element => {
@@ -167,7 +167,7 @@ export const createOrbitControl = (
         element.style.cursor = ''
         if (_el === element) _el = undefined
       }
-    }
+    },
   )
 
   createEffect(
@@ -182,7 +182,7 @@ export const createOrbitControl = (
             setQuaternion: value.setQuaternion,
             scene: value.scene,
             initialPosition: untrack(() => value.position()),
-            initialUp: untrack(() => value.up())
+            initialUp: untrack(() => value.up()),
           }
         : undefined
     },
@@ -216,15 +216,9 @@ export const createOrbitControl = (
         const deltaPhi = deltaY * (opts.speed / _el!.clientHeight)
         const deltaTheta = deltaX * (opts.speed / _el!.clientHeight)
         const phi = clamp(opts.minPhi, opts.maxPhi, Math.acos(offset.y / radius) - deltaPhi) || Number.EPSILON
-        const theta =
-          clamp(opts.minTheta, opts.maxTheta, Math.atan2(offset.z, offset.x) + deltaTheta) || Number.EPSILON
+        const theta = clamp(opts.minTheta, opts.maxTheta, Math.atan2(offset.z, offset.x) + deltaTheta) || Number.EPSILON
 
-        Vec3.set(
-          _nextPosition,
-          Math.sin(phi) * Math.cos(theta),
-          Math.cos(phi),
-          Math.sin(phi) * Math.sin(theta)
-        )
+        Vec3.set(_nextPosition, Math.sin(phi) * Math.cos(theta), Math.cos(phi), Math.sin(phi) * Math.sin(theta))
         _nextPosition.scale(radius).add(center)
 
         // Solid 2 queues writes until the microtask flush. Derive the matching
@@ -278,6 +272,6 @@ export const createOrbitControl = (
         pendingOrbitX = 0
         pendingOrbitY = 0
       }
-    }
+    },
   )
 }

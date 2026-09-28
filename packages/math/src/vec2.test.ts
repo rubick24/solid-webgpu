@@ -1,4 +1,5 @@
 import { Vec2 } from './vec2'
+
 // import type { Vec2 as Vec2T } from './vec2'
 
 const x = Vec2.copy([0, 0], [1, 2]) // x: [number, number]

@@ -1,6 +1,7 @@
-import { createSignal } from 'solid-js'
 import { render } from '@solidjs/web'
+import { createSignal } from 'solid-js'
 import {
+  type CameraRef,
   Canvas,
   createMaterial,
   createOrbitControl,
@@ -9,7 +10,6 @@ import {
   device,
   Mesh,
   PerspectiveCamera,
-  type CameraRef
 } from 'solid-webgpu'
 
 const App = () => {
@@ -30,7 +30,7 @@ const App = () => {
   }
   const instanceBuffer = device.createBuffer({
     size: instanceVal.byteLength,
-    usage: GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST
+    usage: GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST,
   })
   device.queue.writeBuffer(instanceBuffer, 0, instanceVal)
 
@@ -41,9 +41,11 @@ const App = () => {
       arrayStride: 12, // 3 * 4 bytes
       stepMode: 'instance', // Key for instancing
       attributes: [
-        { format: 'float32x3', offset: 0, shaderLocation: 4 } // instance position
-      ]
-    }
+        { format: 'float32x3', offset: 0, shaderLocation: 5 }, // instance position
+      ],
+    },
+    name: 'INSTANCE_POSITION',
+    type: 'vec3<f32>',
   })
 
   const { buffer: base, update: updateBase } = createUniformBufferBase()
@@ -90,7 +92,7 @@ fn fs_main(input: VertexOutput) -> @location(0) vec4<f32> {
 
     `,
     [base],
-    updateBase
+    updateBase,
   )
 
   return (

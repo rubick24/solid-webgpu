@@ -1,10 +1,10 @@
-import { children, createEffect, createMemo, onSettled, untrack } from 'solid-js'
 import type { JSX } from '@solidjs/web'
-import { GeometryOptions } from './geometry'
+import { children, createEffect, createMemo, onSettled, untrack } from 'solid-js'
+import type { GeometryOptions } from './geometry'
 import { createRenderPipeline } from './hks'
-import { defaultMaterial, MaterialOptions } from './material'
-import { createObject3DRef, Object3DProps, wgpuCompRender } from './object3d'
-import { $MESH, MeshRef, Object3DComponent } from './types'
+import { defaultMaterial, type MaterialOptions } from './material'
+import { createObject3DRef, type Object3DProps, wgpuCompRender } from './object3d'
+import { $MESH, type MeshRef, type Object3DComponent } from './types'
 import { access } from './utils'
 
 export type MeshProps = Object3DProps<MeshRef> & {
@@ -17,7 +17,7 @@ export const Mesh = (props: MeshProps) => {
   let drawImpl: MeshRef['draw'] = () => {}
   const { store, comp } = createObject3DRef<MeshRef>(props, ch, {
     [$MESH]: true,
-    draw: passEncoder => drawImpl(passEncoder)
+    draw: passEncoder => drawImpl(passEncoder),
   })
   const id = comp.id
   onSettled(() => {
@@ -39,26 +39,31 @@ export const Mesh = (props: MeshProps) => {
         })
         invalidate?.()
       }
-    }
+    },
   )
 
   createEffect(
     () => ({ invalidate: store.scene()?.[0].invalidate, matrix: store.matrix() }),
-    ({ invalidate }) => invalidate?.()
+    ({ invalidate }) => invalidate?.(),
   )
 
   const material = () => props.material ?? defaultMaterial
 
   const pipelineOps = createMemo(() => ({
-    shaderCode: material().shaderCode,
+    shaderCode:
+      !props.geometry.vertexBuffers.some(buffer => buffer.name === 'COLOR_0') && material().supportsVertexColor
+        ? material().shaderCode.replaceAll('input.COLOR_0', 'vec4<f32>(1.0)')
+        : material().shaderCode,
     bindGroupLayout: material().bindGroupLayout,
     vertexBuffers: props.geometry.vertexBuffers,
     format: material().format,
     vertexEntryPoint: material().vertexEntryPoint,
     fragmentEntryPoint: material().fragmentEntryPoint,
+    alphaMode: material().alphaMode,
+    doubleSided: material().doubleSided,
     primitive: props.geometry.primitive,
     depthStencil: props.geometry.depthStencil,
-    multisample: store.scene()?.[0].sampleCount ? { count: store.scene()?.[0].sampleCount } : undefined
+    multisample: store.scene()?.[0].sampleCount ? { count: store.scene()?.[0].sampleCount } : undefined,
   }))
   const pipeline = createRenderPipeline(pipelineOps)
 
@@ -70,6 +75,7 @@ export const Mesh = (props: MeshProps) => {
     // avoids reading async material state from a tracked effect before an
     // enclosing Loading boundary has revealed the mesh.
     untrack(() => material().update?.(store))
+    props.geometry.update?.()
 
     const _pipeline = pipeline()
     if (!_pipeline) {
@@ -109,7 +115,7 @@ export const Mesh = (props: MeshProps) => {
     } else if (positionAttr) {
       const count = Math.min(
         drawRange.count,
-        access(positionAttr.buffer).size / access(positionAttr.layout).arrayStride
+        access(positionAttr.buffer).size / access(positionAttr.layout).arrayStride,
       )
       passEncoder.draw(count, instanceCount, drawRange.start ?? 0)
     } else {
@@ -122,6 +128,6 @@ export const Mesh = (props: MeshProps) => {
     render: () => {
       comp.render()
       return wgpuCompRender(ch)
-    }
+    },
   } satisfies Object3DComponent as unknown as JSX.Element
 }

@@ -16,7 +16,7 @@ export const gaussianBlur = (options: {
     device.createTexture({
       size: { width: texture.width, height: texture.height },
       format: 'rgba8unorm',
-      usage: GPUTextureUsage.STORAGE_BINDING | GPUTextureUsage.TEXTURE_BINDING
+      usage: GPUTextureUsage.STORAGE_BINDING | GPUTextureUsage.TEXTURE_BINDING,
     })
   m.set(texture, tempTexture)
 
@@ -25,7 +25,7 @@ export const gaussianBlur = (options: {
     device.createTexture({
       size: { width: texture.width, height: texture.height },
       format: 'rgba8unorm',
-      usage: GPUTextureUsage.STORAGE_BINDING | GPUTextureUsage.TEXTURE_BINDING
+      usage: GPUTextureUsage.STORAGE_BINDING | GPUTextureUsage.TEXTURE_BINDING,
     })
 
   // Generate 1D Gaussian kernel
@@ -50,66 +50,66 @@ export const gaussianBlur = (options: {
         binding: 0, // uniform
         visibility: GPUShaderStage.COMPUTE,
         buffer: {
-          type: 'uniform'
-        }
+          type: 'uniform',
+        },
       },
       {
         binding: 1, // uniform
         visibility: GPUShaderStage.COMPUTE,
         buffer: {
-          type: 'read-only-storage'
-        }
+          type: 'read-only-storage',
+        },
       },
       {
         binding: 2, // input texture
         visibility: GPUShaderStage.COMPUTE,
-        texture: {}
+        texture: {},
       },
       {
         binding: 3, // output texture
         visibility: GPUShaderStage.COMPUTE,
         storageTexture: {
-          format: 'rgba8unorm'
-        }
-      }
-    ]
+          format: 'rgba8unorm',
+        },
+      },
+    ],
   })
   const computePipeline = device.createComputePipeline({
     label: 'gaussian blur',
     layout: device.createPipelineLayout({
       bindGroupLayouts: [
-        computeBindGroupLayout // @group(0)
-      ]
+        computeBindGroupLayout, // @group(0)
+      ],
     }),
     compute: {
       module: device.createShaderModule({ code: computeShaderCode }),
-      entryPoint: 'main'
-    }
+      entryPoint: 'main',
+    },
   })
   const computePipelineVertical = device.createComputePipeline({
     label: 'gaussian blur vertical',
     layout: device.createPipelineLayout({
       bindGroupLayouts: [
-        computeBindGroupLayout // @group(0)
-      ]
+        computeBindGroupLayout, // @group(0)
+      ],
     }),
     compute: {
       module: device.createShaderModule({ code: computeShaderCode }),
-      entryPoint: 'main_vertical'
-    }
+      entryPoint: 'main_vertical',
+    },
   })
 
   const computeUniformBuffer = device.createBuffer({
     label: 'blur uniform buffer',
     size: 16, // Minimum uniform buffer size
-    usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST
+    usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
   })
   const computeUniformArray = new Uint32Array(computeUniformBuffer.size / Uint32Array.BYTES_PER_ELEMENT)
 
   const kernelBuffer = device.createBuffer({
     label: 'blur kernel buffer',
     size: kernel.length * kernel.BYTES_PER_ELEMENT,
-    usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST
+    usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST,
   })
   device.queue.writeBuffer(kernelBuffer, 0, kernel)
 
@@ -119,21 +119,21 @@ export const gaussianBlur = (options: {
     entries: [
       {
         binding: 0,
-        resource: { buffer: computeUniformBuffer }
+        resource: { buffer: computeUniformBuffer },
       },
       {
         binding: 1,
-        resource: { buffer: kernelBuffer }
+        resource: { buffer: kernelBuffer },
       },
       {
         binding: 2,
-        resource: texture.createView()
+        resource: texture.createView(),
       },
       {
         binding: 3,
-        resource: tempTexture.createView()
-      }
-    ]
+        resource: tempTexture.createView(),
+      },
+    ],
   })
   const computeBindGroupVertical = device.createBindGroup({
     label: 'blur bind group vertical',
@@ -141,21 +141,21 @@ export const gaussianBlur = (options: {
     entries: [
       {
         binding: 0,
-        resource: { buffer: computeUniformBuffer }
+        resource: { buffer: computeUniformBuffer },
       },
       {
         binding: 1,
-        resource: { buffer: kernelBuffer }
+        resource: { buffer: kernelBuffer },
       },
       {
         binding: 2,
-        resource: tempTexture.createView()
+        resource: tempTexture.createView(),
       },
       {
         binding: 3,
-        resource: outputTexture.createView()
-      }
-    ]
+        resource: outputTexture.createView(),
+      },
+    ],
   })
 
   computeUniformArray[0] = pixelCount

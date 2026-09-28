@@ -1,21 +1,22 @@
+import { existsSync, readdirSync, statSync } from 'node:fs'
 import replace from '@rollup/plugin-replace'
-import { existsSync, readdirSync, statSync } from 'fs'
 import solidPlugin from '@solidjs/vite-plugin'
 
 const examplesPath = './src'
 
 const entries = readdirSync(examplesPath)
   .map(v => {
-    let filePath = examplesPath + '/' + v
+    let filePath = `${examplesPath}/${v}`
     const isDir = statSync(filePath).isDirectory()
     if (!isDir && v.endsWith('.html')) {
       return [v, filePath]
     } else {
-      filePath = filePath + '/index.html'
+      filePath = `${filePath}/index.html`
       if (existsSync(filePath)) {
         return [v, filePath]
       }
     }
+    return undefined
   })
   .filter(v => v)
 
@@ -23,7 +24,7 @@ const entries = readdirSync(examplesPath)
 export default {
   base: '',
   optimizeDeps: {
-    exclude: ['solid-webgpu']
+    exclude: ['solid-webgpu'],
   },
   build: {
     target: 'esnext',
@@ -33,17 +34,17 @@ export default {
         ...entries.reduce((p, c) => {
           p[c[0]] = c[1]
           return p
-        }, {})
-      }
-    }
+        }, {}),
+      },
+    },
   },
   plugins: [
     replace({
       values: {
-        _EXAMPLES: `${JSON.stringify(entries)}`
+        _EXAMPLES: `${JSON.stringify(entries)}`,
       },
-      preventAssignment: true
+      preventAssignment: true,
     }),
-    solidPlugin()
-  ]
+    solidPlugin(),
+  ],
 }

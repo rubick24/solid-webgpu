@@ -6,6 +6,8 @@ import type { Mat2dLike, Mat3Like, Mat4Like, QuatLike, Vec2Like } from './types'
  * A 3x3 Matrix
  */
 export class Mat3 extends Float32Array {
+  declare mul: typeof Mat3.prototype.multiply
+
   static IDENTITY_3X3 = new Float32Array([1, 0, 0, 0, 1, 0, 0, 0, 1])
 
   /**
@@ -21,7 +23,7 @@ export class Mat3 extends Float32Array {
       case 2:
         super(values[0] as ArrayBuffer, values[1], 9)
         break
-      case 1:
+      case 1: {
         const v = values[0]
         if (typeof v === 'number') {
           super([v, v, v, v, v, v, v, v, v])
@@ -29,6 +31,7 @@ export class Mat3 extends Float32Array {
           super(v as ArrayBuffer, 0, 9)
         }
         break
+      }
       default:
         super(Mat3.IDENTITY_3X3)
         break
@@ -892,7 +895,7 @@ export class Mat3 extends Float32Array {
         a[5] * a[5] +
         a[6] * a[6] +
         a[7] * a[7] +
-        a[8] * a[8]
+        a[8] * a[8],
     )
   }
 
@@ -932,7 +935,7 @@ export class Mat3 extends Float32Array {
     out: T,
     a: Readonly<Mat3Like>,
     b: Readonly<Mat3Like>,
-    scale: number
+    scale: number,
   ): T {
     out[0] = a[0] + b[0] * scale
     out[1] = a[1] + b[1] * scale
@@ -1025,7 +1028,4 @@ export class Mat3 extends Float32Array {
   static sub = this.subtract
 }
 
-export interface Mat3 {
-  mul: typeof Mat3.prototype.multiply
-}
 Mat3.prototype.mul = Mat3.prototype.multiply

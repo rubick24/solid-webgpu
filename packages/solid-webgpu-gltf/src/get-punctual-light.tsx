@@ -1,37 +1,33 @@
 import { PunctualLight, Vec3 } from 'solid-webgpu'
-import { LoaderContext } from './types'
+import type { Component } from 'solid-js'
+import type { LoaderContext } from './types'
 
-export const getPunctualLight = (index: number, context: LoaderContext) => {
-  const json = (
-    context.json.extensions?.KHR_lights_punctual as {
-      lights: {
-        name?: string
-        type: 'directional' | 'point' | 'spot'
-        color?: [number, number, number]
-        intensity?: number
-        range?: number
-        spot?: {
-          innerConeAngle?: number
-          outerConeAngle?: number
-        }
-      }[]
-    }
-  ).lights[index]
-  if (!json) {
-    throw new Error('light not found')
+type LightDefinition = {
+  name?: string
+  type: 'directional' | 'point' | 'spot'
+  color?: [number, number, number]
+  intensity?: number
+  range?: number
+  spot?: {
+    innerConeAngle?: number
+    outerConeAngle?: number
   }
+}
 
-  const Light = () => (
+export const getPunctualLight = (index: number, context: LoaderContext): Component => {
+  const extension = context.json.extensions?.KHR_lights_punctual as { lights?: LightDefinition[] } | undefined
+  const light = extension?.lights?.[index]
+  if (!light) throw new Error(`Node references missing KHR_lights_punctual light ${index}`)
+
+  return () => (
     <PunctualLight
-      label={json.name}
-      type={json.type}
-      color={json.color ? Vec3.fromValues(...json.color) : undefined}
-      intensity={json.intensity}
-      range={json.range}
-      innerConeAngle={json.spot?.innerConeAngle}
-      outerConeAngle={json.spot?.outerConeAngle}
+      label={light.name ?? `glTF light ${index}`}
+      type={light.type}
+      color={Vec3.fromValues(...(light.color ?? [1, 1, 1]))}
+      intensity={light.intensity}
+      range={light.range}
+      innerConeAngle={light.spot?.innerConeAngle}
+      outerConeAngle={light.spot?.outerConeAngle}
     />
   )
-
-  return Light
 }
