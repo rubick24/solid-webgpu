@@ -162,37 +162,31 @@ export const createObject3DRef = <T extends Object3DRef>(
   const { store, setStore, comp } = createNodeRef<Object3DRef>(props, ch, { ...init, ...o3dExt })
 
   createEffect(
-    () => props.position ?? DEFAULT_POSITION,
-    position => {
-      untrack(() => {
-        store.setPosition(v => {
-          v.copy(position)
-          return v
-        })
+    () => ({ position: new Vec3(props.position ?? DEFAULT_POSITION), setPosition: store.setPosition }),
+    ({ position, setPosition }) => {
+      setPosition(v => {
+        v.copy(position)
+        return v
       })
     }
   )
 
   createEffect(
-    () => props.quaternion ?? DEFAULT_QUATERNION,
-    quaternion => {
-      untrack(() => {
-        store.setQuaternion(v => {
-          v.copy(quaternion)
-          return v
-        })
+    () => ({ quaternion: new Quat(props.quaternion ?? DEFAULT_QUATERNION), setQuaternion: store.setQuaternion }),
+    ({ quaternion, setQuaternion }) => {
+      setQuaternion(v => {
+        v.copy(quaternion)
+        return v
       })
     }
   )
 
   createEffect(
-    () => props.scale ?? DEFAULT_SCALE,
-    scale => {
-      untrack(() => {
-        store.setScale(v => {
-          v.copy(scale)
-          return v
-        })
+    () => ({ scale: new Vec3(props.scale ?? DEFAULT_SCALE), setScale: store.setScale }),
+    ({ scale, setScale }) => {
+      setScale(v => {
+        v.copy(scale)
+        return v
       })
     }
   )
@@ -205,17 +199,16 @@ export const createObject3DRef = <T extends Object3DRef>(
       quaternion: store.quaternion(),
       position: store.position(),
       scale: store.scale(),
-      parentMatrix: parentCtx()?.matrix()
+      parentMatrix: parentCtx()?.matrix(),
+      setMatrix: store.setMatrix
     }),
-    values => {
-      untrack(() => {
-        store.setMatrix(m => {
-          Mat4.fromRotationTranslationScale(m, values.quaternion, values.position, values.scale)
-          if (values.parentMatrix) {
-            Mat4.mul(m, values.parentMatrix, m)
-          }
-          return m
-        })
+    ({ quaternion, position, scale, parentMatrix, setMatrix }) => {
+      setMatrix(m => {
+        Mat4.fromRotationTranslationScale(m, quaternion, position, scale)
+        if (parentMatrix) {
+          Mat4.mul(m, parentMatrix, m)
+        }
+        return m
       })
     }
   )
@@ -247,7 +240,7 @@ export const Object3D = (props: Object3DProps) => {
   const { store, comp } = createObject3DRef(props, ch)
 
   onSettled(() => {
-    props.ref?.(store)
+    untrack(() => props.ref?.(store))
   })
 
   return {

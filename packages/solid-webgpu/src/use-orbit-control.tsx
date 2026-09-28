@@ -60,7 +60,10 @@ export const createOrbitControl = (
     enableKeys: true
   }
   createEffect(
-    () => access(options),
+    () => {
+      const value = access(options)
+      return value ? { ...value } : undefined
+    },
     nextOptions => {
       Object.assign(opts, nextOptions)
     }
@@ -168,7 +171,21 @@ export const createOrbitControl = (
   )
 
   createEffect(
-    () => access(camera),
+    () => {
+      const value = access(camera)
+      return value
+        ? {
+            position: value.position,
+            quaternion: value.quaternion,
+            up: value.up,
+            setPosition: value.setPosition,
+            setQuaternion: value.setQuaternion,
+            scene: value.scene,
+            initialPosition: untrack(() => value.position()),
+            initialUp: untrack(() => value.up())
+          }
+        : undefined
+    },
     currentCamera => {
       if (!currentCamera) {
         return
@@ -177,7 +194,7 @@ export const createOrbitControl = (
 
       untrack(() => {
         _camera.setQuaternion(v => {
-          lookAt(v, _camera.position(), _camera.up(), center)
+          lookAt(v, currentCamera.initialPosition, currentCamera.initialUp, center)
           return v
         })
       })

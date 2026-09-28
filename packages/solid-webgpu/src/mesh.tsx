@@ -21,7 +21,7 @@ export const Mesh = (props: MeshProps) => {
   })
   const id = comp.id
   onSettled(() => {
-    props.ref?.(store)
+    untrack(() => props.ref?.(store))
   })
 
   createEffect(
@@ -31,20 +31,20 @@ export const Mesh = (props: MeshProps) => {
       setScene(scene => {
         scene.renderList.push(id)
       })
-      untrack(() => invalidate?.())
+      invalidate?.()
       return () => {
         setScene(scene => {
           const index = scene.renderList.indexOf(id)
           if (index !== -1) scene.renderList.splice(index, 1)
         })
-        untrack(() => invalidate?.())
+        invalidate?.()
       }
     }
   )
 
   createEffect(
     () => ({ invalidate: store.scene()?.[0].invalidate, matrix: store.matrix() }),
-    ({ invalidate }) => untrack(() => invalidate?.())
+    ({ invalidate }) => invalidate?.()
   )
 
   const material = () => props.material ?? defaultMaterial

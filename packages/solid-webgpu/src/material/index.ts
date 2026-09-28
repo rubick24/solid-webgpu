@@ -66,7 +66,7 @@ export const createUnlitMaterial = (
   device.queue.writeBuffer(buffer, 0, bufferValue)
   createEffect(
     () => ({
-      albedo: access(options ?? {}).albedo ?? ([0, 0.5, 1] as Vec3Like),
+      albedo: new Vec3(access(options ?? {}).albedo ?? ([0, 0.5, 1] as Vec3Like)),
       hasTexture: !!(albedoTexture() || albedoTextureSource())
     }),
     values => {
@@ -115,20 +115,26 @@ export const createPBRMaterial = (
   })
 
   createEffect(
-    () => access(options),
+    () => {
+      const ops = access(options)
+      return {
+        albedo: ops?.albedo ? new Vec3(ops.albedo) : Vec3.fromValues(1, 1, 1),
+        metallic: ops?.metallic ?? 0,
+        roughness: ops?.roughness ?? 0.5,
+        occlusion: ops?.occlusion ?? 1.0,
+        hasAlbedoTexture: !!(ops?.albedoTexture || ops?.albedoTextureSource),
+        hasOrmTexture: !!(ops?.occlusionRoughnessMetallicTexture || ops?.occlusionRoughnessMetallicTextureSource)
+      }
+    },
     ops => {
-      new Vec3(_pbrBuffer).copy(ops?.albedo ?? Vec3.fromValues(1, 1, 1))
+      new Vec3(_pbrBuffer).copy(ops.albedo)
       const pbrParamsValue = new Float32Array(_pbrBuffer, 12, 3)
-      pbrParamsValue[0] = ops?.metallic ?? 0
-      pbrParamsValue[1] = ops?.roughness ?? 0.5
-      pbrParamsValue[2] = ops?.occlusion ?? 1.0
+      pbrParamsValue[0] = ops.metallic
+      pbrParamsValue[1] = ops.roughness
+      pbrParamsValue[2] = ops.occlusion
       const pbrFlag = new Uint32Array(_pbrBuffer, 24, 1)
-      pbrFlag[0] = setBitOfValue(pbrFlag[0], 0, !!(ops?.albedoTexture || ops?.albedoTextureSource))
-      pbrFlag[0] = setBitOfValue(
-        pbrFlag[0],
-        1,
-        !!(ops?.occlusionRoughnessMetallicTexture || ops?.occlusionRoughnessMetallicTextureSource)
-      )
+      pbrFlag[0] = setBitOfValue(pbrFlag[0], 0, ops.hasAlbedoTexture)
+      pbrFlag[0] = setBitOfValue(pbrFlag[0], 1, ops.hasOrmTexture)
 
       device.queue.writeBuffer(buffer, 0, _pbrBuffer)
     }

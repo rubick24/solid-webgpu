@@ -2,7 +2,7 @@ import { Mat3, Mat4, Vec3 } from '@rubick24/math'
 import { createEffect, createMemo, onCleanup } from 'solid-js'
 
 import { CameraRef, MaybeAccessor, MeshRef, Optional, PunctualLightRef, TypedArray } from './types'
-import { access, isAccessor } from './utils'
+import { access } from './utils'
 
 const _adapter = typeof navigator !== 'undefined' ? await navigator.gpu?.requestAdapter() : null
 export const device = await _adapter?.requestDevice()!
@@ -18,8 +18,6 @@ export const createBufferFromValue = (
   options: MaybeAccessor<Omit<GPUBufferDescriptor, 'size'>>,
   value: MaybeAccessor<TypedArray | ArrayBuffer>
 ) => {
-  if (!isAccessor(value) && !isAccessor(options)) {
-  }
   const buffer = createBuffer(() => ({
     size: access(value).byteLength,
     ...access(options)
@@ -42,19 +40,20 @@ export const createTextureFromImage = (
   options: MaybeAccessor<Optional<Omit<GPUTextureDescriptor, 'size'>, 'usage'>>,
   image: MaybeAccessor<ImageBitmap>
 ) => {
-  const img = access(image)
-  const size = { width: img.width, height: img.height }
-  const ops = access(options)
-  const texture = createTexture(() => ({
-    ...ops,
-    usage:
-      (ops.usage ?? 0) |
-      GPUTextureUsage.TEXTURE_BINDING |
-      GPUTextureUsage.RENDER_ATTACHMENT |
-      GPUTextureUsage.COPY_SRC |
-      GPUTextureUsage.COPY_DST,
-    size
-  }))
+  const texture = createTexture(() => {
+    const ops = access(options)
+    const img = access(image)
+    return {
+      ...ops,
+      usage:
+        (ops.usage ?? 0) |
+        GPUTextureUsage.TEXTURE_BINDING |
+        GPUTextureUsage.RENDER_ATTACHMENT |
+        GPUTextureUsage.COPY_SRC |
+        GPUTextureUsage.COPY_DST,
+      size: { width: img.width, height: img.height }
+    }
+  })
 
   createEffect(
     () => {

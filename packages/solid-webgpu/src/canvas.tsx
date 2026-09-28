@@ -1,5 +1,5 @@
 import { Vec3 } from '@rubick24/math'
-import { merge, omit, onSettled, type ParentProps } from 'solid-js'
+import { merge, omit, onSettled, type ParentProps, untrack } from 'solid-js'
 import type { JSX } from '@solidjs/web'
 import { createRender } from './create-render'
 import { CameraRef } from './types'
@@ -51,7 +51,7 @@ export const Canvas = (props: CanvasProps) => {
     <canvas {...rest} width={propsWithDefault.width} height={propsWithDefault.height} />
   ) as HTMLCanvasElement
   onSettled(() => {
-    propsWithDefault.ref?.(canvas)
+    untrack(() => propsWithDefault.ref?.(canvas))
   })
 
   const context = canvas.getContext('webgpu')!
@@ -75,7 +75,7 @@ export const Canvas = (props: CanvasProps) => {
     () => propsWithDefault.children
   )
   onSettled(() => {
-    props.renderRef?.(() => scene.renderNow?.())
+    untrack(() => props.renderRef?.(() => scene.renderNow?.()))
   })
 
   return [canvas, renderChildren]

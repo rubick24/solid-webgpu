@@ -31,12 +31,13 @@ export const PunctualLight = (props: PunctualLightProps) => {
   const id = comp.id
 
   onSettled(() => {
-    props.ref?.(store)
+    untrack(() => props.ref?.(store))
   })
 
   createEffect(
     () => ({
-      color: props.color ?? DEFAULT_COLOR,
+      color: new Vec3(props.color ?? DEFAULT_COLOR),
+      setColor: store.setColor,
       intensity: props.intensity ?? 1,
       range: props.range,
       lightType: props.type ?? 'directional',
@@ -47,20 +48,18 @@ export const PunctualLight = (props: PunctualLightProps) => {
       invalidate: store.scene()?.[0].invalidate
     }),
     values => {
-      untrack(() => {
-        store.setColor(color => {
-          color.copy(values.color)
-          return color
-        })
-        setStore(light => {
-          light.intensity = values.intensity
-          light.range = values.range
-          light.lightType = values.lightType
-          light.innerConeAngle = values.innerConeAngle
-          light.outerConeAngle = values.outerConeAngle
-        })
+      values.setColor(color => {
+        color.copy(values.color)
+        return color
       })
-      untrack(() => values.invalidate?.())
+      setStore(light => {
+        light.intensity = values.intensity
+        light.range = values.range
+        light.lightType = values.lightType
+        light.innerConeAngle = values.innerConeAngle
+        light.outerConeAngle = values.outerConeAngle
+      })
+      values.invalidate?.()
     }
   )
 
@@ -71,20 +70,20 @@ export const PunctualLight = (props: PunctualLightProps) => {
       setScene(scene => {
         scene.lightList.push(id)
       })
-      untrack(() => invalidate?.())
+      invalidate?.()
       return () => {
         setScene(scene => {
           const index = scene.lightList.indexOf(id)
           if (index !== -1) scene.lightList.splice(index, 1)
         })
-        untrack(() => invalidate?.())
+        invalidate?.()
       }
     }
   )
 
   createEffect(
     () => ({ invalidate: store.scene()?.[0].invalidate, matrix: store.matrix() }),
-    ({ invalidate }) => untrack(() => invalidate?.())
+    ({ invalidate }) => invalidate?.()
   )
 
   return {

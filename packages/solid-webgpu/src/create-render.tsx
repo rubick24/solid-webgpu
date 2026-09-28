@@ -64,15 +64,28 @@ export const createRender = (
   createEffect(
     () => {
       const opts = access(options)
-      return { opts, cameraId: opts.camera?.id, clearValue: deep(opts.clearValue) }
+      return {
+        cameraId: opts.camera?.id,
+        texture: opts.texture,
+        width: opts.width,
+        height: opts.height,
+        format: opts.format,
+        sampleCount: opts.sampleCount,
+        autoClear: opts.autoClear,
+        clearValue: deep(opts.clearValue),
+        canvas: opts.canvas,
+        context: opts.context,
+        update: opts.update,
+        afterRender: opts.afterRender
+      }
     },
-    ({ opts, cameraId, clearValue }) =>
+    ({ cameraId, texture, width, height, format, sampleCount, autoClear, clearValue, canvas, context, update, afterRender }) =>
       setScene(scene => {
-        scene.width = opts.texture?.width ?? opts.width ?? scene.width
-        scene.height = opts.texture?.height ?? opts.height ?? scene.height
-        scene.format = opts.texture?.format ?? opts.format ?? scene.format
-        scene.sampleCount = opts.sampleCount ?? scene.sampleCount
-        scene.autoClear = opts.autoClear ?? scene.autoClear
+        scene.width = texture?.width ?? width ?? scene.width
+        scene.height = texture?.height ?? height ?? scene.height
+        scene.format = texture?.format ?? format ?? scene.format
+        scene.sampleCount = sampleCount ?? scene.sampleCount
+        scene.autoClear = autoClear ?? scene.autoClear
         if (clearValue != null) {
           // Merge colors in place; GPUColor also accepts non-store iterables.
           if (
@@ -86,11 +99,11 @@ export const createRender = (
           }
         }
         scene.currentCamera = cameraId
-        scene.texture = opts.texture ?? scene.texture
-        scene.canvas = opts.canvas ?? scene.canvas
-        scene.context = opts.context ?? scene.context
-        scene.update = opts.update
-        scene.afterRender = opts.afterRender
+        scene.texture = texture ?? scene.texture
+        scene.canvas = canvas ?? scene.canvas
+        scene.context = context ?? scene.context
+        scene.update = update
+        scene.afterRender = afterRender
       })
   )
 

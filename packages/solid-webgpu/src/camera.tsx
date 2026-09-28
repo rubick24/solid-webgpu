@@ -42,7 +42,7 @@ export const Camera = (props: CameraProps) => {
   readProjectionViewMatrix = createMemo(() => Mat4.mul(new Mat4(), p[0](), readViewMatrix()))
 
   onSettled(() => {
-    props.ref?.(store)
+    untrack(() => props.ref?.(store))
   })
 
   return {
@@ -74,18 +74,16 @@ export const PerspectiveCamera = (props: PerspectiveCameraProps) => {
 
   createEffect(
     () => ({
-      camera: cameraRef(),
+      setProjectionMatrix: cameraRef()?.setProjectionMatrix,
       fov: local.fov,
       aspect: local.aspect,
       near: local.near,
       far: local.far
     }),
-    values => {
-      untrack(() => {
-        values.camera?.setProjectionMatrix(m => {
-          Mat4.perspectiveZO(m, values.fov, values.aspect, values.near, values.far)
-          return m
-        })
+    ({ setProjectionMatrix, fov, aspect, near, far }) => {
+      setProjectionMatrix?.(m => {
+        Mat4.perspectiveZO(m, fov, aspect, near, far)
+        return m
       })
     }
   )
@@ -95,7 +93,7 @@ export const PerspectiveCamera = (props: PerspectiveCameraProps) => {
       {...others}
       ref={v => {
         setCameraRef(v)
-        local.ref?.(v)
+        untrack(() => local.ref?.(v))
       }}
     />
   )
@@ -128,7 +126,7 @@ export const OrthographicCamera = (props: OrthographicCameraProps) => {
 
   createEffect(
     () => ({
-      camera: cameraRef(),
+      setProjectionMatrix: cameraRef()?.setProjectionMatrix,
       left: local.left,
       right: local.right,
       bottom: local.bottom,
@@ -136,12 +134,10 @@ export const OrthographicCamera = (props: OrthographicCameraProps) => {
       near: local.near,
       far: local.far
     }),
-    values => {
-      untrack(() => {
-        values.camera?.setProjectionMatrix(m => {
-          Mat4.orthoZO(m, values.left, values.right, values.bottom, values.top, values.near, values.far)
-          return m
-        })
+    ({ setProjectionMatrix, left, right, bottom, top, near, far }) => {
+      setProjectionMatrix?.(m => {
+        Mat4.orthoZO(m, left, right, bottom, top, near, far)
+        return m
       })
     }
   )
@@ -151,7 +147,7 @@ export const OrthographicCamera = (props: OrthographicCameraProps) => {
       {...others}
       ref={v => {
         setCameraRef(v)
-        local.ref?.(v)
+        untrack(() => local.ref?.(v))
       }}
     />
   )
