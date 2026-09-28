@@ -1,6 +1,6 @@
 import replace from '@rollup/plugin-replace'
 import { existsSync, readdirSync, statSync } from 'fs'
-import solidPlugin from 'vite-plugin-solid'
+import solidPlugin from '@solidjs/vite-plugin'
 
 const examplesPath = './src'
 

@@ -1,5 +1,16 @@
 import { Vec3 } from '@rubick24/math'
-import { children, createEffect, createStore, For, snapshot, untrack } from 'solid-js'
+import {
+  children,
+  createEffect,
+  createStore,
+  deep,
+  For,
+  isWrappable,
+  onCleanup,
+  reconcile,
+  snapshot,
+  untrack
+} from 'solid-js'
 import type { JSX } from '@solidjs/web'
 import { device } from './hks'
 import { CameraRef, isWgpuComponent, MaybeAccessor, MeshRef, SceneContext } from './types'
@@ -14,7 +25,6 @@ export const createRender = (
 
     // render to texture
     texture?: GPUTexture
-    updateSignal?: () => number
 
     // render to canvas
     canvas?: HTMLCanvasElement
@@ -28,9 +38,12 @@ export const createRender = (
 
     // user
     update?: (t: number) => void
+    afterRender?: () => void
   }>,
   ch: () => JSX.Element
 ) => {
+  let renderNow = (_t?: number) => {}
+  let requestRender = () => {}
   const defaultOptions = {
     width: 960,
     height: 540,
@@ -44,27 +57,40 @@ export const createRender = (
     ...defaultOptions,
     nodes: {},
     renderList: [],
-    renderOrder: [],
-    lightList: []
+    lightList: [],
+    renderNow: (t?: number) => renderNow(t),
+    invalidate: () => requestRender()
   })
   createEffect(
     () => {
       const opts = access(options)
-      return { opts, cameraId: opts.camera?.id }
+      return { opts, cameraId: opts.camera?.id, clearValue: deep(opts.clearValue) }
     },
-    ({ opts, cameraId }) =>
+    ({ opts, cameraId, clearValue }) =>
       setScene(scene => {
         scene.width = opts.texture?.width ?? opts.width ?? scene.width
         scene.height = opts.texture?.height ?? opts.height ?? scene.height
         scene.format = opts.texture?.format ?? opts.format ?? scene.format
         scene.sampleCount = opts.sampleCount ?? scene.sampleCount
         scene.autoClear = opts.autoClear ?? scene.autoClear
-        scene.clearValue = opts.clearValue ?? scene.clearValue
-        scene.currentCamera = cameraId ?? scene.currentCamera
+        if (clearValue != null) {
+          // Merge colors in place; GPUColor also accepts non-store iterables.
+          if (
+            isWrappable(clearValue) &&
+            isWrappable(scene.clearValue) &&
+            Array.isArray(clearValue) === Array.isArray(scene.clearValue)
+          ) {
+            reconcile(clearValue)(scene.clearValue)
+          } else {
+            scene.clearValue = clearValue
+          }
+        }
+        scene.currentCamera = cameraId
         scene.texture = opts.texture ?? scene.texture
         scene.canvas = opts.canvas ?? scene.canvas
         scene.context = opts.context ?? scene.context
-        scene.update = opts.update ?? scene.update
+        scene.update = opts.update
+        scene.afterRender = opts.afterRender
       })
   )
 
@@ -123,55 +149,35 @@ export const createRender = (
     }
   )
 
-  /**
-   * update render order
-   */
-  createEffect(
-    () => {
-      if (!scene.currentCamera) return
-      const camera = scene.nodes[scene.currentCamera] as CameraRef
-      if (!camera) return
-      const projectionViewMatrix = camera.projectionViewMatrix()
-
-      return scene.renderList
-        .map(id => {
-          const v = scene.nodes[id] as MeshRef
-          return {
-            m: v.matrix(),
-            id: v.id
-          }
-        })
-        .sort((a, b) => {
-          let res = 0
-          // TODO: handle depthTest disabled
-          const am = a.m
-          const bm = b.m
-
-          Vec3.set(tempVec3, am[12], am[13], am[14])
-          Vec3.transformMat4(tempVec3, tempVec3, projectionViewMatrix)
-          const tempZ = tempVec3.z
-          Vec3.set(tempVec3, bm[12], bm[13], bm[14])
-          Vec3.transformMat4(tempVec3, tempVec3, projectionViewMatrix)
-          res = res || tempZ - tempVec3.z
-          return res
-        })
-        .map(v => v.id)
-    },
-    renderOrder => {
-      if (!renderOrder) return
-      setScene(scene => {
-        scene.renderOrder = renderOrder
-      })
-    }
-  )
-
   // render function
   const renderFn = () => {
     const currentScene = snapshot(scene)
-    const { msaaTextureView, depthTextureView, context, renderOrder } = currentScene
+    const { msaaTextureView, depthTextureView, context } = currentScene
     if (!msaaTextureView || !depthTextureView) {
       return
     }
+
+    const camera = currentScene.currentCamera
+      ? (currentScene.nodes[currentScene.currentCamera] as CameraRef | undefined)
+      : undefined
+    const projectionViewMatrix = camera?.projectionViewMatrix()
+    const orderedIds = projectionViewMatrix
+      ? currentScene.renderList
+          .flatMap(id => {
+            const mesh = currentScene.nodes[id] as MeshRef | undefined
+            return mesh ? [{ id: mesh.id, matrix: mesh.matrix() }] : []
+          })
+          .sort((a, b) => {
+            // TODO: handle depthTest disabled
+            Vec3.set(tempVec3, a.matrix[12], a.matrix[13], a.matrix[14])
+            Vec3.transformMat4(tempVec3, tempVec3, projectionViewMatrix)
+            const az = tempVec3.z
+            Vec3.set(tempVec3, b.matrix[12], b.matrix[13], b.matrix[14])
+            Vec3.transformMat4(tempVec3, tempVec3, projectionViewMatrix)
+            return az - tempVec3.z
+          })
+          .map(v => v.id)
+      : []
 
     const resolveTarget = currentScene.texture?.createView() ?? context?.getCurrentTexture().createView()
     const loadOp: GPULoadOp = currentScene.autoClear ? 'clear' : 'load'
@@ -200,7 +206,7 @@ export const createRender = (
       }
     })
     passEncoder.setViewport(0, 0, currentScene.width, currentScene.height, 0, 1)
-    for (const id of renderOrder) {
+    for (const id of orderedIds) {
       const mesh = currentScene.nodes[id] as MeshRef
       mesh.draw(passEncoder)
     }
@@ -209,33 +215,49 @@ export const createRender = (
     device.queue.submit([commandEncoder.finish()])
   }
 
-  let timeout = NaN
+  let timeout: number | undefined
+  const renderFrame = (t: number) => {
+    timeout = undefined
+    renderNow(t)
+  }
+  requestRender = () => {
+    if (timeout === undefined) timeout = requestAnimationFrame(renderFrame)
+  }
+  renderNow = (t = performance.now()) => {
+    if (timeout !== undefined) cancelAnimationFrame(timeout)
+    timeout = undefined
+    untrack(() => {
+      const update = snapshot(scene).update
+      update?.(t)
+      renderFn()
+      snapshot(scene).afterRender?.()
+      if (update) requestRender()
+    })
+  }
+  onCleanup(() => {
+    if (timeout !== undefined) cancelAnimationFrame(timeout)
+  })
   createEffect(
     () => {
       // Explicitly list all dependencies that should trigger a re-render.
+      const camera = scene.currentCamera
+        ? (scene.nodes[scene.currentCamera] as CameraRef | undefined)
+        : undefined
       const deps = {
-        renderOrder: scene.renderOrder,
+        cameraMatrix: camera?.projectionViewMatrix(),
         width: scene.width,
         height: scene.height,
         autoClear: scene.autoClear,
-        clearValue: scene.clearValue,
+        clearValue: deep(scene.clearValue),
         texture: scene.texture,
-        sampleCount: scene.sampleCount
+        sampleCount: scene.sampleCount,
+        update: scene.update,
+        afterRender: scene.afterRender
       }
-      access(options).updateSignal?.()
       return deps
     },
     () => {
-      timeout = requestAnimationFrame(t => {
-        untrack(() => {
-          snapshot(scene).update?.(t)
-          renderFn()
-        })
-      })
-
-      return () => {
-        if (timeout) cancelAnimationFrame(timeout)
-      }
+      requestRender()
     }
   )
 

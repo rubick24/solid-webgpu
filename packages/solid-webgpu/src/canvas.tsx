@@ -16,9 +16,9 @@ export type CanvasProps = ParentProps &
     sampleCount?: number
     camera?: CameraRef
     ref?: (v: HTMLCanvasElement) => void
+    renderRef?: (render: () => void) => void
 
     update?: (t: number) => void
-    updateSignal?: () => number
   }
 
 export const Canvas = (props: CanvasProps) => {
@@ -43,7 +43,7 @@ export const Canvas = (props: CanvasProps) => {
     'sampleCount',
     'camera',
     'update',
-    'updateSignal'
+    'renderRef'
   )
   const propsWithDefault = merge(defaultProps, props)
 
@@ -56,7 +56,7 @@ export const Canvas = (props: CanvasProps) => {
 
   const context = canvas.getContext('webgpu')!
 
-  createRender(
+  const [scene, , renderChildren] = createRender(
     () => ({
       camera: propsWithDefault.camera,
       autoClear: propsWithDefault.autoClear,
@@ -70,11 +70,13 @@ export const Canvas = (props: CanvasProps) => {
       canvas,
       context,
 
-      update: propsWithDefault.update,
-      updateSignal: propsWithDefault.updateSignal
+      update: propsWithDefault.update
     }),
     () => propsWithDefault.children
   )
+  onSettled(() => {
+    props.renderRef?.(() => scene.renderNow?.())
+  })
 
-  return canvas
+  return [canvas, renderChildren]
 }

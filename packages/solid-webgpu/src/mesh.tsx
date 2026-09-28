@@ -25,18 +25,26 @@ export const Mesh = (props: MeshProps) => {
   })
 
   createEffect(
-    () => store.scene()?.[1],
-    setScene => {
+    () => ({ setScene: store.scene()?.[1], invalidate: store.scene()?.[0].invalidate }),
+    ({ setScene, invalidate }) => {
       if (!setScene) return
       setScene(scene => {
         scene.renderList.push(id)
       })
-      return () =>
+      untrack(() => invalidate?.())
+      return () => {
         setScene(scene => {
           const index = scene.renderList.indexOf(id)
           if (index !== -1) scene.renderList.splice(index, 1)
         })
+        untrack(() => invalidate?.())
+      }
     }
+  )
+
+  createEffect(
+    () => ({ invalidate: store.scene()?.[0].invalidate, matrix: store.matrix() }),
+    ({ invalidate }) => untrack(() => invalidate?.())
   )
 
   const material = () => props.material ?? defaultMaterial

@@ -29,7 +29,8 @@ export default {
     babel({
       babelHelpers: 'bundled',
       extensions: ['.js', '.ts', '.tsx'],
-      presets: ['@babel/preset-typescript', 'babel-preset-solid']
+      presets: ['@babel/preset-typescript'],
+      plugins: ['@solidjs/babel-plugin']
     })
   ]
 }

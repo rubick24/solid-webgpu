@@ -90,9 +90,7 @@ export type CameraExtra = {
   projectionMatrix: Accessor<Mat4>
   setProjectionMatrix: Setter<Mat4>
   viewMatrix: Accessor<Mat4>
-  setViewMatrix: Setter<Mat4>
   projectionViewMatrix: Accessor<Mat4>
-  setProjectionViewMatrix: Setter<Mat4>
 }
 
 export type PunctualLightRef = Object3DRef & PunctualLightExtra
@@ -139,10 +137,12 @@ export type SceneContext = {
   depthTextureView?: GPUTextureView
 
   renderList: string[]
-  renderOrder: string[]
   lightList: string[]
   currentCamera?: string
+  renderNow?: (t?: number) => void
+  invalidate?: () => void
 
   // user
   update?: (t: number) => void
+  afterRender?: () => void
 }

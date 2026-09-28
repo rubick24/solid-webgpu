@@ -24,6 +24,7 @@ const App = () => {
   const [texCamera, setTexCamera] = createSignal<CameraRef>()
   const [camera, setCamera] = createSignal<CameraRef>()
   const [canvas, setCanvas] = createSignal<HTMLCanvasElement>()
+  let renderCanvas = () => {}
 
   // createOrbitControl(canvas, camera)
   createOrbitControl(canvas, texCamera)
@@ -38,16 +39,12 @@ const App = () => {
       GPUTextureUsage.COPY_DST
   })
 
-  const [updateSignal, setUpdateSignal] = createSignal(0, { equals: false })
-
-  createRender(
+  const [, , textureRender] = createRender(
     () => ({
       texture: texture(),
       clearValue: { r: 0, g: 0.5, b: 1.0, a: 1.0 },
       camera: texCamera(),
-      update: () => {
-        setUpdateSignal(0)
-      }
+      afterRender: () => renderCanvas()
     }),
     () => (
       <>
@@ -72,7 +69,8 @@ const App = () => {
 
   return (
     <>
-      <Canvas camera={camera()} ref={setCanvas} updateSignal={updateSignal}>
+      {textureRender}
+      <Canvas camera={camera()} ref={setCanvas} renderRef={render => (renderCanvas = render)}>
         <PerspectiveCamera label="main_camera" ref={setCamera} position={[0, 0, 5]} aspect={16 / 9} />
         <Mesh geometry={planeGeo} material={unlitMat()} />
       </Canvas>

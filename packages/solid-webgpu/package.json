@@ -21,13 +21,13 @@
     "@webgpu/types": "^0.1.51"
   },
   "peerDependencies": {
-    "@solidjs/web": "^2.0.0-beta.17",
-    "solid-js": "^2.0.0-beta.17"
+    "@solidjs/web": "^2.0.0-rc.11",
+    "solid-js": "^2.0.0-rc.11"
   },
   "devDependencies": {
-    "@solidjs/web": "2.0.0-beta.17",
+    "@solidjs/web": "2.0.0-rc.11",
     "@rubick24/math": "workspace:*",
-    "babel-preset-solid": "2.0.0-beta.17",
-    "solid-js": "2.0.0-beta.17"
+    "solid-js": "2.0.0-rc.11",
+    "@solidjs/babel-plugin": "2.0.0-rc.11"
   }
 }

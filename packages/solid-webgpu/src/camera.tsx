@@ -1,5 +1,15 @@
 import { DEG2RAD, Mat4, Quat, Vec3 } from '@rubick24/math'
-import { children, createEffect, createSignal, merge, omit, onSettled, untrack } from 'solid-js'
+import {
+  children,
+  createEffect,
+  createMemo,
+  createSignal,
+  merge,
+  omit,
+  onSettled,
+  type Accessor,
+  untrack
+} from 'solid-js'
 import type { JSX } from '@solidjs/web'
 import { createObject3DRef, Object3DProps, wgpuCompRender } from './object3d'
 import { $CAMERA, CameraExtra, CameraRef, Object3DComponent } from './types'
@@ -18,46 +28,22 @@ export const Camera = (props: CameraProps) => {
   const ch = children(() => props.children)
 
   const p = createSignal(new Mat4(), { equals: false })
-  const v = createSignal(new Mat4(), { equals: false })
-  const pv = createSignal(new Mat4(), { equals: false })
+  let readViewMatrix!: Accessor<Mat4>
+  let readProjectionViewMatrix!: Accessor<Mat4>
   const cameraExt = {
     [$CAMERA]: true,
     projectionMatrix: p[0],
     setProjectionMatrix: p[1],
-    viewMatrix: v[0],
-    setViewMatrix: v[1],
-    projectionViewMatrix: pv[0],
-    setProjectionViewMatrix: pv[1]
+    viewMatrix: () => readViewMatrix(),
+    projectionViewMatrix: () => readProjectionViewMatrix()
   } satisfies CameraExtra
   const { store, comp } = createObject3DRef<CameraRef>(props, ch, cameraExt)
+  readViewMatrix = createMemo(() => Mat4.invert(new Mat4(), store.matrix()) ?? new Mat4())
+  readProjectionViewMatrix = createMemo(() => Mat4.mul(new Mat4(), p[0](), readViewMatrix()))
 
   onSettled(() => {
     props.ref?.(store)
   })
-
-  createEffect(
-    () => store.matrix(),
-    matrix => {
-      untrack(() => {
-        store.setViewMatrix(m => {
-          m.copy(matrix).invert()
-          return m
-        })
-      })
-    }
-  )
-
-  createEffect(
-    () => [store.projectionMatrix(), store.viewMatrix()] as const,
-    ([projection, view]) => {
-      untrack(() => {
-        store.setProjectionViewMatrix(m => {
-          m.copy(projection).multiply(view)
-          return m
-        })
-      })
-    }
-  )
 
   return {
     ...comp,

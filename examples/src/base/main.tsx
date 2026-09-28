@@ -1,12 +1,13 @@
 import { createSignal, Show } from 'solid-js'
 import { render } from '@solidjs/web'
-import type { CameraRef, QuatLike, Vec3Like } from 'solid-webgpu'
+import type { CameraRef, MeshRef, QuatLike, Vec3Like } from 'solid-webgpu'
 import {
   Canvas,
   createOrbitControl,
   createPBRMaterial,
   createPlaneGeometry,
   imageBitmapFromImageUrl,
+  Mat4,
   Mesh,
   PerspectiveCamera,
   PunctualLight,
@@ -41,18 +42,25 @@ const App = (props: { texture: ImageBitmap }) => {
 
   createOrbitControl(canvas, camera)
 
-  const [r, setR] = createSignal(Quat.create(), { equals: false })
+  let animatedMesh: MeshRef | undefined
+  const animatedRotation = Quat.create()
   const update = (t: number) => {
-    setR(v => {
-      Quat.fromEuler(v, 0, 0, t / 20)
-      return v
-    })
+    if (!animatedMesh) return
+    Quat.fromEuler(animatedRotation, 0, 0, t / 20)
+    // This runs once per render frame; update the cached transform directly
+    // instead of routing the animation through a hot signal.
+    Mat4.fromRotationTranslationScale(
+      animatedMesh.matrix(),
+      animatedRotation,
+      animatedMesh.position(),
+      animatedMesh.scale()
+    )
   }
 
   const planeGeo = createPlaneGeometry()
 
   // create object3d outside canvas context
-  const x = <Mesh geometry={planeGeo} position={[-3, 0, 0]} quaternion={r()} />
+  const x = <Mesh geometry={planeGeo} ref={mesh => (animatedMesh = mesh)} position={[-3, 0, 0]} />
 
   return (
     <>

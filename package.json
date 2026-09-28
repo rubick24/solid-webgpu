@@ -2,9 +2,9 @@
   "private": true,
   "version": "1.0.0",
   "type": "module",
-  "packageManager": "pnpm@11.13.0",
+  "packageManager": "pnpm@12.6.0",
   "engines": {
-    "pnpm": ">=11 <12"
+    "pnpm": ">=12 <13"
   },
   "scripts": {
     "dev": "concurrently \"pnpm -r run --if-present --parallel watch\" \"pnpm -C examples dev\"",
@@ -15,7 +15,7 @@
     "@rollup/plugin-babel": "^6.0.4",
     "@rollup/plugin-node-resolve": "^15.3.0",
     "@rollup/plugin-replace": "^6.0.1",
-    "@types/node": "^22.10.2",
+    "@types/node": "^22.20.4",
     "@webgpu/types": "^0.1.51",
     "concurrently": "^9.1.0",
     "rollup": "^4.28.1",

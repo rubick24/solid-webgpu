@@ -1,5 +1,5 @@
 import { Vec3 } from '@rubick24/math'
-import { createEffect, untrack } from 'solid-js'
+import { createEffect, flush, untrack } from 'solid-js'
 
 import { lookAt } from './camera'
 import { CameraRef, MaybeAccessor } from './types'
@@ -35,7 +35,11 @@ export const createOrbitControl = (
 ) => {
   const center = Vec3.create()
   const _v = Vec3.create()
+  const _nextPosition = Vec3.create()
   const _pointers = new Map<number, PointerEvent>()
+  let orbitFrame = 0
+  let pendingOrbitX = 0
+  let pendingOrbitY = 0
   const ops: {
     zoom?: (scale: number) => void
     orbit?: (dx: number, dy: number) => void
@@ -164,24 +168,16 @@ export const createOrbitControl = (
   )
 
   createEffect(
-    () => {
-      const currentCamera = access(camera)
-      if (!currentCamera) return
-      return {
-        camera: currentCamera,
-        position: currentCamera.position(),
-        up: currentCamera.up()
-      }
-    },
-    values => {
-      if (!values) {
+    () => access(camera),
+    currentCamera => {
+      if (!currentCamera) {
         return
       }
-      const _camera = values.camera
+      const _camera = currentCamera
 
       untrack(() => {
         _camera.setQuaternion(v => {
-          lookAt(v, values.position, values.up, center)
+          lookAt(v, _camera.position(), _camera.up(), center)
           return v
         })
       })
@@ -197,7 +193,7 @@ export const createOrbitControl = (
         })
       }
 
-      ops.orbit = (deltaX: number, deltaY: number) => {
+      const applyOrbit = (deltaX: number, deltaY: number) => {
         const offset = Vec3.sub(_v, o3d.position(), center)
         const radius = Vec3.length(offset)
         const deltaPhi = deltaY * (opts.speed / _el!.clientHeight)
@@ -206,14 +202,44 @@ export const createOrbitControl = (
         const theta =
           clamp(opts.minTheta, opts.maxTheta, Math.atan2(offset.z, offset.x) + deltaTheta) || Number.EPSILON
 
+        Vec3.set(
+          _nextPosition,
+          Math.sin(phi) * Math.cos(theta),
+          Math.cos(phi),
+          Math.sin(phi) * Math.sin(theta)
+        )
+        _nextPosition.scale(radius).add(center)
+
+        // Solid 2 queues writes until the microtask flush. Derive the matching
+        // rotation from the target position instead of reading the still-committed
+        // position immediately after scheduling its update.
         o3d.setPosition(v => {
-          Vec3.set(v, Math.sin(phi) * Math.cos(theta), Math.cos(phi), Math.sin(phi) * Math.sin(theta))
-          v.scale(radius).add(center)
+          Vec3.set(v, _nextPosition.x, _nextPosition.y, _nextPosition.z)
           return v
         })
         _camera.setQuaternion(v => {
-          lookAt(v, _camera.position(), _camera.up(), center)
+          lookAt(v, _nextPosition, _camera.up(), center)
           return v
+        })
+      }
+
+      ops.orbit = (deltaX: number, deltaY: number) => {
+        pendingOrbitX += deltaX
+        pendingOrbitY += deltaY
+        if (orbitFrame) return
+
+        orbitFrame = requestAnimationFrame(() => {
+          orbitFrame = 0
+          const dx = pendingOrbitX
+          const dy = pendingOrbitY
+          pendingOrbitX = 0
+          pendingOrbitY = 0
+          applyOrbit(dx, dy)
+
+          // Flush the single coalesced camera write, then render in this same
+          // frame so the renderer does not add a second requestAnimationFrame.
+          flush()
+          untrack(() => _camera.scene()?.[0].renderNow?.())
         })
       }
 
@@ -227,6 +253,13 @@ export const createOrbitControl = (
           v.add(center)
           return v
         })
+      }
+
+      return () => {
+        if (orbitFrame) cancelAnimationFrame(orbitFrame)
+        orbitFrame = 0
+        pendingOrbitX = 0
+        pendingOrbitY = 0
       }
     }
   )

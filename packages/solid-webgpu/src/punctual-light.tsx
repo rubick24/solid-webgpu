@@ -43,7 +43,8 @@ export const PunctualLight = (props: PunctualLightProps) => {
       innerConeAngle:
         'innerConeAngle' in props && props.innerConeAngle !== undefined ? props.innerConeAngle : 0,
       outerConeAngle:
-        'outerConeAngle' in props && props.outerConeAngle !== undefined ? props.outerConeAngle : Math.PI / 4
+        'outerConeAngle' in props && props.outerConeAngle !== undefined ? props.outerConeAngle : Math.PI / 4,
+      invalidate: store.scene()?.[0].invalidate
     }),
     values => {
       untrack(() => {
@@ -59,22 +60,31 @@ export const PunctualLight = (props: PunctualLightProps) => {
           light.outerConeAngle = values.outerConeAngle
         })
       })
+      untrack(() => values.invalidate?.())
     }
   )
 
   createEffect(
-    () => store.scene()?.[1],
-    setScene => {
+    () => ({ setScene: store.scene()?.[1], invalidate: store.scene()?.[0].invalidate }),
+    ({ setScene, invalidate }) => {
       if (!setScene) return
       setScene(scene => {
         scene.lightList.push(id)
       })
-      return () =>
+      untrack(() => invalidate?.())
+      return () => {
         setScene(scene => {
           const index = scene.lightList.indexOf(id)
           if (index !== -1) scene.lightList.splice(index, 1)
         })
+        untrack(() => invalidate?.())
+      }
     }
+  )
+
+  createEffect(
+    () => ({ invalidate: store.scene()?.[0].invalidate, matrix: store.matrix() }),
+    ({ invalidate }) => untrack(() => invalidate?.())
   )
 
   return {
